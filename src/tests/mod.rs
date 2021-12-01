@@ -1,6 +1,6 @@
 use alloc::boxed::Box;
+use alloc::format;
 use alloc::string::{String, ToString};
-use alloc::{format, vec};
 use alloc::vec::Vec;
 use core::any::Any;
 
@@ -15,10 +15,11 @@ mod exception_instructions;
 mod overflow_exception;
 mod startup;
 mod soft_asserts;
+mod testlist;
 mod tlb;
 mod traps;
 
-enum Level {
+pub enum Level {
     // Very basic functionality - if this is broken, expect things to go bad
     BasicFunctionality,
 
@@ -29,7 +30,7 @@ enum Level {
     Weird,
 }
 
-trait Test {
+pub trait Test {
     fn name(&self) -> &str;
 
     fn level(&self) -> Level;
@@ -43,102 +44,6 @@ trait Test {
 }
 
 pub fn run() {
-    let tests: Vec<Box<dyn Test>> = vec! {
-        Box::new(startup::StartupTest {}),
-
-        Box::new(address_error_exception::UnalignedLW {}),
-        Box::new(address_error_exception::UnalignedLW2 {}),
-        Box::new(address_error_exception::UnalignedLWDelay {}),
-        Box::new(address_error_exception::UnalignedSW {}),
-        Box::new(cart_memory::LW {}),
-        Box::new(cart_memory::LH {}),
-        Box::new(cart_memory::LB {}),
-        Box::new(cart_memory::write::WriteAndReadback {}),
-        Box::new(cart_memory::write::WriteAndReadback2 {}),
-        Box::new(cart_memory::write::WriteAndReadback3 {}),
-        Box::new(cart_memory::write::WriteAndReadback4 {}),
-        Box::new(cart_memory::write::WriteAndReadback5 {}),
-        Box::new(cart_memory::write::DecayAfterSomeClockCycles {}),
-        Box::new(cart_memory::write::Write32AndReadback8 {}),
-        Box::new(cart_memory::write::Write32AndReadback16 {}),
-        Box::new(cart_memory::write::Write8AndReadback32 {}),
-        Box::new(cart_memory::write::Write16AndReadback32 {}),
-        Box::new(cart_memory::write::Write64AndReadback32 {}),
-        Box::new(cop0::ContextMasking {}),
-        Box::new(cop0::ContextMixedBitWriting {}),
-        Box::new(cop0::XContextMasking {}),
-        Box::new(cop0::XContextMaskingMixed {}),
-        Box::new(cop0::BadVAddrReadOnly {}),
-        Box::new(cop0::ExceptPCNoMasking {}),
-        Box::new(cop0::ErrorEPCNoMasking {}),
-        Box::new(cop0::LLAddrIs32Bit {}),
-        Box::new(cop0::StatusIs32Bit {}),
-        Box::new(exception_instructions::Break {}),
-        Box::new(exception_instructions::BreakDelay {}),
-        Box::new(exception_instructions::Syscall {}),
-        Box::new(exception_instructions::SyscallDelay {}),
-        Box::new(overflow_exception::AddOverflowPositive {}),
-        Box::new(overflow_exception::AddOverflowNegative {}),
-        Box::new(overflow_exception::AddOverflowIntoR0 {}),
-        Box::new(overflow_exception::AddOverflowDelaySlot1 {}),
-        Box::new(overflow_exception::AddOverflowDelaySlot2 {}),
-        Box::new(overflow_exception::DoubleAddOverflow {}),
-        Box::new(overflow_exception::DoubleAddOverflowIntoR0 {}),
-        Box::new(overflow_exception::SubOverflow {}),
-        Box::new(overflow_exception::SubOverflowIntoR0 {}),
-        Box::new(overflow_exception::DoubleSubOverflow {}),
-        Box::new(overflow_exception::DoubleSubOverflowIntoR0 {}),
-        Box::new(overflow_exception::AddImmediateOverflow {}),
-        Box::new(overflow_exception::AddImmediateOverflowIntoR0 {}),
-        Box::new(overflow_exception::DoubleAddImmediateOverflow {}),
-        Box::new(overflow_exception::DoubleAddImmediateOverflowIntoR0 {}),
-
-        Box::new(tlb::WiredRandom {}),
-        Box::new(tlb::WiredOutOfBoundsRandom {}),
-        Box::new(tlb::WriteRandomExpectIgnored {}),
-        Box::new(tlb::IndexMasking {}),
-        Box::new(tlb::EntryLo0Masking {}),
-        Box::new(tlb::EntryLo0Masking64 {}),
-        Box::new(tlb::EntryLo1Masking {}),
-        Box::new(tlb::EntryLo1Masking64 {}),
-        Box::new(tlb::EntryHiMasking {}),
-        Box::new(tlb::PageMaskMasking {}),
-        Box::new(tlb::ConfigReadWrite {}),
-        Box::new(tlb::TLBWriteReadPageMask {}),
-        Box::new(tlb::TLBWriteReadBackEntry {}),
-        Box::new(tlb::TLBUseTestRead0 {}),
-        Box::new(tlb::TLBUseTestRead1 {}),
-        Box::new(tlb::TLBUseTestReadMatchViaASID {}),
-
-        Box::new(tlb::exceptions::ReadMiss4k {}),
-        Box::new(tlb::exceptions::ReadMiss16k {}),
-        Box::new(tlb::exceptions::ReadMiss64k {}),
-        Box::new(tlb::exceptions::ReadMiss256k {}),
-        Box::new(tlb::exceptions::ReadMiss1M {}),
-        Box::new(tlb::exceptions::ReadMiss4M {}),
-        Box::new(tlb::exceptions::ReadMiss16M {}),
-        Box::new(tlb::exceptions::StoreMiss4k {}),
-        Box::new(tlb::exceptions::ReadNonValid4k {}),
-        Box::new(tlb::exceptions::StoreNonValid4k {}),
-        Box::new(tlb::exceptions::StoreNonDirty4k {}),
-        Box::new(tlb::exceptions::StoreNonDirtyAndNonValid4k {}),
-
-        Box::new(traps::TLT {}),
-        Box::new(traps::TLTU {}),
-        Box::new(traps::TGE {}),
-        Box::new(traps::TGEU {}),
-        Box::new(traps::TEQ {}),
-        Box::new(traps::TNE {}),
-        Box::new(traps::TEQI {}),
-        Box::new(traps::TNEI {}),
-        Box::new(traps::TGEI {}),
-        Box::new(traps::TGEIU {}),
-        Box::new(traps::TLTI {}),
-        Box::new(traps::TLTIU {}),
-        Box::new(traps::delay::TNEDelay1 {}),
-        Box::new(traps::delay::TNEDelay2 {}),
-    };
-
     let mut succeeded = 0;
     let mut failed = 0;
 
@@ -185,7 +90,7 @@ pub fn run() {
     }
 
     let dummy_test_value: Box<dyn Any> = Box::new(0u32);
-    for test in tests {
+    for test in testlist::tests() {
         let values = test.values();
         if values.len() == 0 {
             test_value(&test, &dummy_test_value, &mut failed, &mut succeeded);
