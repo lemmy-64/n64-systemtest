@@ -42,3 +42,7 @@ All output that is printed on screen is also printed to memory mapped registers.
 
 ## Disable tests
 While running all tests is nice once a majority passes, it can be a pain for bringup. **tests/testlist.rs** contains the list of all tests. Simply comment out some or all as needed.
+
+## acknowledgment
+This project was inspired by Peter Lemon's excellent N64 Bare Metal tests: https://github.com/PeterLemon/N64/
+Furthermore, it wouldn't have been possible without the excellent cargo-n64, which brought Rust to the N64: https://github.com/rust-console/cargo-n64
