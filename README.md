@@ -10,3 +10,6 @@ n64-systemtest is a test rom that is useful for emulator developers or anyone wh
 
 # How to build
 TODO: Describe how to build cargo-n64 and describe mini-ipl3.
+
+# How to run
+TODO: Release empty test suite for bring-up
