@@ -81,6 +81,8 @@ pub fn tests() -> Vec<Box<dyn Test>> {
         Box::new(super::tlb::exceptions::StoreNonValid4k {}),
         Box::new(super::tlb::exceptions::StoreNonDirty4k {}),
         Box::new(super::tlb::exceptions::StoreNonDirtyAndNonValid4k {}),
+        Box::new(super::tlb::exceptions::LWAddressNotSignExtended {}),
+        Box::new(super::tlb::exceptions::SWAddressNotSignExtended {}),
         Box::new(super::traps::TLT {}),
         Box::new(super::traps::TLTU {}),
         Box::new(super::traps::TGE {}),

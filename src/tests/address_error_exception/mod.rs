@@ -14,7 +14,6 @@ use crate::tests::soft_asserts::soft_assert_eq;
 // TODO: Test 16 bit
 // TODO: Test 64 bit
 // TODO: Test unsigned
-// TODO: Test address without sign extension (0x00000000_80001234)
 // TODO: Test delay slot (in that case make sure to skip 2 instructions in the exception handler)
 // TODO: Test nested exceptions (address_error_exception access while exception is already happening)
 
