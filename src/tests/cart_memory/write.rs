@@ -195,15 +195,15 @@ impl Test for DecayAfterSomeClockCycles {
         match (*value).downcast_ref::<u32>() {
             Some(&64) => {
                 const INSTRUCTION: u32 = Assembler::make_loadstore(Opcode::SD, 4, 0, 2);
-                DecayAfterSomeClockCycles::test::<INSTRUCTION, 40, 90>()?;
+                DecayAfterSomeClockCycles::test::<INSTRUCTION, 30, 100>()?;
             }
             Some(&32) => {
                 const INSTRUCTION: u32 = Assembler::make_loadstore(Opcode::SW, 4, 0, 2);
-                DecayAfterSomeClockCycles::test::<INSTRUCTION, 50, 100>()?;
+                DecayAfterSomeClockCycles::test::<INSTRUCTION, 30, 100>()?;
             }
             Some(&16) => {
                 const INSTRUCTION: u32 = Assembler::make_loadstore(Opcode::SH, 4, 0, 2);
-                DecayAfterSomeClockCycles::test::<INSTRUCTION, 50, 100>()?;
+                DecayAfterSomeClockCycles::test::<INSTRUCTION, 30, 100>()?;
             }
             Some(&8) => {
                 const INSTRUCTION: u32 = Assembler::make_loadstore(Opcode::SB, 4, 0, 2);
