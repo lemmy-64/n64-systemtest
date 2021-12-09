@@ -45,9 +45,6 @@ unsafe extern "C" fn rust_entrypoint() -> ! {
 }
 
 fn main() {
-    // Different consoles/flashcarts have somewhat different status values (e.g. soft reset might be on)
-    unsafe { crate::cop0::set_status(0x240000E0); }
-
     exception_handler::install_exception_handlers();
     let video_init = VIDEO.lock();
     video_init.init();

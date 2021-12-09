@@ -54,7 +54,7 @@ fn test_trap<const INSTRUCTION: u32>(v1: u64, v2: u64, expect_trap: bool) -> Res
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32) }, INSTRUCTION, "ExceptPC points to wrong instruction")?;
         soft_assert_eq(exception_context.cause, 0x34, "Cause")?;
-        soft_assert_eq(exception_context.status, 0x240000e2, "Status")?;
+        soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
     } else {
         trap::<INSTRUCTION>(v1, v2);
     }
@@ -90,7 +90,7 @@ fn test_trap_imm<const INSTRUCTION: u32>(v1: u64, expect_trap: bool) -> Result<(
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32) }, INSTRUCTION, "ExceptPC points to wrong instruction")?;
         soft_assert_eq(exception_context.cause, 0x34, "Cause")?;
-        soft_assert_eq(exception_context.status, 0x240000e2, "Status")?;
+        soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
     } else {
         trap_imm::<INSTRUCTION>(v1);
     }
