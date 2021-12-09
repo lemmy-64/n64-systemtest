@@ -37,7 +37,7 @@ impl Test for AddOverflowPositive {
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32) }, 0x851020, "ExceptPC points to wrong instruction")?;
         soft_assert_eq(exception_context.cause, 0x30, "Cause")?;
-        soft_assert_eq(exception_context.status, 0x240000e2, "Status")?;
+        soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
 
         Ok(())
     }
@@ -73,7 +73,7 @@ impl Test for AddOverflowNegative {
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32) }, 0x851020, "ExceptPC points to wrong instruction")?;
         soft_assert_eq(exception_context.cause, 0x30, "Cause")?;
-        soft_assert_eq(exception_context.status, 0x240000e2, "Status")?;
+        soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
 
         Ok(())
     }
@@ -107,7 +107,7 @@ impl Test for AddOverflowIntoR0 {
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32) }, 0x850020, "ExceptPC points to wrong instruction")?;
         soft_assert_eq(exception_context.cause, 0x30, "Cause")?;
-        soft_assert_eq(exception_context.status, 0x240000e2, "Status")?;
+        soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
 
         Ok(())
     }
@@ -147,7 +147,7 @@ impl Test for AddOverflowDelaySlot1 {
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32).add(1) }, 0x861020, "ExceptPC points to wrong instruction")?;
         soft_assert_eq(exception_context.cause, 0x80000030, "Cause")?;
-        soft_assert_eq(exception_context.status, 0x240000e2, "Status")?;
+        soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
 
         Ok(())
     }
@@ -187,7 +187,7 @@ impl Test for AddOverflowDelaySlot2 {
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32).add(1) }, 0xA61020, "ExceptPC points to wrong instruction")?;
         soft_assert_eq(exception_context.cause, 0x80000030, "Cause")?;
-        soft_assert_eq(exception_context.status, 0x240000e2, "Status")?;
+        soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
 
         Ok(())
     }
@@ -225,7 +225,7 @@ impl Test for DoubleAddOverflow {
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32) }, 0x85102C, "ExceptPC points to wrong instruction")?;
         soft_assert_eq(exception_context.cause, 0x30, "Cause")?;
-        soft_assert_eq(exception_context.status, 0x240000e2, "Status")?;
+        soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
 
         Ok(())
     }
@@ -261,7 +261,7 @@ impl Test for DoubleAddOverflowIntoR0 {
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32) }, 0x85002C, "ExceptPC points to wrong instruction")?;
         soft_assert_eq(exception_context.cause, 0x30, "Cause")?;
-        soft_assert_eq(exception_context.status, 0x240000e2, "Status")?;
+        soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
 
         Ok(())
     }
@@ -297,7 +297,7 @@ impl Test for SubOverflow {
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32) }, 0x851022, "ExceptPC points to wrong instruction")?;
         soft_assert_eq(exception_context.cause, 0x30, "Cause")?;
-        soft_assert_eq(exception_context.status, 0x240000e2, "Status")?;
+        soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
 
         Ok(())
     }
@@ -331,7 +331,7 @@ impl Test for SubOverflowIntoR0 {
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32) }, 0x850022, "ExceptPC points to wrong instruction")?;
         soft_assert_eq(exception_context.cause, 0x30, "Cause")?;
-        soft_assert_eq(exception_context.status, 0x240000e2, "Status")?;
+        soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
 
         Ok(())
     }
@@ -369,7 +369,7 @@ impl Test for DoubleSubOverflow {
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32) }, 0x85102E, "ExceptPC points to wrong instruction")?;
         soft_assert_eq(exception_context.cause, 0x30, "Cause")?;
-        soft_assert_eq(exception_context.status, 0x240000e2, "Status")?;
+        soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
 
         Ok(())
     }
@@ -405,7 +405,7 @@ impl Test for DoubleSubOverflowIntoR0 {
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32) }, 0x85002E, "ExceptPC points to wrong instruction")?;
         soft_assert_eq(exception_context.cause, 0x30, "Cause")?;
-        soft_assert_eq(exception_context.status, 0x240000e2, "Status")?;
+        soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
 
         Ok(())
     }
@@ -440,7 +440,7 @@ impl Test for AddImmediateOverflow {
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32) }, 0x20820001, "ExceptPC points to wrong instruction")?;
         soft_assert_eq(exception_context.cause, 0x30, "Cause")?;
-        soft_assert_eq(exception_context.status, 0x240000e2, "Status")?;
+        soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
 
         Ok(())
     }
@@ -473,7 +473,7 @@ impl Test for AddImmediateOverflowIntoR0 {
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32) }, 0x20800001, "ExceptPC points to wrong instruction")?;
         soft_assert_eq(exception_context.cause, 0x30, "Cause")?;
-        soft_assert_eq(exception_context.status, 0x240000e2, "Status")?;
+        soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
 
         Ok(())
     }
@@ -517,7 +517,7 @@ impl Test for DoubleAddImmediateOverflow {
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32) }, 0x60C20001, "ExceptPC points to wrong instruction")?;
         soft_assert_eq(exception_context.cause, 0x30, "Cause")?;
-        soft_assert_eq(exception_context.status, 0x240000e2, "Status")?;
+        soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
 
         Ok(())
     }
@@ -559,7 +559,7 @@ impl Test for DoubleAddImmediateOverflowIntoR0 {
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32) }, 0x60C00001, "ExceptPC points to wrong instruction")?;
         soft_assert_eq(exception_context.cause, 0x30, "Cause")?;
-        soft_assert_eq(exception_context.status, 0x240000e2, "Status")?;
+        soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
 
         Ok(())
     }

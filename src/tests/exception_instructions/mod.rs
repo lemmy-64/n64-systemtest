@@ -33,7 +33,7 @@ impl Test for Break {
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(((unsafe { *(exception_context.exceptpc as *const u32) }) >> 16) & 0x3FF, 0x319, "ExceptPC points to wrong instruction")?;
         soft_assert_eq(exception_context.cause, 0x24, "Cause")?;
-        soft_assert_eq(exception_context.status, 0x240000e2, "Status")?;
+        soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
 
         Ok(())
     }
@@ -69,7 +69,7 @@ impl Test for BreakDelay {
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(((unsafe { *(exception_context.exceptpc as *const u32).add(1) }) >> 16) & 0x3FF, 0x319, "ExceptPC points to wrong instruction")?;
         soft_assert_eq(exception_context.cause, 0x80000024, "Cause")?;
-        soft_assert_eq(exception_context.status, 0x240000e2, "Status")?;
+        soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
 
         Ok(())
     }
@@ -100,7 +100,7 @@ impl Test for Syscall {
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(((unsafe { *(exception_context.exceptpc as *const u32) }) >> 6) & 0xFFFFF, 0xF123F, "ExceptPC points to wrong instruction")?;
         soft_assert_eq(exception_context.cause, 0x20, "Cause")?;
-        soft_assert_eq(exception_context.status, 0x240000e2, "Status")?;
+        soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
 
         Ok(())
     }
@@ -136,7 +136,7 @@ impl Test for SyscallDelay {
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(((unsafe { *(exception_context.exceptpc as *const u32).add(1) }) >> 6) & 0xFFFFF, 0xF123F, "ExceptPC points to wrong instruction")?;
         soft_assert_eq(exception_context.cause, 0x80000020, "Cause")?;
-        soft_assert_eq(exception_context.status, 0x240000e2, "Status")?;
+        soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
 
         Ok(())
     }

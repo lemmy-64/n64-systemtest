@@ -68,7 +68,14 @@ pub fn run() {
             return "(value)".to_string();
         }
 
+        // Kernel mode, erl/exl off. 32 bit addressing mode. Tests that want to test something else
+        // will have to set that themselves
+        unsafe { crate::cop0::set_status(0x24000000); }
+
         let test_result = test.run(&value);
+
+        unsafe { crate::cop0::set_status(0x24000000); }
+
         match drain_seen_exception() {
             Some(exception) => {
                 // If the test caused an exception, don't even bother looking at the result. Just count it as failed
