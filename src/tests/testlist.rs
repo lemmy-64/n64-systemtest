@@ -40,6 +40,8 @@ pub fn tests() -> Vec<Box<dyn Test>> {
         Box::new(super::exception_instructions::BreakDelay {}),
         Box::new(super::exception_instructions::Syscall {}),
         Box::new(super::exception_instructions::SyscallDelay {}),
+        Box::new(super::jumps::jalr::JALRSimple {}),
+        Box::new(super::jumps::jalr::JALRWithSameRegister {}),
         Box::new(super::overflow_exception::AddOverflowPositive {}),
         Box::new(super::overflow_exception::AddOverflowNegative {}),
         Box::new(super::overflow_exception::AddOverflowIntoR0 {}),
