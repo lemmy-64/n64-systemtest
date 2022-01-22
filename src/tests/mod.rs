@@ -12,6 +12,7 @@ mod address_error_exception;
 mod cart_memory;
 mod cop0;
 mod exception_instructions;
+mod jumps;
 mod overflow_exception;
 mod startup;
 mod soft_asserts;
