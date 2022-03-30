@@ -16,6 +16,7 @@ mod jumps;
 mod overflow_exception;
 mod startup;
 mod soft_asserts;
+mod sp_memory;
 mod testlist;
 mod tlb;
 mod traps;
