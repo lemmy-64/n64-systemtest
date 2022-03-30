@@ -1,5 +1,5 @@
 # An IPL3 that runs in an emulator that doesn't require initialization
-ipl3 = mini-ipl3/mini-ipl3
+ipl3 = mini-ipl3/ipl3
 
 .PHONY: mini-ipl3
 
@@ -13,9 +13,9 @@ mini-ipl3:
 	bass $(ipl3).s
 
 install-dependencies:
-	rustup install nightly-2021-10-30
-	rustup run nightly-2021-10-30  -- rustup component add rust-src
-	rustup default nightly-2021-10-30
+	rustup install nightly-2022-03-27
+	rustup run nightly-2022-03-27  -- rustup component add rust-src
+	rustup default nightly-2022-03-27
 	git submodule init
 	git submodule update
 	cd external/cargo-n64 && cargo install --path cargo-n64

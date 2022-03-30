@@ -5,6 +5,7 @@ use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 use core::any::Any;
+use core::arch::asm;
 use crate::assembler::{Assembler, RegimmOpcode, SpecialOpcode};
 use crate::cop0::CauseException;
 use crate::exception_handler::expect_exception;

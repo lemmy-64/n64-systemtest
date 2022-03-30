@@ -1,14 +1,16 @@
 #![no_std]
 #![feature(alloc_error_handler)]
-#![feature(asm)]
-#![deny(unsafe_op_in_unsafe_fn)]
-#![feature(const_fn_trait_bound)]
-#![feature(global_asm)]
-#![feature(type_name_of_val)]
+#![feature(asm_const)]
+#![feature(asm_experimental_arch)]
+#![feature(asm_sym)]
 #![feature(naked_functions)]
+#![feature(type_name_of_val)]
+#![deny(unsafe_op_in_unsafe_fn)]
 #![no_main]
 
 extern crate alloc;
+
+use core::arch::global_asm;
 
 use spinning_top::Spinlock;
 

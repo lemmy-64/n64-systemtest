@@ -4,6 +4,7 @@ use crate::tests::{Level, Test};
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::any::Any;
+use core::arch::asm;
 use crate::assembler::{Assembler, Opcode};
 use crate::MemoryMap;
 use crate::tests::soft_asserts::{soft_assert_eq, soft_assert_neq};
