@@ -3,6 +3,7 @@ use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::any::Any;
+use core::arch::asm;
 use core::cmp::min;
 
 use crate::cop0;

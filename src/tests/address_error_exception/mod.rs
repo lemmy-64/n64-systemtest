@@ -2,6 +2,7 @@ use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::any::Any;
+use core::arch::asm;
 use crate::cop0;
 use crate::cop0::CauseException;
 use crate::exception_handler::expect_exception;
