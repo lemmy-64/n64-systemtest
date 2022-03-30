@@ -1,9 +1,11 @@
 use alloc::boxed::Box;
-use crate::tests::{Level, Test};
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::any::Any;
+use core::arch::asm;
+
 use crate::MemoryMap;
+use crate::tests::{Level, Test};
 use crate::tests::soft_asserts::soft_assert_eq;
 
 // Write/reading from SPMEM:
@@ -55,21 +57,20 @@ impl Test for SH {
             spmem.add(2).write_volatile(0xABABABAB);
         }
 
-        let spmem_16 = MemoryMap::uncached_spmem_address::<u16>(0x0);
         unsafe {
-            // Write to upper half
-            spmem_16.add(0).write_volatile(0x8123);
+            asm!("
+                .set noat
+                .set noreorder
 
-            // Write to lower half (highest bit one)
-            spmem_16.add(3).write_volatile(0x8123);
-
-            // Write to lower half (highest bit zero)
-            spmem_16.add(5).write_volatile(0x0123);
+                LUI $3, 0x1234
+                ORI $3, $3, 0x5678
+                SH $3, 0($2)
+                SH $3, 6($2)
+            ", in("$2") spmem, out("$3") _)
         }
 
-        soft_assert_eq(unsafe { spmem.add(0).read_volatile() }, 0x81230000, "Reading 32 bit from SPMEM[0]")?;
-        soft_assert_eq(unsafe { spmem.add(1).read_volatile() }, 0x8123, "Reading 32 bit from SPMEM[4]")?;
-        soft_assert_eq(unsafe { spmem.add(2).read_volatile() }, 0x0123, "Reading 32 bit from SPMEM[8]")?;
+        soft_assert_eq(unsafe { spmem.add(0).read_volatile() }, 0x56780000, "Reading 32 bit from SPMEM[0]")?;
+        soft_assert_eq(unsafe { spmem.add(1).read_volatile() }, 0x12345678, "Reading 32 bit from SPMEM[4]")?;
         Ok(())
     }
 }
@@ -88,33 +89,30 @@ impl Test for SB {
 
         // Preset the memory area
         unsafe {
-            spmem.add(0).write_volatile(0xDEADBEEF);
-            spmem.add(1).write_volatile(0xBADDECAF);
-            spmem.add(2).write_volatile(0xABABABAB);
-            spmem.add(3).write_volatile(0xCDCDCDCD);
-            spmem.add(4).write_volatile(0xDEDEDEDE);
-            spmem.add(5).write_volatile(0xEFEFEFEF);
+            spmem.add(0).write_volatile(0);
+            spmem.add(1).write_volatile(0);
+            spmem.add(2).write_volatile(0);
+            spmem.add(3).write_volatile(0);
         }
 
-        let spmem_8 = MemoryMap::uncached_spmem_address::<u8>(0x0);
         unsafe {
-            // Write to 1st value
-            spmem_8.add(0).write_volatile(0x81);
+            asm!("
+                .set noat
+                .set noreorder
 
-            // Write to 2nd value
-            spmem_8.add(5).write_volatile(0x81);
-
-            // Write to 3rd value
-            spmem_8.add(10).write_volatile(0x81);
-
-            // Write to 4th value
-            spmem_8.add(15).write_volatile(0x81);
+                LUI $3, 0x1234
+                ORI $3, $3, 0x5678
+                SB $3, 0($2)
+                SB $3, 5($2)
+                SB $3, 10($2)
+                SB $3, 15($2)
+            ", in("$2") spmem, out("$3") _)
         }
 
-        soft_assert_eq(unsafe { spmem.add(0).read_volatile() }, 0x81000000, "Reading 32 bit from SPMEM[0]")?;
-        soft_assert_eq(unsafe { spmem.add(1).read_volatile() }, 0x00810000, "Reading 32 bit from SPMEM[4]")?;
-        soft_assert_eq(unsafe { spmem.add(2).read_volatile() }, 0x00008100, "Reading 32 bit from SPMEM[8]")?;
-        soft_assert_eq(unsafe { spmem.add(3).read_volatile() }, 0x00000081, "Reading 32 bit from SPMEM[12]")?;
+        soft_assert_eq(unsafe { spmem.add(0).read_volatile() }, 0x78000000, "Reading 32 bit from SPMEM[0]")?;
+        soft_assert_eq(unsafe { spmem.add(1).read_volatile() }, 0x56780000, "Reading 32 bit from SPMEM[4]")?;
+        soft_assert_eq(unsafe { spmem.add(2).read_volatile() }, 0x34567800, "Reading 32 bit from SPMEM[8]")?;
+        soft_assert_eq(unsafe { spmem.add(3).read_volatile() }, 0x12345678, "Reading 32 bit from SPMEM[12]")?;
         Ok(())
     }
 }
@@ -249,4 +247,3 @@ impl Test for SWOutOfBounds {
         Ok(())
     }
 }
-
