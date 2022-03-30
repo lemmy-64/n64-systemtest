@@ -1,3 +1,4 @@
+use core::arch::asm;
 use core::ops::{Deref, DerefMut};
 
 use spinning_top::Spinlock;
@@ -18,9 +19,7 @@ static SEEN_EXCEPTION: Spinlock<Option<Context>> = Spinlock::new(None);
 // TODO: named labels (like exception_handler_000_start) raise a warning. Our usage should be fine,
 // as we only use them to calculate a delta and as we only use it within [naked] functions.
 // However, we should rewrite the code so that we don't have to disable the warning named_asm_labels
-// Options:
-// a) Find a way to get the size of a function (couldn't find anything so far)
-// b) Switch to global_asm! , like in aarch64
+// Switching to global_asm would be an option here
 
 #[allow(named_asm_labels)]
 // This code will be copied to 0x80000000.
