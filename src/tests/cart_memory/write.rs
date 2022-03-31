@@ -196,19 +196,19 @@ impl Test for DecayAfterSomeClockCycles {
         match (*value).downcast_ref::<u32>() {
             Some(&64) => {
                 const INSTRUCTION: u32 = Assembler::make_loadstore(Opcode::SD, 4, 0, 2);
-                DecayAfterSomeClockCycles::test::<INSTRUCTION, 10, 100>()?;
+                DecayAfterSomeClockCycles::test::<INSTRUCTION, 10, 110>()?;
             }
             Some(&32) => {
                 const INSTRUCTION: u32 = Assembler::make_loadstore(Opcode::SW, 4, 0, 2);
-                DecayAfterSomeClockCycles::test::<INSTRUCTION, 10, 100>()?;
+                DecayAfterSomeClockCycles::test::<INSTRUCTION, 10, 110>()?;
             }
             Some(&16) => {
                 const INSTRUCTION: u32 = Assembler::make_loadstore(Opcode::SH, 4, 0, 2);
-                DecayAfterSomeClockCycles::test::<INSTRUCTION, 10, 100>()?;
+                DecayAfterSomeClockCycles::test::<INSTRUCTION, 10, 110>()?;
             }
             Some(&8) => {
                 const INSTRUCTION: u32 = Assembler::make_loadstore(Opcode::SB, 4, 0, 2);
-                DecayAfterSomeClockCycles::test::<INSTRUCTION, 10, 100>()?;
+                DecayAfterSomeClockCycles::test::<INSTRUCTION, 10, 110>()?;
             }
             _ => {
                 return Err("Value is not valid".to_string())
@@ -276,6 +276,38 @@ impl Test for Write8AndReadback32 {
         unsafe { (0xB000_0000usize as *mut u8).write_volatile(0xBA) }
         unsafe { p_cart.write_volatile(0xDECAF) }
         soft_assert_eq(unsafe { p_cart.read_volatile() }, 0xBA000000, "Reading first time from cart after writing")?;
+        soft_assert_eq(unsafe { p_cart.read_volatile() }, 0x01234567, "Reading second time from cart after writing")?;
+
+        Ok(())
+    }
+}
+
+pub struct Write8WithOffsetAndReadback32 {}
+
+impl Test for Write8WithOffsetAndReadback32 {
+    fn name(&self) -> &str { "cart-writing: Write8 (with offset), Read32" }
+
+    fn level(&self) -> Level { Level::Weird }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        let p_cart = MemoryMap::uncached_cart_address(&DATA[0] as *const u64 as *const u32) as *mut u32;
+
+        unsafe {
+            asm!("
+                .set noat
+                .set noreorder
+
+                LUI $2, 0xB000
+                LUI $3, 0x1234
+                ORI $3, $3, 0x56BA
+                SB $3, 1($2)
+            ", out("$2") _, out("$3") _)
+        }
+
+        unsafe { p_cart.write_volatile(0xDECAF) }
+        soft_assert_eq(unsafe { p_cart.read_volatile() }, 0x56BA0000, "Reading first time from cart after writing")?;
         soft_assert_eq(unsafe { p_cart.read_volatile() }, 0x01234567, "Reading second time from cart after writing")?;
 
         Ok(())
