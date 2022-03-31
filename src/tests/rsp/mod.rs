@@ -7,6 +7,7 @@ use crate::tests::{Level, Test};
 use crate::tests::soft_asserts::soft_assert_eq;
 
 pub mod op_break;
+pub mod wrap_around;
 
 // Ensure that the PC reg is properly masked with 0xFFC when being written to
 pub struct PCRegMasking {
