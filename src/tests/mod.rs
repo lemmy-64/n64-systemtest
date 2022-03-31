@@ -22,6 +22,7 @@ mod testlist;
 mod tlb;
 mod traps;
 
+#[derive(Eq, PartialEq)]
 pub enum Level {
     // Very basic functionality - if this is broken, expect things to go bad
     BasicFunctionality,
@@ -31,6 +32,9 @@ pub enum Level {
 
     // Some weird hardware quirk - this probably won't matter too much
     Weird,
+
+    // Some hardware quirk that is so weird that the test won't be run by default
+    TooWeird,
 }
 
 pub trait Test {
@@ -48,9 +52,10 @@ pub trait Test {
 
 pub fn run() {
     let mut succeeded = 0;
+    let mut skipped = 0;
     let mut failed = 0;
 
-    fn test_value(test: &Box<dyn Test>, value: &Box::<dyn Any>, failed: &mut u32, succeeded: &mut u32) {
+    fn test_value(test: &Box<dyn Test>, value: &Box::<dyn Any>, failed: &mut u32, succeeded: &mut u32, skipped: &mut u32) {
         fn value_desc(value: &Box<dyn Any>) -> String {
             match (*value).downcast_ref::<u32>() {
                 Some(v) => return format!("{:?}", v),
@@ -71,28 +76,32 @@ pub fn run() {
             return "(value)".to_string();
         }
 
-        // Kernel mode, erl/exl off. 32 bit addressing mode. Tests that want to test something else
-        // will have to set that themselves
-        unsafe { crate::cop0::set_status(0x24000000); }
+        if test.level() == Level::TooWeird {
+            *skipped += 1
+        } else {
+            // Kernel mode, erl/exl off. 32 bit addressing mode. Tests that want to test something else
+            // will have to set that themselves
+            unsafe { crate::cop0::set_status(0x24000000); }
 
-        let test_result = test.run(&value);
+            let test_result = test.run(&value);
 
-        unsafe { crate::cop0::set_status(0x24000000); }
+            unsafe { crate::cop0::set_status(0x24000000); }
 
-        match drain_seen_exception() {
-            Some(exception) => {
-                // If the test caused an exception, don't even bother looking at the result. Just count it as failed
-                crate::println!("Test \"{:?}\' with '{:?}' failed with exception: {:?}", test.name(), value_desc(value), cause_extract_exception(exception.cause));
-                *failed += 1;
-            }
-            None => {
-                match test_result {
-                    Ok(_) => {
-                        *succeeded += 1
-                    }
-                    Err(error) => {
-                        crate::println!("Test \"{:?}\' with '{:?}' failed: {}", test.name(), value_desc(value), error);
-                        *failed += 1;
+            match drain_seen_exception() {
+                Some(exception) => {
+                    // If the test caused an exception, don't even bother looking at the result. Just count it as failed
+                    crate::println!("Test \"{:?}\' with '{:?}' failed with exception: {:?}", test.name(), value_desc(value), cause_extract_exception(exception.cause));
+                    *failed += 1;
+                }
+                None => {
+                    match test_result {
+                        Ok(_) => {
+                            *succeeded += 1
+                        }
+                        Err(error) => {
+                            crate::println!("Test \"{:?}\' with '{:?}' failed: {}", test.name(), value_desc(value), error);
+                            *failed += 1;
+                        }
                     }
                 }
             }
@@ -103,10 +112,10 @@ pub fn run() {
     for test in testlist::tests() {
         let values = test.values();
         if values.len() == 0 {
-            test_value(&test, &dummy_test_value, &mut failed, &mut succeeded);
+            test_value(&test, &dummy_test_value, &mut failed, &mut succeeded, &mut skipped);
         } else {
             for value in values {
-                test_value(&test, &value, &mut failed, &mut succeeded);
+                test_value(&test, &value, &mut failed, &mut succeeded, &mut skipped);
             }
         }
     }
@@ -115,7 +124,7 @@ pub fn run() {
     if (failed + succeeded) == 0 {
         crate::println!("Done, but no tests were executed");
     } else {
-        crate::println!("Done! Tests: {}. Failed: {}. Success rate: {}%", failed + succeeded, failed, succeeded * 100 / (failed + succeeded));
+        crate::println!("Done! Tests: {}. Failed: {}. Success rate: {}%. Skipped {} tests", failed + succeeded, failed, succeeded * 100 / (failed + succeeded), skipped);
     }
 
 }
