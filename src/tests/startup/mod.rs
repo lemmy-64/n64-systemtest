@@ -1,8 +1,10 @@
 use alloc::boxed::Box;
-use crate::tests::{Level, Test};
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::any::Any;
+
+use crate::rsp::rsp::RSP;
+use crate::tests::{Level, Test};
 use crate::tests::soft_asserts::{soft_assert_eq, soft_assert_less};
 
 pub struct StartupTest {}
@@ -40,6 +42,10 @@ impl Test for StartupTest {
         // Status is initialized in main(), so this test isn't too valuable
         soft_assert_eq(crate::cop0::status(), 0x24000000, "COP0 Status")?;
         soft_assert_eq(crate::cop0::status_64(), 0x24000000, "COP0 Status (DMFC0)")?;
+
+        // RSP Status
+        soft_assert_eq(RSP::status(), 0x1, "RSP STATUS")?;
+        soft_assert_eq(RSP::pc(), 0x0, "RSP PC")?;
 
         Ok(())
     }

@@ -25,6 +25,7 @@ mod graphics;
 mod isviewer;
 mod panic;
 mod print;
+mod rsp;
 mod tests;
 mod memory_map;
 mod enum_str;

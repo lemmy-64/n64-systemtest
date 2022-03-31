@@ -15,6 +15,7 @@ mod exception_instructions;
 mod jumps;
 mod overflow_exception;
 mod pif_memory;
+mod rsp;
 mod startup;
 mod soft_asserts;
 mod sp_memory;

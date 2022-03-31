@@ -7,6 +7,7 @@ use crate::tests::Test;
 pub fn tests() -> Vec<Box<dyn Test>> {
     vec! {
         Box::new(super::startup::StartupTest {}),
+        Box::new(super::rsp::op_break::BREAK {}),
         Box::new(super::address_error_exception::UnalignedLW {}),
         Box::new(super::address_error_exception::UnalignedLW2 {}),
         Box::new(super::address_error_exception::UnalignedLWDelay {}),
