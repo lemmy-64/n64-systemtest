@@ -8,7 +8,7 @@ use crate::rsp::rsp_assembler::RSPAssembler;
 use crate::tests::{Level, Test};
 use crate::tests::soft_asserts::soft_assert_eq;
 
-// Send over a single BREAK to the RSP, execute it and wait until the RSP is done
+// Send over a NOP and BREAK to the RSP, execute them and wait until the RSP is done
 pub struct BREAK {
 
 }
@@ -27,8 +27,8 @@ impl Test for BREAK {
 
         RSP::run_and_wait(0);
 
-        soft_assert_eq(RSP::pc(), 0x8, "RSP PC isn't as expected afterwards")?;
-        soft_assert_eq(RSP::status(), 0x3, "RSP STATUS isn't as expected running")?;
+        soft_assert_eq(RSP::pc(), 0x8, "RSP PC isn't as expected after running")?;
+        soft_assert_eq(RSP::status(), 0x3, "RSP STATUS isn't as expected after running")?;
 
         RSP::clear_broke();
 

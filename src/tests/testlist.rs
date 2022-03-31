@@ -7,7 +7,6 @@ use crate::tests::Test;
 pub fn tests() -> Vec<Box<dyn Test>> {
     vec! {
         Box::new(super::startup::StartupTest {}),
-        Box::new(super::rsp::op_break::BREAK {}),
         Box::new(super::address_error_exception::UnalignedLW {}),
         Box::new(super::address_error_exception::UnalignedLW2 {}),
         Box::new(super::address_error_exception::UnalignedLWDelay {}),
@@ -85,6 +84,7 @@ pub fn tests() -> Vec<Box<dyn Test>> {
         Box::new(super::pif_memory::SB {}),
         Box::new(super::pif_memory::LB {}),
         Box::new(super::pif_memory::LH {}),
+        Box::new(super::rsp::op_break::BREAK {}),
         Box::new(super::sp_memory::SW {}),
         Box::new(super::sp_memory::SWOutOfBounds {}),
         Box::new(super::sp_memory::SH {}),
