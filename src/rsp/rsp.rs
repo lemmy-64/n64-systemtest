@@ -32,7 +32,7 @@ impl RSP {
         unsafe { SP_BASE_REG.add(RegisterOffset::Status as usize >> 2).write_volatile(value) }
     }
 
-    fn set_pc(value: u32) {
+    pub fn set_pc(value: u32) {
         unsafe { SP_PC_REG.write_volatile(value) }
     }
 
@@ -40,8 +40,8 @@ impl RSP {
         unsafe { SP_PC_REG.read_volatile() }
     }
 
-    pub fn run(start_offset: u32) {
-        Self::set_pc(start_offset);
+    pub fn run(pc: u32) {
+        Self::set_pc(pc);
 
         // Clear status and clear interrupt just in case
         Self::set_status(SP_STATUS_SET_CLEAR_HALT |
@@ -55,8 +55,8 @@ impl RSP {
         }
     }
 
-    pub fn run_and_wait(start_offset: u32) {
-        Self::run(start_offset);
+    pub fn run_and_wait(pc: u32) {
+        Self::run(pc);
         Self::wait_until_done();
     }
 

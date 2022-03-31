@@ -84,6 +84,7 @@ pub fn tests() -> Vec<Box<dyn Test>> {
         Box::new(super::pif_memory::SB {}),
         Box::new(super::pif_memory::LB {}),
         Box::new(super::pif_memory::LH {}),
+        Box::new(super::rsp::PCRegMasking {}),
         Box::new(super::rsp::op_break::BREAK {}),
         Box::new(super::sp_memory::SW {}),
         Box::new(super::sp_memory::SWOutOfBounds {}),

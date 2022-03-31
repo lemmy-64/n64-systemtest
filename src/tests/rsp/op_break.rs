@@ -20,7 +20,7 @@ impl Test for BREAK {
 
     fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 
-    fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
         let mut assembler = RSPAssembler::new(0);
         assembler.write_nop();
         assembler.write_break();
