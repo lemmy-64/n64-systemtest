@@ -16,6 +16,7 @@ impl MemoryMap {
     pub const HEAP_END_VIRTUAL_UNCACHED: usize = 0xA000_0000 | MemoryMap::HEAP_END;
 
     pub const PHYSICAL_SPMEM_BASE: usize = 0x0400_0000;
+    pub const PHYSICAL_PIFRAM_BASE: usize = 0x1FC0_07C0;
 
     /// Call very early (before setting up exception handlers) during boot to set memory size
     pub(super) fn init() {
@@ -54,7 +55,11 @@ impl MemoryMap {
         (address | 0xA000_0000) as *mut T
     }
 
-    pub fn uncached_spmem_address<T>(sp_address: usize) -> *mut T {
-        Self::physical_to_uncached_mut::<T>(Self::PHYSICAL_SPMEM_BASE + sp_address)
+    pub fn uncached_spmem_address<T>(offset: usize) -> *mut T {
+        Self::physical_to_uncached_mut::<T>(Self::PHYSICAL_SPMEM_BASE + offset)
+    }
+
+    pub fn uncached_pifram_address<T>(offset: usize) -> *mut T {
+        Self::physical_to_uncached_mut::<T>(Self::PHYSICAL_PIFRAM_BASE + offset)
     }
 }
