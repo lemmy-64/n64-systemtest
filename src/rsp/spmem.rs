@@ -3,23 +3,40 @@ use crate::MemoryMap;
 pub struct SPMEM {}
 
 impl SPMEM {
-    pub fn write<T>(addr: usize, value: T) {
+    pub fn write(addr: usize, value: u32) {
         if addr < 0x2000 {
-            let spmem = MemoryMap::uncached_spmem_address::<T>(addr);
+            let spmem = MemoryMap::uncached_spmem_address::<u32>(addr);
             unsafe {
                 spmem.write_volatile(value);
             }
         }
     }
 
-    pub fn read<T: Default>(addr: usize) -> T {
+    pub fn write_vector_16(addr: usize, vec: &[u16; 8]) {
+        for i in 0..4 {
+            Self::write(addr + (i << 2), ((vec[i << 1] as u32) << 16) | (vec[(i << 1) + 1] as u32));
+        }
+    }
+
+    pub fn read(addr: usize) -> u32 {
         if addr < 0x2000 {
-            let spmem = MemoryMap::uncached_spmem_address::<T>(addr);
+            let spmem = MemoryMap::uncached_spmem_address::<u32>(addr);
             unsafe {
                 spmem.read_volatile()
             }
         } else {
-            T::default()
+            0
         }
     }
+
+    pub fn read_vector_16(addr: usize) -> [u16; 8] {
+        let mut vec: [u16; 8] = Default::default();
+        for i in 0..4 {
+            let v = Self::read(addr + (i << 2));
+            vec[(i << 1)] = (v >> 16) as u16;
+            vec[(i << 1) + 1] = v as u16;
+        }
+        vec
+    }
+
 }

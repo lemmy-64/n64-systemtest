@@ -1,12 +1,12 @@
 use alloc::format;
 use alloc::string::String;
-use core::fmt::{Display, LowerHex};
+use core::fmt::{Debug, Display, LowerHex};
 
-pub fn soft_assert_eq<T: Display + LowerHex + PartialEq + Eq>(v1: T, v2: T, help: &str) -> Result<(), String> {
+pub fn soft_assert_eq<T: Debug + PartialEq + Eq>(v1: T, v2: T, help: &str) -> Result<(), String> {
     if v1 == v2 {
         Ok(())
     } else {
-        Err(format!("a == b expected, but a={} b={} (hex: a=0x{:x} b=0x{:x}). {}", v1, v2, v1, v2, help))
+        Err(format!("a == b expected, but a={:?} b={:?} (hex: a=0x{:x?} b=0x{:x?}). {}", v1, v2, v1, v2, help))
     }
 }
 

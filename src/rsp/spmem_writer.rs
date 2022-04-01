@@ -11,8 +11,8 @@ impl SPMEMWriter {
         Self { offset: start_offset }
     }
 
-    pub fn write<T>(&mut self, value: T) {
+    pub fn write(&mut self, value: u32) {
         SPMEM::write(self.offset, value);
-        self.offset += size_of::<T>();
+        self.offset += size_of::<u32>();
     }
 }

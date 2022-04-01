@@ -6,6 +6,7 @@ use crate::tests::Test;
 
 pub fn tests() -> Vec<Box<dyn Test>> {
     vec! {
+        // This should be the overall first test
         Box::new(super::startup::StartupTest {}),
         Box::new(super::address_error_exception::UnalignedLW {}),
         Box::new(super::address_error_exception::UnalignedLW2 {}),
@@ -84,9 +85,14 @@ pub fn tests() -> Vec<Box<dyn Test>> {
         Box::new(super::pif_memory::SB {}),
         Box::new(super::pif_memory::LB {}),
         Box::new(super::pif_memory::LH {}),
+        // This should be RSP test #1
         Box::new(super::rsp::PCRegMasking {}),
+        // This should be RSP test #2
         Box::new(super::rsp::op_break::BREAK {}),
+        // This should be RSP test #3
         Box::new(super::rsp::wrap_around::WrapAround {}),
+        // This should be RSP test #4
+        Box::new(super::rsp::op_lqv_sqv::LQVSQV {}),
         Box::new(super::sp_memory::SW {}),
         Box::new(super::sp_memory::SWOutOfBounds {}),
         Box::new(super::sp_memory::SH {}),
