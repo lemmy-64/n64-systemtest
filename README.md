@@ -9,13 +9,13 @@ n64-systemtest is a test rom that is useful for emulator developers or anyone wh
 5) Open source Rust: Everything that is used to produce the final rom is open-source, written in Rust.
 
 # Status
-n64-systemtest tests common but also some of the more exotic features of the MIPS CPU:
+n64-systemtest tests common but also some of the more exotic features of the N64:
 - MFC0/DMFC0/MTC0/DMTC0: Some registers (e.g. EntryHi, BadVAddr) are expected to be 64 bit
 - LLD/LD/SC/SCD
-- TRAP instructions, BREAK, SYSCALL
+- Exceptions: Overflow (ADD, DADD etc), unaligned memory access (e.g. LW), TRAP instructions, BREAK, SYSCALL
 - TLB
-- Exceptions: Overflow (ADD, DADD etc), unaligned memory access (e.g. LW)
-- Reading from and writing to ROM
+- Access (8, 16, 32, 64 bit) to RAM, ROM, SPMEM, PIF
+- RSP (going very deep but little coverage so far)
 
 # How to build
 n64-systemtest can be built on Windows, mac or Linux (including within WSL). The steps are pretty much the same.
