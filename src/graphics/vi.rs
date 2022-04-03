@@ -73,7 +73,16 @@ impl Video {
     fn activate_frontbuffer(&self) {
         let mut frontbuffer_lock = self.framebuffers.frontbuffer().lock();
         if let Some(frontbuffer) = frontbuffer_lock.as_mut() {
-            let dram_address = ((frontbuffer.pixels_mut().as_ptr() as u32) & 0x1FFF_FFFF) | 0xA000_0000;
+            let pixels = frontbuffer.pixels_mut();
+            let ptr = pixels.as_ptr();
+            let dram_address = ((ptr as u32) & 0x1FFF_FFFF) | 0xA000_0000;
+
+            // The framebuffer is accessed cached by the CPU, so invalidate it now
+            for i in (0..pixels.len()).step_by(8) {
+                unsafe {
+                    crate::cop0::cache::<0b001, 0>(ptr.add(i) as usize);
+                }
+            }
 
             unsafe {
                 VI_BASE_REG.add(RegisterOffset::DRAMAddress as usize >> 2).write_volatile(dram_address);

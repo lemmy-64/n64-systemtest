@@ -55,10 +55,7 @@ fn main() {
     drop(video_init);
     tests::run();
 
-    loop {
-        // TODO: Wait for vsync
-        let v = VIDEO.lock();
-        graphics::framebuffer_console::INSTANCE.lock().render(v.framebuffers().backbuffer().lock().as_mut().unwrap());
-        v.swap_buffers();
-    }
+    let v = VIDEO.lock();
+    graphics::framebuffer_console::INSTANCE.lock().render(v.framebuffers().backbuffer().lock().as_mut().unwrap());
+    v.swap_buffers();
 }
