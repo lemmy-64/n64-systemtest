@@ -36,6 +36,9 @@ pub enum Level {
 
     // Some hardware quirk that is so weird that the test won't be run by default
     TooWeird,
+
+    // Basic functionality, but extremely slow so not run by default
+    StressTest,
 }
 
 pub trait Test {

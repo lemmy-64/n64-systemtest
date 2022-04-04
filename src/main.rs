@@ -36,11 +36,8 @@ static VIDEO: Spinlock<Video> = Spinlock::new(graphics::vi::Video::new());
 
 #[no_mangle]
 unsafe extern "C" fn rust_entrypoint() -> ! {
-    crate::isviewer::text_out("EntryPoint 0\n");
     MemoryMap::init();
-    crate::isviewer::text_out("Memory Map initialized\n");
     allocator::init_allocator();
-    crate::isviewer::text_out("Allocator initialized\n");
     println!("Total memory: 0x{:x}", MemoryMap::memory_size());
     main();
 

@@ -6,7 +6,7 @@ ipl3 = mini-ipl3/mini-ipl3
 n64_output_file = target/mips-nintendo64-none/release/n64-systemtest.n64
 
 n64:
-	@cargo n64 build --ipl3 $(ipl3).bin -- -p n64-systemtest
+	@cargo n64 build --ipl3 $(ipl3).bin -- --features default_tests -p n64-systemtest
 	@echo Rom file: $(n64_output_file)
 
 mini-ipl3:
@@ -21,10 +21,14 @@ install-dependencies:
 	cd external/cargo-n64 && cargo install --path cargo-n64
 
 n64-emu:
-	@cargo n64 build --ipl3 $(ipl3).bin -- -p n64-systemtest
+	make n64
 	@echo Using n64 emulator: $(n64emulator)
 	@$(n64emulator) --rom $(n64_output_file)
 
 n64-run:
-	@cargo n64 build --ipl3 $(ipl3).bin -- -p n64-systemtest
+	make n64
 	@UNFLoader -r $(n64_output_file)
+
+vmulf_stress_test:
+	@cargo n64 build --ipl3 $(ipl3).bin -- --features vmulf_stress_test -p n64-systemtest
+	@echo Rom file: $(n64_output_file)

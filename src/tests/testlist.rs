@@ -4,10 +4,20 @@ use alloc::vec::Vec;
 
 use crate::tests::Test;
 
-pub fn tests() -> Vec<Box<dyn Test>> {
+fn append_stress_tests(_target: &mut Vec<Box<dyn Test>>) {
+    #[cfg(feature = "vmulf_stress_test")]
+    _target.push(Box::new(super::rsp::stresstests::VMULF {}));
+}
+
+#[cfg(feature = "default_tests")]
+fn default_tests() -> Vec<Box<dyn Test>> {
     vec! {
         // This should be the overall first test
         Box::new(super::startup::StartupTest {}),
+        Box::new(super::rsp::op_vmulf::VMULFAll {}),
+        Box::new(super::rsp::op_vmulf::VMULFAll1 {}),
+        Box::new(super::rsp::op_vmulf::VMULFH0 {}),
+        Box::new(super::rsp::op_vmulf::VMULFH1 {}),
         Box::new(super::address_error_exception::UnalignedLW {}),
         Box::new(super::address_error_exception::UnalignedLW2 {}),
         Box::new(super::address_error_exception::UnalignedLWDelay {}),
@@ -93,6 +103,7 @@ pub fn tests() -> Vec<Box<dyn Test>> {
         Box::new(super::rsp::wrap_around::WrapAround {}),
         // This should be RSP test #4
         Box::new(super::rsp::op_lqv_sqv::LQVSQV {}),
+        Box::new(super::rsp::op_vsar::VSAR {}),
         Box::new(super::sp_memory::SW {}),
         Box::new(super::sp_memory::SWOutOfBounds {}),
         Box::new(super::sp_memory::SH {}),
@@ -147,4 +158,15 @@ pub fn tests() -> Vec<Box<dyn Test>> {
         Box::new(super::traps::delay::TNEDelay1 {}),
         Box::new(super::traps::delay::TNEDelay2 {}),
     }
+}
+
+#[cfg(not(feature = "default_tests"))]
+fn default_tests() -> Vec<Box<dyn Test>> {
+    vec! {}
+}
+
+pub fn tests() -> Vec<Box<dyn Test>> {
+    let mut result = default_tests();
+    append_stress_tests(&mut result);
+    result
 }
