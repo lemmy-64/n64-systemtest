@@ -32,3 +32,7 @@ n64-run:
 vmulf_stress_test:
 	@cargo n64 build --ipl3 $(ipl3).bin -- --features vmulf_stress_test -p n64-systemtest
 	@echo Rom file: $(n64_output_file)
+
+vmacf_stress_test:
+	@cargo n64 build --ipl3 $(ipl3).bin -- --features vmacf_stress_test -p n64-systemtest
+	@echo Rom file: $(n64_output_file)

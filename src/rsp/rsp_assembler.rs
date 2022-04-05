@@ -190,6 +190,10 @@ impl RSPAssembler {
         self.write_main_immediate(OP::ADDIU, rt, rs, imm as u16);
     }
 
+    pub fn write_bgtz(&mut self, rs: GPR, offset: i16) {
+        self.write_main_immediate(OP::BGTZ, GPR::R0, rs, offset as u16);
+    }
+
     pub fn write_mtc0(&mut self, cp0register: CP0Register, rt: GPR) {
         self.write_cop0(CP0OP::MTC0, cp0register, rt);
     }
@@ -216,6 +220,10 @@ impl RSPAssembler {
 
     pub fn write_vmulf(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
         self.write_vector(VectorOp::VMULF, vd, vt, vs, e);
+    }
+
+    pub fn write_vmacf(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
+        self.write_vector(VectorOp::VMACF, vd, vt, vs, e);
     }
 
     pub fn write_vsar(&mut self, vd: VR, vt: VR, vs: VR, e: E) {
