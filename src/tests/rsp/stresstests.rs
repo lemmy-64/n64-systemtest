@@ -16,14 +16,46 @@ use crate::rsp::spmem::SPMEM;
 use crate::tests::{Level, Test};
 use crate::tests::soft_asserts::soft_assert_eq2;
 
+union Vector {
+    as_u16: [u16; 8],
+    as_u64: [u32; 2],
+}
+
+impl Vector {
+    fn get(&self, index: usize) -> u16 {
+        return unsafe { self.as_u16[index] };
+    }
+
+    fn set(&mut self, index: usize, value: u16) {
+        unsafe { self.as_u16[index] = value };
+    }
+}
+
+impl PartialEq for Vector {
+    fn eq(&self, other: &Self) -> bool {
+        unsafe { self.as_u64 == other.as_u64 }
+    }
+}
+
+impl Eq for Vector {}
+
+impl Default for Vector {
+    fn default() -> Self {
+        Vector {
+            as_u64: [0, 0]
+        }
+    }
+}
+
+#[inline(always)]
 fn run_stress_test<F: Fn(&mut RSPAssembler) -> (), F2:Fn(u16, u16) -> (u16, u16, u16, u16)>(name: &str, assembly_maker: F, cpu_computer: F2) -> Result<(), String> {
     // Ways to speed this up:
     // - The CPU is calculating into memory. It would be faster if we didn't have to store the result
     //   but calculated on the fly and compare to the RSP result. We could do that by having the rsp
     //   being always one step ahead of the CPU.
     const STEPS_PER_RSP: usize = 32;
-    let mut rsp_out_data: [[[u16; 8]; 4]; STEPS_PER_RSP] = Default::default();
-    let mut cpu_out_data: [[[u16; 8]; 4]; STEPS_PER_RSP] = Default::default();
+    let mut rsp_out_data: [[Vector; 4]; STEPS_PER_RSP] = Default::default();
+    let mut cpu_out_data: [[Vector; 4]; STEPS_PER_RSP] = Default::default();
 
     SPMEM::write_vector_16(0x20, &[1, 1, 1, 1, 1, 1, 1, 1]);
 
@@ -34,7 +66,6 @@ fn run_stress_test<F: Fn(&mut RSPAssembler) -> (), F2:Fn(u16, u16) -> (u16, u16,
     assembler.write_lqv(VR::V1, E::_0, 0x010, GPR::R0);
     assembler.write_lqv(VR::V2, E::_0, 0x020, GPR::R0);
     assembler.write_ori(GPR::A0, GPR::R0, 0x40);
-
 
     for i in 0..STEPS_PER_RSP {
         if i != 0 {
@@ -96,10 +127,10 @@ fn run_stress_test<F: Fn(&mut RSPAssembler) -> (), F2:Fn(u16, u16) -> (u16, u16,
                 let b = b_base + b_offset as u16;
                 for i in 0..8 {
                     let (result_val, accum_hi, accum_mid, accum_lo) = cpu_computer(a_base + i as u16, b);
-                    cpu_out_data[b_offset][0][i] = result_val;
-                    cpu_out_data[b_offset][1][i] = accum_hi;
-                    cpu_out_data[b_offset][2][i] = accum_mid;
-                    cpu_out_data[b_offset][3][i] = accum_lo;
+                    cpu_out_data[b_offset][0].set(i, result_val);
+                    cpu_out_data[b_offset][1].set(i, accum_hi);
+                    cpu_out_data[b_offset][2].set(i, accum_mid);
+                    cpu_out_data[b_offset][3].set(i, accum_lo);
                 }
             }
             // Wait until RSP is finished and get its results
@@ -110,11 +141,16 @@ fn run_stress_test<F: Fn(&mut RSPAssembler) -> (), F2:Fn(u16, u16) -> (u16, u16,
                 let rsp_acc_high = unsafe { MemoryMap::uncached(&rsp_out_data[b_offset][1]).read_volatile() };
                 let rsp_acc_mid = unsafe { MemoryMap::uncached(&rsp_out_data[b_offset][2]).read_volatile() };
                 let rsp_acc_low = unsafe { MemoryMap::uncached(&rsp_out_data[b_offset][3]).read_volatile() };
-                for column in 0..8 {
-                    soft_assert_eq2(rsp_result[column], cpu_out_data[b_offset][0][column], || format!("Result vector for inputs 0x{:x} and 0x{:x}", (a_base as usize + column) as i16, b))?;
-                    soft_assert_eq2(rsp_acc_high[column], cpu_out_data[b_offset][1][column], || format!("Acc[32..48] for inputs 0x{:x} and 0x{:x}", (a_base as usize + column) as i16, b))?;
-                    soft_assert_eq2(rsp_acc_mid[column], cpu_out_data[b_offset][2][column], || format!("Acc[16..32] for inputs 0x{:x} and 0x{:x}", (a_base as usize + column) as i16, b))?;
-                    soft_assert_eq2(rsp_acc_low[column], cpu_out_data[b_offset][3][column], || format!("Acc[0..16] for inputs 0x{:x} and 0x{:x}", (a_base as usize + column) as i16, b))?;
+                if rsp_result != cpu_out_data[b_offset][0] ||
+                    rsp_acc_high != cpu_out_data[b_offset][1] ||
+                    rsp_acc_mid != cpu_out_data[b_offset][2] ||
+                    rsp_acc_low != cpu_out_data[b_offset][3] {
+                    for column in 0..8 {
+                        soft_assert_eq2(rsp_result.get(column), cpu_out_data[b_offset][0].get(column), || format!("Result vector for inputs 0x{:x} and 0x{:x}", (a_base as usize + column) as i16, b))?;
+                        soft_assert_eq2(rsp_acc_high.get(column), cpu_out_data[b_offset][1].get(column), || format!("Acc[32..48] for inputs 0x{:x} and 0x{:x}", (a_base as usize + column) as i16, b))?;
+                        soft_assert_eq2(rsp_acc_mid.get(column), cpu_out_data[b_offset][2].get(column), || format!("Acc[16..32] for inputs 0x{:x} and 0x{:x}", (a_base as usize + column) as i16, b))?;
+                        soft_assert_eq2(rsp_acc_low.get(column), cpu_out_data[b_offset][3].get(column), || format!("Acc[0..16] for inputs 0x{:x} and 0x{:x}", (a_base as usize + column) as i16, b))?;
+                    }
                 }
             }
         }
@@ -142,6 +178,31 @@ impl Test for VMULF {
             let accum_hi = (temp >> 32) as u16;
             let accum_mid = (temp >> 16) as u16;
             let accum_lo = temp as u16;
+
+            (result_val, accum_hi, accum_mid, accum_lo)
+        })?;
+        Ok(())
+    }
+}
+
+pub struct VMUDN {}
+
+impl Test for VMUDN {
+    fn name(&self) -> &str { "RSP VMUDN (Stress test)" }
+
+    fn level(&self) -> Level { Level::StressTest }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        run_stress_test("VMUDN", |assembler| {
+            assembler.write_vmudn(VR::V3, VR::V1, VR::V0, Element::All);
+        }, |a, b| {
+            let product = (a as u16 as i32) * (b as i16 as i32);
+            let result_val = product as u16;
+            let accum_hi = (product >> 31) as u16;
+            let accum_mid = (product >> 16) as u16;
+            let accum_lo = product as u16;
 
             (result_val, accum_hi, accum_mid, accum_lo)
         })?;

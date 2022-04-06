@@ -7,6 +7,8 @@ use crate::tests::Test;
 fn append_stress_tests(_target: &mut Vec<Box<dyn Test>>) {
     #[cfg(feature = "vmulf_stress_test")]
     _target.push(Box::new(super::rsp::stresstests::VMULF {}));
+    #[cfg(feature = "vmudn_stress_test")]
+    _target.push(Box::new(super::rsp::stresstests::VMUDN {}));
     #[cfg(feature = "vmacf_stress_test")]
     _target.push(Box::new(super::rsp::stresstests::VMACF {}));
 }
@@ -102,6 +104,9 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         // This should be RSP test #4
         Box::new(super::rsp::op_lqv_sqv::LQVSQV {}),
         Box::new(super::rsp::op_vsar::VSAR {}),
+        Box::new(super::rsp::op_vmudn::VMUDNAll {}),
+        Box::new(super::rsp::op_vmudn::VMUDNH2 {}),
+        Box::new(super::rsp::op_vmudn::VMUDN7 {}),
         Box::new(super::rsp::op_vmulf::VMULFAll {}),
         Box::new(super::rsp::op_vmulf::VMULFAll1 {}),
         Box::new(super::rsp::op_vmulf::VMULFH0 {}),
@@ -110,6 +115,13 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::rsp::op_vmacf::VMACFH0 {}),
         Box::new(super::rsp::op_vmacf::VMACF5 {}),
         Box::new(super::rsp::op_vmacf::VMACFAccumulatorOverflowed {}),
+        Box::new(super::rsp::op_vmadh::VMADHAll {}),
+        Box::new(super::rsp::op_vmadh::VMADHQ1 {}),
+        Box::new(super::rsp::op_vmadh::VMADH7 {}),
+        Box::new(super::rsp::op_vmadh::VMADHAccumulatorOverflowed {}),
+        Box::new(super::rsp::op_vmudh::VMUDHAll {}),
+        Box::new(super::rsp::op_vmudh::VMUDHQ1 {}),
+        Box::new(super::rsp::op_vmudh::VMUDH7 {}),
         Box::new(super::sp_memory::SW {}),
         Box::new(super::sp_memory::SWOutOfBounds {}),
         Box::new(super::sp_memory::SH {}),
