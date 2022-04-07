@@ -8,11 +8,13 @@ pub struct SPMEMWriter {
 
 impl SPMEMWriter {
     pub const fn new(start_offset: usize) -> Self {
-        Self { offset: start_offset }
+        Self { offset: start_offset & 0x1FFC }
     }
 
     pub fn write(&mut self, value: u32) {
         SPMEM::write(self.offset, value);
-        self.offset += size_of::<u32>();
+        self.offset = (self.offset + size_of::<u32>()) & 0x1FFC;
     }
+
+    pub fn offset(&self) -> usize { return self.offset; }
 }

@@ -97,6 +97,14 @@ enum VectorOp {
     VRCP = 48, VRCPL = 49, VRCPH = 50, VMOV = 51, VRSQ = 52, VRSQL = 53, VRSQH = 54, VNOOP = 55, VEXTT = 56, VEXTQ = 57, VEXTN = 58, VINST = 60, VINSQ = 61, VINSN = 62,
 }
 
+pub struct RSMAssemblerJumpTarget {
+    offset: usize
+}
+
+impl RSMAssemblerJumpTarget {
+    pub fn new(offset: usize) -> Self { Self { offset } }
+}
+
 pub struct RSPAssembler {
     writer: SPMEMWriter,
 }
@@ -105,6 +113,10 @@ impl RSPAssembler {
     pub const fn new(start_offset: usize) -> Self {
         // IMEM starts at 0x1000
         Self { writer: SPMEMWriter::new(start_offset | 0x1000) }
+    }
+
+    pub fn get_jump_target(&self) -> RSMAssemblerJumpTarget {
+        RSMAssemblerJumpTarget::new(self.writer.offset())
     }
 
     fn write_main_immediate(&mut self, op: OP, rt: GPR, rs: GPR, imm: u16) {
@@ -173,9 +185,28 @@ impl RSPAssembler {
         self.write_special(0);
     }
 
+    pub fn write_lh(&mut self, rt: GPR, rs: GPR, imm: i16) {
+        self.write_main_immediate(OP::LH, rt, rs, imm as u16);
+    }
+
+    pub fn write_lw(&mut self, rt: GPR, rs: GPR, imm: i16) {
+        self.write_main_immediate(OP::LW, rt, rs, imm as u16);
+    }
+
+    pub fn write_sh(&mut self, rt: GPR, rs: GPR, imm: i16) {
+        self.write_main_immediate(OP::SH, rt, rs, imm as u16);
+    }
+
+    /// Writes a 32 bit value into the target register. Uses 1 or 2 instructions
     pub fn write_li(&mut self, rt: GPR, imm: u32) {
-        self.write_lui(rt, (imm >> 16) as u16);
-        self.write_ori(rt, rt, imm as u16);
+        if (imm & 0xFFFF0000) != 0 {
+            self.write_lui(rt, (imm >> 16) as u16);
+            if (imm & 0xFFFF) != 0 {
+                self.write_ori(rt, rt, imm as u16);
+            }
+        } else {
+            self.write_ori(rt, GPR::R0, imm as u16);
+        }
     }
 
     pub fn write_lui(&mut self, rt: GPR, imm: u16) {
@@ -192,6 +223,11 @@ impl RSPAssembler {
 
     pub fn write_bgtz(&mut self, rs: GPR, offset: i16) {
         self.write_main_immediate(OP::BGTZ, GPR::R0, rs, offset as u16);
+    }
+
+    pub fn write_bgtz_backwards(&mut self, rs: GPR, target: &RSMAssemblerJumpTarget) {
+        let offset = (((target.offset - self.writer.offset()) & 0xFFF) >> 2) - 1;
+        self.write_bgtz(rs, offset as i16);
     }
 
     pub fn write_mtc0(&mut self, cp0register: CP0Register, rt: GPR) {
@@ -214,16 +250,20 @@ impl RSPAssembler {
         self.write_wc2(OP::SWC2, WC2OP::QV, vt, element, offset >> 4, base);
     }
 
-    pub fn write_vadd(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
-        self.write_vector(VectorOp::VADD, vd, vt, vs, e);
-    }
-
     pub fn write_vmacf(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
         self.write_vector(VectorOp::VMACF, vd, vt, vs, e);
     }
 
     pub fn write_vmadh(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
         self.write_vector(VectorOp::VMADH, vd, vt, vs, e);
+    }
+
+    pub fn write_vmadm(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
+        self.write_vector(VectorOp::VMADM, vd, vt, vs, e);
+    }
+
+    pub fn write_vmadn(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
+        self.write_vector(VectorOp::VMADN, vd, vt, vs, e);
     }
 
     pub fn write_vmudh(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
@@ -234,11 +274,19 @@ impl RSPAssembler {
         self.write_vector(VectorOp::VMUDN, vd, vt, vs, e);
     }
 
+    pub fn write_vmudm(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
+        self.write_vector(VectorOp::VMUDM, vd, vt, vs, e);
+    }
+
     pub fn write_vmulf(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
         self.write_vector(VectorOp::VMULF, vd, vt, vs, e);
     }
 
     pub fn write_vsar(&mut self, vd: VR, vt: VR, vs: VR, e: E) {
         self.write_vector_e(VectorOp::VSAR, vd, vt, vs, e);
+    }
+
+    pub fn write_vxor(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
+        self.write_vector(VectorOp::VXOR, vd, vt, vs, e);
     }
 }

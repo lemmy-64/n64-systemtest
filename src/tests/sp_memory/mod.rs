@@ -243,6 +243,8 @@ impl Test for SWOutOfBounds {
         soft_assert_eq(unsafe { spmem0000.read_volatile() }, 0x76543210, "Reading 32 bit from SPMEM[0x0000]")?;
         soft_assert_eq(unsafe { spmem1000.read_volatile() }, 0x89ABCDEF, "Reading 32 bit from SPMEM[0x1000]")?;
         soft_assert_eq(unsafe { spmem_last_cycle.read_volatile() }, 0x76543210, "Reading 32 bit from SPMEM[0x3E000]")?;
+
+        // Interesting: If this is test is run after tests that actually run the RSP, a value !=0 is being returned here. Wonder what that is...?
         soft_assert_eq(unsafe { spmem_first_outside.read_volatile() }, 0, "Reading 32 bit from right after SPMEM")?;
         Ok(())
     }

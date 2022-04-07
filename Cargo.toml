@@ -9,8 +9,13 @@ edition = "2021"
 default = []
 default_tests = []
 vmulf_stress_test = []
+vmudh_stress_test = []
+vmudm_stress_test = []
 vmudn_stress_test = []
 vmacf_stress_test = []
+vmadh_stress_test = []
+vmadm_stress_test = []
+vmadn_stress_test = []
 
 [dependencies]
 linked_list_allocator = "0.9.0"

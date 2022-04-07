@@ -33,10 +33,30 @@ vmulf_stress_test:
 	@cargo n64 build --ipl3 $(ipl3).bin -- --features vmulf_stress_test -p n64-systemtest
 	@echo Rom file: $(n64_output_file)
 
+vmudh_stress_test:
+	@cargo n64 build --ipl3 $(ipl3).bin -- --features vmudh_stress_test -p n64-systemtest
+	@echo Rom file: $(n64_output_file)
+
+vmudm_stress_test:
+	@cargo n64 build --ipl3 $(ipl3).bin -- --features vmudm_stress_test -p n64-systemtest
+	@echo Rom file: $(n64_output_file)
+
 vmudn_stress_test:
 	@cargo n64 build --ipl3 $(ipl3).bin -- --features vmudn_stress_test -p n64-systemtest
 	@echo Rom file: $(n64_output_file)
 
 vmacf_stress_test:
 	@cargo n64 build --ipl3 $(ipl3).bin -- --features vmacf_stress_test -p n64-systemtest
+	@echo Rom file: $(n64_output_file)
+
+vmadh_stress_test:
+	@cargo n64 build --ipl3 $(ipl3).bin -- --features vmadh_stress_test -p n64-systemtest
+	@echo Rom file: $(n64_output_file)
+
+vmadm_stress_test:
+	@cargo n64 build --ipl3 $(ipl3).bin -- --features vmadm_stress_test -p n64-systemtest
+	@echo Rom file: $(n64_output_file)
+
+vmadn_stress_test:
+	@cargo n64 build --ipl3 $(ipl3).bin -- --features vmadn_stress_test -p n64-systemtest
 	@echo Rom file: $(n64_output_file)
