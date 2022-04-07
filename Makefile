@@ -29,6 +29,10 @@ n64-run:
 	make n64
 	@UNFLoader -r $(n64_output_file)
 
+all_stress_tests:
+	@cargo n64 build --ipl3 $(ipl3).bin -- --features vmulf_stress_test,vmudh_stress_test,vmudm_stress_test,vmudn_stress_test,vmacf_stress_test,vmadh_stress_test,vmadm_stress_test,vmadn_stress_test -p n64-systemtest
+	@echo Rom file: $(n64_output_file)
+
 vmulf_stress_test:
 	@cargo n64 build --ipl3 $(ipl3).bin -- --features vmulf_stress_test -p n64-systemtest
 	@echo Rom file: $(n64_output_file)
