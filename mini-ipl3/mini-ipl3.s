@@ -76,6 +76,11 @@ expansion_pack_done:
   la t0, 0x80000318
   sw t1, 0(t0)
 
+  // Clear various SP flags (e.g. InterruptOnBreak)
+  li t0, 0xA4040000
+  li t1, 0x00aaaaae
+  sw t1, 0x10(t0)
+
   // ** Load cart into DMEM **
   constant SOURCE_ADDRESS = 0x1000'1000  // has to be physical address
   constant TARGET_ADDRESS = 0x8000'0400  // can be physical or virtual - upper bits are ignored
