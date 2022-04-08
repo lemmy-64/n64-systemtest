@@ -28,7 +28,6 @@ fn default_tests() -> Vec<Box<dyn Test>> {
     vec! {
         // This should be the overall first test
         Box::new(super::startup::StartupTest {}),
-        Box::new(super::rsp::op_vmadm::VMADMAccumulatorOverflowed {}),
         Box::new(super::address_error_exception::UnalignedLW {}),
         Box::new(super::address_error_exception::UnalignedLW2 {}),
         Box::new(super::address_error_exception::UnalignedLWDelay {}),
@@ -121,6 +120,7 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::rsp::op_vmacf::VMACFAccumulatorOverflowed {}),
         Box::new(super::rsp::op_vmadm::VMADMAll {}),
         Box::new(super::rsp::op_vmadm::VMADM4 {}),
+        Box::new(super::rsp::op_vmadm::VMADMAccumulatorOverflowed {}),
         Box::new(super::rsp::op_vmadn::VMADNAll {}),
         Box::new(super::rsp::op_vmadn::VMADNH3 {}),
         Box::new(super::rsp::op_vmadn::VMADN6 {}),
