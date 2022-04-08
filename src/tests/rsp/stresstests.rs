@@ -93,14 +93,16 @@ fn run_stress_test<F: Fn(&mut RSPAssembler) -> (), F2: Fn(u16, u16, u64) -> (u16
 
     assembler.write_li(GPR::S0, 0x40);
     assembler.write_li(GPR::S1, STEPS_PER_RSP as u32);
-    assembler.write_lh(GPR::S2, GPR::R0, 0x10);
-    // Duplicate second input register value
-    for i in 0..8 {
-        assembler.write_sh(GPR::S2, GPR::R0, 0x10 + (i << 1));
+    assembler.write_lhu(GPR::S2, GPR::R0, 0x10);
+
+    // Duplicate value and write through four SW
+    assembler.write_sll(GPR::A0, GPR::S2, 16);
+    assembler.write_or(GPR::A0, GPR::A0, GPR::S2);
+    for i in 0..4 {
+        assembler.write_sw(GPR::A0, GPR::R0, 0x10 + (i << 2));
     }
 
     let loop_beginning = assembler.get_jump_target();
-
     assembler.write_lqv(VR::V1, E::_0, 0x010, GPR::R0);
 
     assembly_maker(&mut assembler);
@@ -116,10 +118,11 @@ fn run_stress_test<F: Fn(&mut RSPAssembler) -> (), F2: Fn(u16, u16, u64) -> (u16
 
     // Increment second vector register and write back. we can't use VADD as that clears the accumulator
     assembler.write_addiu(GPR::S2, GPR::S2, 1);
-    for i in 0..8 {
-        assembler.write_sh(GPR::S2, GPR::R0, 0x10 + (i << 1));
+    assembler.write_sll(GPR::A0, GPR::S2, 16);
+    assembler.write_or(GPR::A0, GPR::A0, GPR::S2);
+    for i in 0..4 {
+        assembler.write_sw(GPR::A0, GPR::R0, 0x10 + (i << 2));
     }
-
     assembler.write_addiu(GPR::S1, GPR::S1, -1);
     assembler.write_bgtz_backwards(GPR::S1, &loop_beginning);
     assembler.write_addiu(GPR::S0, GPR::S0, 0x40);  // delay slot
@@ -166,10 +169,11 @@ fn run_stress_test<F: Fn(&mut RSPAssembler) -> (), F2: Fn(u16, u16, u64) -> (u16
             RSP::wait_until_rsp_is_halted_and_dma_completed();
 
             // Have the RSP run the next batch so that we can run the compare the current one
-            // There will be an extra run at the end but that shouldn't matter as the RSP is faster than the CPU
             let rsp_out_next_index = (rsp_out_current_index + 1) & 1;
-            SPMEM::write(0x20, (&mut rsp_out_data[rsp_out_next_index]).as_mut_ptr() as u32);
-            RSP::start_running(0);
+            if (b_base as usize + STEPS_PER_RSP) <= 0xFFFF {
+                SPMEM::write(0x20, (&mut rsp_out_data[rsp_out_next_index]).as_mut_ptr() as u32);
+                RSP::start_running(0);
+            }
 
             // The current accumulator of the simulated rsp. The upper 16 bits of each 64 value must be empty
             let mut cpu_accumulator: [u64; 8] = [0, 0, 0, 0, 0, 0, 0, 0];

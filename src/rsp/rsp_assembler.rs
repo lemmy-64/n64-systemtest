@@ -1,6 +1,8 @@
 use core::mem::transmute;
+
 use crate::rsp::spmem_writer::SPMEMWriter;
 
+// @formatter:off
 #[allow(dead_code)]
 #[repr(u8)]
 #[derive(Copy, Clone)]
@@ -10,7 +12,9 @@ pub enum GPR {
     S0 = 16, S1 = 17, S2 = 18, S3 = 19, S4 = 20, S5 = 21, S6 = 22, S7 = 23,
     T8 = 24, T9 = 25, K0 = 26, K1 = 27, GP = 28, SP = 29, S8 = 30, RA = 31,
 }
+// @formatter:on
 
+// @formatter:off
 #[allow(dead_code)]
 #[repr(u8)]
 #[derive(Copy, Clone)]
@@ -20,6 +24,7 @@ pub enum VR {
     V16 = 16, V17 = 17, V18 = 18, V19 = 19, V20 = 20, V21 = 21, V22 = 22, V23 = 23,
     V24 = 24, V25 = 25, V26 = 26, V27 = 27, V28 = 28, V29 = 29, V30 = 30, V31 = 31,
 }
+// @formatter:on
 
 impl VR {
     pub fn from_index(i: u32) -> Self {
@@ -28,6 +33,7 @@ impl VR {
     }
 }
 
+// @formatter:off
 #[allow(dead_code)]
 #[repr(u8)]
 #[derive(Copy, Clone)]
@@ -37,7 +43,9 @@ pub enum Element {
     H0 = 4, H1 = 5, H2 = 6, H3 = 7,
     _0 = 8, _1 = 9, _2 = 10, _3 = 11, _4 = 12, _5 = 13, _6 = 14, _7 = 15,
 }
+// @formatter:on
 
+// @formatter:off
 #[allow(dead_code)]
 #[repr(u8)]
 #[derive(Copy, Clone)]
@@ -45,6 +53,7 @@ pub enum E {
     _0 = 0, _1 = 1, _2 = 2, _3 = 3, _4 = 4, _5=5, _6=6, _7=7,
     _8 = 8, _9 = 9, _10 = 10, _11 = 11, _12 = 12, _13 = 13, _14 = 14, _15 = 15,
 }
+// @formatter:on
 
 impl E {
     pub fn from_index(i: u32) -> Self {
@@ -53,6 +62,7 @@ impl E {
     }
 }
 
+// @formatter:off
 #[allow(dead_code)]
 #[repr(u8)]
 enum OP {
@@ -62,32 +72,55 @@ enum OP {
     LB = 32, LH = 33, LW = 35, LBU = 36, LHU = 37, SB = 40, SH = 41, SW = 43,
     LWC2 = 50, SWC2 = 58,
 }
+// @formatter:on
 
+// @formatter:off
+#[allow(dead_code)]
+#[repr(u8)]
+enum SpecialOP {
+    SLL = 0, SRL = 2, SRA = 3, SLLV = 4, SRLV = 6, SRAV = 7,
+    JR = 8, JALR = 9,
+    BREAK = 13,
+    ADD = 32, ADDU = 33, SUB = 34, SUBU = 35,
+    AND = 36, OR = 37, XOR = 38, NOR = 39,
+    SLT = 42, SLTU = 43,
+}
+// @formatter:on
+
+// @formatter:off
 #[allow(dead_code)]
 #[repr(u8)]
 enum CP0OP {
     MFC0 = 0, MTC0 = 4,
 }
+// @formatter:on
 
+// @formatter:off
 #[allow(dead_code)]
 #[repr(u8)]
 pub enum CP0Register {
     SPAddress = 0, DRAMAddress = 1, ReadLength = 2, WriteLength = 3, SPStatus = 4, Semaphore = 7,
     DPStart = 8, DPEnd = 9, DPStatus = 11, DPClock = 12
 }
+// @formatter:on
 
+// @formatter:off
 #[allow(dead_code)]
 #[repr(u8)]
 enum WC2OP {
     BV = 0, SV = 1, LV = 2, DV = 3, QV = 4, RV = 5, PV = 6, UV = 7, HV = 8, FV = 9, WV = 10, TV = 11,
 }
+// @formatter:on
 
+// @formatter:off
 #[allow(dead_code)]
 #[repr(u8)]
 enum CP2OP {
     MFC2 = 0, CFC2 = 2, MTC2 = 4, CTC2 = 6, VECTOR = 16,
 }
+// @formatter:on
 
+// @formatter:off
 #[allow(dead_code)]
 #[repr(u8)]
 enum VectorOp {
@@ -96,9 +129,10 @@ enum VectorOp {
     VLT = 32, VEQ = 33, VNE = 34, VGE = 35, VCL = 36, VCH = 37, VCR = 38, VMRG = 39, VAND = 40, VNAND = 41, VOR = 42, VNOR = 43, VXOR = 44, VNXOR = 45,
     VRCP = 48, VRCPL = 49, VRCPH = 50, VMOV = 51, VRSQ = 52, VRSQL = 53, VRSQH = 54, VNOOP = 55, VEXTT = 56, VEXTQ = 57, VEXTN = 58, VINST = 60, VINSQ = 61, VINSN = 62,
 }
+// @formatter:on
 
 pub struct RSMAssemblerJumpTarget {
-    offset: usize
+    offset: usize,
 }
 
 impl RSMAssemblerJumpTarget {
@@ -128,9 +162,14 @@ impl RSPAssembler {
         self.writer.write(instruction);
     }
 
-    fn write_special(&mut self, function: u32) {
-        assert!(function < 0b111111);
-        self.writer.write(function);
+    fn write_special(&mut self, function: SpecialOP, sa: u32, rd: GPR, rs: GPR, rt: GPR)  {
+        assert!(sa <= 0b11111);
+        self.writer.write((function as u32) |
+            (sa << 6) |
+            ((rd as u32) << 11) |
+            ((rt as u32) << 16) |
+            ((rs as u32) << 21) |
+            ((OP::SPECIAL as u32) << 26));
     }
 
     fn write_cop0(&mut self, cp0op: CP0OP, cp0register: CP0Register, rt: GPR) {
@@ -181,20 +220,16 @@ impl RSPAssembler {
     }
 
     // Main instructions
-    pub fn write_nop(&mut self) {
-        self.write_special(0);
-    }
-
-    pub fn write_lh(&mut self, rt: GPR, rs: GPR, imm: i16) {
-        self.write_main_immediate(OP::LH, rt, rs, imm as u16);
+    pub fn write_lhu(&mut self, rt: GPR, rs: GPR, imm: i16) {
+        self.write_main_immediate(OP::LHU, rt, rs, imm as u16);
     }
 
     pub fn write_lw(&mut self, rt: GPR, rs: GPR, imm: i16) {
         self.write_main_immediate(OP::LW, rt, rs, imm as u16);
     }
 
-    pub fn write_sh(&mut self, rt: GPR, rs: GPR, imm: i16) {
-        self.write_main_immediate(OP::SH, rt, rs, imm as u16);
+    pub fn write_sw(&mut self, rt: GPR, rs: GPR, imm: i16) {
+        self.write_main_immediate(OP::SW, rt, rs, imm as u16);
     }
 
     /// Writes a 32 bit value into the target register. Uses 1 or 2 instructions
@@ -235,8 +270,19 @@ impl RSPAssembler {
     }
 
     // Special instructions
+    pub fn write_sll(&mut self, rd: GPR, rt: GPR, sa: u32) {
+        self.write_special(SpecialOP::SLL, sa, rd, GPR::R0, rt);
+    }
+    pub fn write_nop(&mut self) {
+        self.write_sll(GPR::R0, GPR::R0, 0);
+    }
+
     pub fn write_break(&mut self) {
-        self.write_special(13);
+        self.write_special(SpecialOP::BREAK, 0, GPR::R0, GPR::R0, GPR::R0);
+    }
+
+    pub fn write_or(&mut self, rd: GPR, rs: GPR, rt: GPR) {
+        self.write_special(SpecialOP::OR, 0, rd, rs, rt);
     }
 
     // Vector load/store instructions
