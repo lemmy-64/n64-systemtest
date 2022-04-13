@@ -112,6 +112,13 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         // This should be RSP test #3
         Box::new(super::rsp::wrap_around::WrapAround {}),
         // Non-vector instructions
+        Box::new(super::rsp::op_addi::ADDI {}),
+        Box::new(super::rsp::op_addiu::ADDIU {}),
+        Box::new(super::rsp::op_andi::ANDI {}),
+        Box::new(super::rsp::op_ori::ORI {}),
+        Box::new(super::rsp::op_xori::XORI {}),
+        Box::new(super::rsp::op_slti::SLTI {}),
+        Box::new(super::rsp::op_sltiu::SLTIU {}),
         Box::new(super::rsp::op_lb::LB {}),
         Box::new(super::rsp::op_lh::LH {}),
         Box::new(super::rsp::op_lw::LW {}),

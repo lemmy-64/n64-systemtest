@@ -247,6 +247,18 @@ impl RSPAssembler {
     }
 
     // Main instructions
+    pub fn write_addi(&mut self, rt: GPR, rs: GPR, imm: i16) {
+        self.write_main_immediate(OP::ADDI, rt, rs, imm as u16);
+    }
+
+    pub fn write_addiu(&mut self, rt: GPR, rs: GPR, imm: i16) {
+        self.write_main_immediate(OP::ADDIU, rt, rs, imm as u16);
+    }
+
+    pub fn write_andi(&mut self, rt: GPR, rs: GPR, imm: u16) {
+        self.write_main_immediate(OP::ANDI, rt, rs, imm);
+    }
+
     pub fn write_lb(&mut self, rt: GPR, rs: GPR, imm: i16) {
         self.write_main_immediate(OP::LB, rt, rs, imm as u16);
     }
@@ -279,6 +291,14 @@ impl RSPAssembler {
         self.write_main_immediate(OP::SH, rt, rs, imm as u16);
     }
 
+    pub fn write_slti(&mut self, rt: GPR, rs: GPR, imm: i16) {
+        self.write_main_immediate(OP::SLTI, rt, rs, imm as u16);
+    }
+
+    pub fn write_sltiu(&mut self, rt: GPR, rs: GPR, imm: i16) {
+        self.write_main_immediate(OP::SLTIU, rt, rs, imm as u16);
+    }
+
     pub fn write_sw(&mut self, rt: GPR, rs: GPR, imm: i16) {
         self.write_main_immediate(OP::SW, rt, rs, imm as u16);
     }
@@ -303,8 +323,8 @@ impl RSPAssembler {
         self.write_main_immediate(OP::ORI, rt, rs, imm);
     }
 
-    pub fn write_addiu(&mut self, rt: GPR, rs: GPR, imm: i16) {
-        self.write_main_immediate(OP::ADDIU, rt, rs, imm as u16);
+    pub fn write_xori(&mut self, rt: GPR, rs: GPR, imm: u16) {
+        self.write_main_immediate(OP::XORI, rt, rs, imm);
     }
 
     pub fn write_bgtz(&mut self, rs: GPR, offset: i16) {
