@@ -5,6 +5,7 @@
 #![feature(asm_sym)]
 #![feature(naked_functions)]
 #![feature(type_name_of_val)]
+#![feature(step_trait)]
 #![deny(unsafe_op_in_unsafe_fn)]
 #![no_main]
 

@@ -9,6 +9,12 @@ use crate::tests::soft_asserts::soft_assert_eq;
 
 pub mod op_break;
 pub mod wrap_around;
+pub mod op_lb;
+pub mod op_lbu;
+pub mod op_lh;
+pub mod op_lhu;
+pub mod op_lw;
+pub mod op_lwu;
 pub mod op_lqv_sqv;
 pub mod op_sb;
 pub mod op_sh;

@@ -9,7 +9,7 @@ use crate::rsp::spmem::SPMEM;
 use crate::tests::{Level, Test};
 use crate::tests::soft_asserts::soft_assert_eq;
 
-// Various tests using SB
+// Various tests using SB. Nothing special to see here
 
 pub struct SB {}
 

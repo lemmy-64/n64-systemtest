@@ -5,7 +5,7 @@ use crate::rsp::spmem_writer::SPMEMWriter;
 // @formatter:off
 #[allow(dead_code)]
 #[repr(u8)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialOrd, PartialEq, Eq)]
 pub enum GPR {
     R0 = 0, AT = 1, V0 = 2, V1 = 3, A0 = 4, A1 = 5, R2 = 6, R3 = 7,
     T0 = 8, T1 = 9, T2 = 10, T3 = 11, T4 = 12, T5 = 13, T6 = 14, T7 = 15,
@@ -13,6 +13,33 @@ pub enum GPR {
     T8 = 24, T9 = 25, K0 = 26, K1 = 27, GP = 28, SP = 29, S8 = 30, RA = 31,
 }
 // @formatter:on
+
+impl GPR {
+    pub fn from_index(index: usize) -> Option<Self> {
+        if index <= 31 {
+            Some(unsafe { transmute(index as u8) })
+        } else {
+            None
+        }
+    }
+}
+impl core::iter::Step for GPR {
+    fn steps_between(start: &Self, end: &Self) -> Option<usize> {
+        if (*start as usize) < (*end as usize) {
+            Some(*end as usize - *start as usize)
+        } else {
+            None
+        }
+    }
+
+    fn forward_checked(start: Self, count: usize) -> Option<Self> {
+        Self::from_index(start as usize + count)
+    }
+
+    fn backward_checked(start: Self, count: usize) -> Option<Self> {
+        Self::from_index(start as usize - count)
+    }
+}
 
 // @formatter:off
 #[allow(dead_code)]
@@ -69,7 +96,7 @@ enum OP {
     SPECIAL = 0, REGIMM = 1, J = 2, JAL = 3, BEQ = 4, BNE = 5, BLEZ = 6, BGTZ = 7,
     ADDI = 8, ADDIU = 9, SLTI = 10, SLTIU = 11, ANDI = 12, ORI = 13, XORI = 14, LUI = 15,
     COP0 = 16, COP2 = 18,
-    LB = 32, LH = 33, LW = 35, LBU = 36, LHU = 37, SB = 40, SH = 41, SW = 43,
+    LB = 32, LH = 33, LW = 35, LBU = 36, LHU = 37, LWU = 39, SB = 40, SH = 41, SW = 43,
     LWC2 = 50, SWC2 = 58,
 }
 // @formatter:on
@@ -220,12 +247,28 @@ impl RSPAssembler {
     }
 
     // Main instructions
+    pub fn write_lb(&mut self, rt: GPR, rs: GPR, imm: i16) {
+        self.write_main_immediate(OP::LB, rt, rs, imm as u16);
+    }
+
+    pub fn write_lbu(&mut self, rt: GPR, rs: GPR, imm: i16) {
+        self.write_main_immediate(OP::LBU, rt, rs, imm as u16);
+    }
+
+    pub fn write_lh(&mut self, rt: GPR, rs: GPR, imm: i16) {
+        self.write_main_immediate(OP::LH, rt, rs, imm as u16);
+    }
+
     pub fn write_lhu(&mut self, rt: GPR, rs: GPR, imm: i16) {
         self.write_main_immediate(OP::LHU, rt, rs, imm as u16);
     }
 
     pub fn write_lw(&mut self, rt: GPR, rs: GPR, imm: i16) {
         self.write_main_immediate(OP::LW, rt, rs, imm as u16);
+    }
+
+    pub fn write_lwu(&mut self, rt: GPR, rs: GPR, imm: i16) {
+        self.write_main_immediate(OP::LWU, rt, rs, imm as u16);
     }
 
     pub fn write_sb(&mut self, rt: GPR, rs: GPR, imm: i16) {
