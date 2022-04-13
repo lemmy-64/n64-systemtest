@@ -112,6 +112,9 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         // This should be RSP test #3
         Box::new(super::rsp::wrap_around::WrapAround {}),
         // Non-vector instructions
+        Box::new(super::rsp::op_sb::SB {}),
+        Box::new(super::rsp::op_sh::SHAligned {}),
+        Box::new(super::rsp::op_sh::SHUnaligned {}),
         Box::new(super::rsp::op_sw::SWAligned {}),
         Box::new(super::rsp::op_sw::SWUnaligned {}),
 

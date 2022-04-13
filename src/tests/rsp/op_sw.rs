@@ -9,7 +9,9 @@ use crate::rsp::spmem::SPMEM;
 use crate::tests::{Level, Test};
 use crate::tests::soft_asserts::soft_assert_eq;
 
-// Various tests using SW
+// Various tests using SW. Lessons learned:
+// - SW works to any memory location, including unaligned.
+// - When writing to 0xFFF, 0xFFE or 0xFFD, there is wrap-around to 0x0
 
 pub struct SWAligned {}
 
@@ -32,7 +34,7 @@ impl Test for SWAligned {
         assembler.write_li(GPR::S0, 0x12345678);
         assembler.write_sw(GPR::S0, GPR::R0, 0x0);
 
-        // 0x04: R0+0x10
+        // 0x04: R0+0x04
         assembler.write_li(GPR::S0, 0x9ABCDEFF);
         assembler.write_sw(GPR::S0, GPR::R0, 0x04);
 
@@ -40,7 +42,7 @@ impl Test for SWAligned {
         assembler.write_li(GPR::S0, 0xEEDDCCBB);
         assembler.write_sw(GPR::S0, GPR::T0, 0x00);
 
-        // 0x0C: T0+0x10, out of bounds. Expecting address masking
+        // 0x0C: T0+0x04, out of bounds. Expecting address masking
         assembler.write_li(GPR::S0, 0xAA998877);
         assembler.write_sw(GPR::S0, GPR::T0, 0x1004);
 
@@ -52,6 +54,10 @@ impl Test for SWAligned {
         assembler.write_li(GPR::S0, 0x22110011);
         assembler.write_sw(GPR::S0, GPR::T2, -2);
 
+        // 0xFFC
+        assembler.write_li(GPR::S0, 0x94678213);
+        assembler.write_sw(GPR::S0, GPR::R0, 0x1FFC);
+
         assembler.write_break();
 
         RSP::run_and_wait(0);
@@ -62,6 +68,7 @@ impl Test for SWAligned {
         soft_assert_eq(SPMEM::read(0x0C), 0xAA998877, "SW to DMEM[0x0C]")?;
         soft_assert_eq(SPMEM::read(0x10), 0x66554433, "SW to DMEM[0x10]")?;
         soft_assert_eq(SPMEM::read(0x14), 0x22110011, "SW to DMEM[0x14]")?;
+        soft_assert_eq(SPMEM::read(0xFFC), 0x94678213, "SW to DMEM[0xFFC]")?;
 
 
         Ok(())

@@ -228,6 +228,14 @@ impl RSPAssembler {
         self.write_main_immediate(OP::LW, rt, rs, imm as u16);
     }
 
+    pub fn write_sb(&mut self, rt: GPR, rs: GPR, imm: i16) {
+        self.write_main_immediate(OP::SB, rt, rs, imm as u16);
+    }
+
+    pub fn write_sh(&mut self, rt: GPR, rs: GPR, imm: i16) {
+        self.write_main_immediate(OP::SH, rt, rs, imm as u16);
+    }
+
     pub fn write_sw(&mut self, rt: GPR, rs: GPR, imm: i16) {
         self.write_main_immediate(OP::SW, rt, rs, imm as u16);
     }
