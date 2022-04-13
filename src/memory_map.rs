@@ -40,6 +40,12 @@ impl MemoryMap {
         ((memory_address & 0x1FFF_FFFF) | 0xA000_0000) as *const T
     }
 
+    pub fn uncached_mut<T>(p: *mut T) -> *mut T {
+        let memory_address = p as usize;
+        assert_eq!(memory_address & 0xE000_0000, 0x8000_0000);
+        ((memory_address & 0x1FFF_FFFF) | 0xA000_0000) as *mut T
+    }
+
     /// Returns the cartridge (rom) address of a given constant
     pub fn uncached_cart_address<T>(p: *const T) -> *const T {
         // The bootcode copies from 0x10001000 to 0x8000_0400. If we have some other pointer,

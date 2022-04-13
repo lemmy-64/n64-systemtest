@@ -10,6 +10,7 @@ pub fn soft_assert_eq<T: Debug + PartialEq + Eq>(v1: T, v2: T, help: &str) -> Re
     }
 }
 
+#[inline(always)]
 pub fn soft_assert_eq2<T: Debug + PartialEq + Eq, H: FnOnce() -> String>(v1: T, v2: T, help: H) -> Result<(), String> {
     if v1 == v2 {
         Ok(())

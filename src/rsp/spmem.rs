@@ -4,11 +4,9 @@ pub struct SPMEM {}
 
 impl SPMEM {
     pub fn write(addr: usize, value: u32) {
-        if addr < 0x2000 {
-            let spmem = MemoryMap::uncached_spmem_address::<u32>(addr);
-            unsafe {
-                spmem.write_volatile(value);
-            }
+        let spmem = MemoryMap::uncached_spmem_address::<u32>(addr);
+        unsafe {
+            spmem.write_volatile(value);
         }
     }
 
@@ -19,13 +17,9 @@ impl SPMEM {
     }
 
     pub fn read(addr: usize) -> u32 {
-        if addr < 0x2000 {
-            let spmem = MemoryMap::uncached_spmem_address::<u32>(addr);
-            unsafe {
-                spmem.read_volatile()
-            }
-        } else {
-            0
+        let spmem = MemoryMap::uncached_spmem_address::<u32>(addr);
+        unsafe {
+            spmem.read_volatile()
         }
     }
 

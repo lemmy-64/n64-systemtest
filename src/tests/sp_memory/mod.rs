@@ -1,3 +1,5 @@
+pub mod dma;
+
 use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -14,7 +16,7 @@ use crate::tests::soft_asserts::soft_assert_eq;
 // - SD is broken: It only writes the upper 32 bit of the value, touching only 4 bytes
 // - LB/LH work as expected
 // - LD crashes outright (no test for that)
-// Going out of bounds wrap the memory around (until the real end of 0x04040000)
+// Going out of bounds wraps the memory around (until the real end of 0x04040000)
 
 pub struct SW {}
 
@@ -225,27 +227,22 @@ impl Test for SWOutOfBounds {
     fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        // SPMEM DMEM and IMEM repeat froom 0x04000000 to 0x04040000
         let spmem0000 = MemoryMap::uncached_spmem_address::<u32>(0x0000);
         let spmem1000 = MemoryMap::uncached_spmem_address::<u32>(0x1000);
         let spmem_last_cycle = MemoryMap::uncached_spmem_address::<u32>(0x3E000);
-        let spmem_first_outside = MemoryMap::uncached_spmem_address::<u32>(0x40000);
         unsafe {
             spmem0000.write_volatile(0x01234567);
             spmem1000.write_volatile(0x89ABCDEF);
 
             // This one overwrites 0
             spmem_last_cycle.write_volatile(0x76543210);
-
-            // This one is outside - it won't overwrite
-            spmem_first_outside.write_volatile(0xBADDECAF);
         }
 
         soft_assert_eq(unsafe { spmem0000.read_volatile() }, 0x76543210, "Reading 32 bit from SPMEM[0x0000]")?;
         soft_assert_eq(unsafe { spmem1000.read_volatile() }, 0x89ABCDEF, "Reading 32 bit from SPMEM[0x1000]")?;
         soft_assert_eq(unsafe { spmem_last_cycle.read_volatile() }, 0x76543210, "Reading 32 bit from SPMEM[0x3E000]")?;
 
-        // Interesting: If this is test is run after tests that actually run the RSP, a value !=0 is being returned here. Wonder what that is...?
-        soft_assert_eq(unsafe { spmem_first_outside.read_volatile() }, 0, "Reading 32 bit from right after SPMEM")?;
         Ok(())
     }
 }

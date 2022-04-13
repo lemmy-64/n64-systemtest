@@ -111,7 +111,11 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::rsp::op_break::BREAK {}),
         // This should be RSP test #3
         Box::new(super::rsp::wrap_around::WrapAround {}),
-        // This should be RSP test #4
+        // Non-vector instructions
+        Box::new(super::rsp::op_sw::SWAligned {}),
+        Box::new(super::rsp::op_sw::SWUnaligned {}),
+
+        // RSP Vector instructions
         Box::new(super::rsp::op_lqv_sqv::LQVSQV {}),
         Box::new(super::rsp::op_vsar::VSAR {}),
         Box::new(super::rsp::op_vmacf::VMACFAll {}),
@@ -148,6 +152,14 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::sp_memory::SD {}),
         Box::new(super::sp_memory::LB {}),
         Box::new(super::sp_memory::LH {}),
+        Box::new(super::sp_memory::dma::SPDMA0_8_7 {}),
+        Box::new(super::sp_memory::dma::SPDMA0_12_7D {}),
+        Box::new(super::sp_memory::dma::SPDMA0_12_7I {}),
+        Box::new(super::sp_memory::dma::SPDMA4_8_7 {}),
+        Box::new(super::sp_memory::dma::SPDMA0_8_11D {}),
+        Box::new(super::sp_memory::dma::SPDMA0_8_11I {}),
+        Box::new(super::sp_memory::dma::SPDMAIntoDMEMWithOverflow {}),
+        Box::new(super::sp_memory::dma::SPDMAIntoIMEMWithOverflow {}),
         Box::new(super::tlb::WiredRandom {}),
         Box::new(super::tlb::WiredOutOfBoundsRandom {}),
         Box::new(super::tlb::WriteRandomExpectIgnored {}),
