@@ -39,7 +39,7 @@ impl Test for SLTI {
 
         assembler.write_slti(GPR::S7, GPR::A0, 0xFFF0u16 as i16);
         assembler.write_slti(GPR::T8, GPR::A0, 0xFFF1u16 as i16);
-        assembler.write_slti(GPR::T9, GPR::A0, 0xFFEFu16 as i16);
+        assembler.write_slti(GPR::T9, GPR::A0, 0xFEFFu16 as i16);
         assembler.write_slti(GPR::K0, GPR::A0, 0x0000u16 as i16);
         assembler.write_slti(GPR::K1, GPR::A0, 0x0010u16 as i16);
 
@@ -67,7 +67,7 @@ impl Test for SLTI {
 
         soft_assert_eq(SPMEM::read(0x1C), 0, "0xFFFFFFF0 < 0xFFF0")?;
         soft_assert_eq(SPMEM::read(0x20), 1, "0xFFFFFFF0 < 0xFFF1")?;
-        soft_assert_eq(SPMEM::read(0x24), 0, "0xFFFFFFF0 < 0xFFEF")?;
+        soft_assert_eq(SPMEM::read(0x24), 0, "0xFFFFFFF0 < 0xFEFF")?;
         soft_assert_eq(SPMEM::read(0x28), 1, "0xFFFFFFF0 < 0x0000")?;
         soft_assert_eq(SPMEM::read(0x2C), 1, "0xFFFFFFF0 < 0x0010")?;
 

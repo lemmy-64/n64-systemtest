@@ -41,7 +41,7 @@ impl Test for SLTIU {
 
         assembler.write_sltiu(GPR::S7, GPR::A0, 0xFFF0u16 as i16);
         assembler.write_sltiu(GPR::T8, GPR::A0, 0xFFF1u16 as i16);
-        assembler.write_sltiu(GPR::T9, GPR::A0, 0xFFEFu16 as i16);
+        assembler.write_sltiu(GPR::T9, GPR::A0, 0xFEFFu16 as i16);
         assembler.write_sltiu(GPR::K0, GPR::A0, 0x0000u16 as i16);
         assembler.write_sltiu(GPR::K1, GPR::A0, 0x0010u16 as i16);
 
@@ -69,7 +69,7 @@ impl Test for SLTIU {
 
         soft_assert_eq(SPMEM::read(0x1C), 0, "0xFFFFFFF0 < 0xFFF0")?;
         soft_assert_eq(SPMEM::read(0x20), 1, "0xFFFFFFF0 < 0xFFF1")?;
-        soft_assert_eq(SPMEM::read(0x24), 0, "0xFFFFFFF0 < 0xFFEF")?;
+        soft_assert_eq(SPMEM::read(0x24), 0, "0xFFFFFFF0 < 0xFEFF")?;
         soft_assert_eq(SPMEM::read(0x28), 0, "0xFFFFFFF0 < 0x0000")?;
         soft_assert_eq(SPMEM::read(0x2C), 0, "0xFFFFFFF0 < 0x0010")?;
 
