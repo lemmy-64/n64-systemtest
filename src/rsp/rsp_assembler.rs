@@ -336,18 +336,26 @@ impl RSPAssembler {
         self.write_main_immediate(OP::XORI, rt, rs, imm);
     }
 
-    pub fn write_j(&mut self, destination: u32) {
-        assert!((destination & 3) == 0);
-        self.write_main_jump(OP::J, destination >> 2);
+    pub fn write_j(&mut self, destination_as_byte_offset: u32) {
+        assert!((destination_as_byte_offset & 3) == 0);
+        self.write_main_jump(OP::J, destination_as_byte_offset >> 2);
     }
 
-    pub fn write_jal(&mut self, destination: u32) {
-        assert!((destination & 3) == 0);
-        self.write_main_jump(OP::JAL, destination >> 2);
+    pub fn write_jal(&mut self, destination_as_byte_offset: u32) {
+        assert!((destination_as_byte_offset & 3) == 0);
+        self.write_main_jump(OP::JAL, destination_as_byte_offset >> 2);
     }
 
-    pub fn write_bgtz(&mut self, rs: GPR, offset: i16) {
-        self.write_main_immediate(OP::BGTZ, GPR::R0, rs, offset as u16);
+    pub fn write_beq(&mut self, rt: GPR, rs: GPR, offset_as_instruction_count: i16) {
+        self.write_main_immediate(OP::BEQ, rt, rs, offset_as_instruction_count as u16);
+    }
+
+    pub fn write_bne(&mut self, rt: GPR, rs: GPR, offset_as_instruction_count: i16) {
+        self.write_main_immediate(OP::BNE, rt, rs, offset_as_instruction_count as u16);
+    }
+
+    pub fn write_bgtz(&mut self, rs: GPR, offset_as_instruction_count: i16) {
+        self.write_main_immediate(OP::BGTZ, GPR::R0, rs, offset_as_instruction_count as u16);
     }
 
     pub fn write_bgtz_backwards(&mut self, rs: GPR, target: &RSMAssemblerJumpTarget) {

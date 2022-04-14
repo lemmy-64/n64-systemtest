@@ -10,6 +10,8 @@ use crate::tests::soft_asserts::soft_assert_eq;
 pub mod op_addi;
 pub mod op_addiu;
 pub mod op_andi;
+pub mod op_beq;
+pub mod op_bne;
 pub mod op_break;
 pub mod op_j;
 pub mod op_jal;
