@@ -130,6 +130,8 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::rsp::op_sh::SHUnaligned {}),
         Box::new(super::rsp::op_sw::SWAligned {}),
         Box::new(super::rsp::op_sw::SWUnaligned {}),
+        Box::new(super::rsp::op_j::J {}),
+        Box::new(super::rsp::op_jal::JAL {}),
 
         // RSP Vector instructions
         Box::new(super::rsp::op_lqv_sqv::LQVSQV {}),

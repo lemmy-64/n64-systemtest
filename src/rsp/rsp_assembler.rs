@@ -1,6 +1,6 @@
 use core::mem::transmute;
 
-use crate::rsp::spmem_writer::SPMEMWriter;
+use crate::rsp::dmem_writer::DMEMWriter;
 
 // @formatter:off
 #[allow(dead_code)]
@@ -23,6 +23,7 @@ impl GPR {
         }
     }
 }
+
 impl core::iter::Step for GPR {
     fn steps_between(start: &Self, end: &Self) -> Option<usize> {
         if (*start as usize) < (*end as usize) {
@@ -167,13 +168,13 @@ impl RSMAssemblerJumpTarget {
 }
 
 pub struct RSPAssembler {
-    writer: SPMEMWriter,
+    writer: DMEMWriter,
 }
 
 impl RSPAssembler {
     pub const fn new(start_offset: usize) -> Self {
         // IMEM starts at 0x1000
-        Self { writer: SPMEMWriter::new(start_offset | 0x1000) }
+        Self { writer: DMEMWriter::new(start_offset) }
     }
 
     pub fn get_jump_target(&self) -> RSMAssemblerJumpTarget {
@@ -189,7 +190,15 @@ impl RSPAssembler {
         self.writer.write(instruction);
     }
 
-    fn write_special(&mut self, function: SpecialOP, sa: u32, rd: GPR, rs: GPR, rt: GPR)  {
+    fn write_main_jump(&mut self, op: OP, jump_target_shifted_by_2: u32) {
+        assert!(jump_target_shifted_by_2 < (1 << 26));
+        let instruction: u32 =
+            jump_target_shifted_by_2 |
+                ((op as u32) << 26);
+        self.writer.write(instruction);
+    }
+
+    fn write_special(&mut self, function: SpecialOP, sa: u32, rd: GPR, rs: GPR, rt: GPR) {
         assert!(sa <= 0b11111);
         self.writer.write((function as u32) |
             (sa << 6) |
@@ -325,6 +334,16 @@ impl RSPAssembler {
 
     pub fn write_xori(&mut self, rt: GPR, rs: GPR, imm: u16) {
         self.write_main_immediate(OP::XORI, rt, rs, imm);
+    }
+
+    pub fn write_j(&mut self, destination: u32) {
+        assert!((destination & 3) == 0);
+        self.write_main_jump(OP::J, destination >> 2);
+    }
+
+    pub fn write_jal(&mut self, destination: u32) {
+        assert!((destination & 3) == 0);
+        self.write_main_jump(OP::JAL, destination >> 2);
     }
 
     pub fn write_bgtz(&mut self, rs: GPR, offset: i16) {

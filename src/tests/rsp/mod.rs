@@ -11,6 +11,8 @@ pub mod op_addi;
 pub mod op_addiu;
 pub mod op_andi;
 pub mod op_break;
+pub mod op_j;
+pub mod op_jal;
 pub mod op_lb;
 pub mod op_lbu;
 pub mod op_lh;
