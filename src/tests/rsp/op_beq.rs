@@ -25,31 +25,27 @@ impl Test for BEQ {
         assembler.write_ori(GPR::S0, GPR::R0, 0xFFFE);
         assembler.write_ori(GPR::S1, GPR::R0, 0xFFFE);
         assembler.write_ori(GPR::RA, GPR::R0, 0);
-        assembler.write_ori(GPR::A0, GPR::R0, 0b00000001);
+        assembler.write_ori(GPR::A0, GPR::R0, 0b000_000_000_1);
+
+        // BEQ that is taken
         assembler.write_beq(GPR::S0, GPR::S1, 2);
+        assembler.write_ori(GPR::A0, GPR::A0, 0b000_000_001_0); // 0x000: delay slot (located at 0x000 due to DMEM overflow)
+        assembler.write_ori(GPR::A0, GPR::A0, 0b000_000_010_0); // 0x004: skipped
+        assembler.write_ori(GPR::A0, GPR::A0, 0b000_000_100_0); // 0x008: branch target
 
-        // Overflow to 0x000. This is the delay slot
-        assembler.write_ori(GPR::A0, GPR::A0, 0b00000010);
-
-        // 0x004: This is skipped
-        assembler.write_ori(GPR::A0, GPR::A0, 0b00000100);
-
-        // 0x008: Jump target
-        assembler.write_ori(GPR::A0, GPR::A0, 0b00001000);
-
-        // Do another BEQ, this time it will not be taken
+        // BEQ that is not taken
         assembler.write_beq(GPR::S0, GPR::R0, 2);
+        assembler.write_ori(GPR::A0, GPR::A0, 0b000_001_000_0);  // delay slot
+        assembler.write_ori(GPR::A0, GPR::A0, 0b000_010_000_0);  // executed as branch isn't taken
+        assembler.write_ori(GPR::A0, GPR::A0, 0b000_100_000_0);  // branch target
 
-        // Delay slot
-        assembler.write_ori(GPR::A0, GPR::A0, 0b00010000);
+        // BEQ where a register is compared to itself (something that a recompiler might fast-path)
+        assembler.write_beq(GPR::S0, GPR::S0, 2);
+        assembler.write_ori(GPR::A0, GPR::A0, 0b001_000_000_0); // delay slot
+        assembler.write_ori(GPR::A0, GPR::A0, 0b010_000_000_0); // skipped
+        assembler.write_ori(GPR::A0, GPR::A0, 0b100_000_000_0); // branch target
 
-        // This would have been skipped if the registers were equal
-        assembler.write_ori(GPR::A0, GPR::A0, 0b00100000);
-
-        // Jump target 2
-        assembler.write_ori(GPR::A0, GPR::A0, 0b01000000);
-
-        // 0x00C: Save result
+        // Write results
         assembler.write_sw(GPR::A0, GPR::R0, 0x0);
         assembler.write_sw(GPR::RA, GPR::R0, 0x4);
 
@@ -58,7 +54,7 @@ impl Test for BEQ {
 
         RSP::run_and_wait(0xFEC);
 
-        soft_assert_eq(SPMEM::read(0x0), 0b01111011, "Branches not taken as expected")?;
+        soft_assert_eq(SPMEM::read(0x0), 0b101_111_101_1, "Branches not taken as expected")?;
         soft_assert_eq(SPMEM::read(0x4), 0, "BEQ is not expected to change the RA register")?;
 
         Ok(())
