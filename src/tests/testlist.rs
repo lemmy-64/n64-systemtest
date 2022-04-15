@@ -136,6 +136,8 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::rsp::op_sw::SWUnaligned {}),
         Box::new(super::rsp::op_j::J {}),
         Box::new(super::rsp::op_jal::JAL {}),
+        Box::new(super::rsp::op_jr_jalr::JR {}),
+        Box::new(super::rsp::op_jr_jalr::JRWithRegisterChangeInDelaySlot {}),
 
         Box::new(super::rsp::op_branches::BEQ {}),
         Box::new(super::rsp::op_branches::BNE {}),

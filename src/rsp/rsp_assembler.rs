@@ -441,6 +441,14 @@ impl RSPAssembler {
         self.write_special(SpecialOP::OR, 0, rd, rs, rt);
     }
 
+    pub fn write_jr(&mut self, rs: GPR) {
+        self.write_special(SpecialOP::JR, 0, GPR::R0, rs, GPR::R0);
+    }
+
+    pub fn write_jalr(&mut self, ra: GPR, target: GPR) {
+        self.write_special(SpecialOP::JALR, 0, ra, target, GPR::R0);
+    }
+
     // Regimm instructions
     pub fn write_bltz(&mut self, rs: GPR, offset_as_instruction_count: i16) {
         self.write_regimm(RegimmOP::BLTZ, rs, offset_as_instruction_count as u16);

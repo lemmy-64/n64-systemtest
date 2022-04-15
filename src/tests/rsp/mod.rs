@@ -15,6 +15,7 @@ pub mod op_branches;
 pub mod op_break;
 pub mod op_j;
 pub mod op_jal;
+pub mod op_jr_jalr;
 pub mod op_lb;
 pub mod op_lbu;
 pub mod op_lh;
