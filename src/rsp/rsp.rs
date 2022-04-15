@@ -65,8 +65,8 @@ impl RSP {
         unsafe { SP_PC_REG.read_volatile() }
     }
 
-    pub fn start_running(pc: u32) {
-        Self::set_pc(pc);
+    pub fn start_running(pc: usize) {
+        Self::set_pc(pc as u32);
 
         // Clear status and clear interrupt just in case
         Self::set_status(SP_STATUS_SET_CLEAR_HALT |
@@ -105,7 +105,7 @@ impl RSP {
         }
     }
 
-    pub fn run_and_wait(pc: u32) {
+    pub fn run_and_wait(pc: usize) {
         Self::start_running(pc);
         Self::wait_until_rsp_is_halted();
     }

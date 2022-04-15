@@ -65,6 +65,18 @@ pub fn run() {
                 Some(v) => return format!("{:?}", v),
                 None => {},
             }
+            match (*value).downcast_ref::<bool>() {
+                Some(v) => return format!("{:?}", v),
+                None => {},
+            }
+            match (*value).downcast_ref::<(bool, u32)>() {
+                Some(v) => return format!("{:?}", v),
+                None => {},
+            }
+            match (*value).downcast_ref::<(bool, u32, u32)>() {
+                Some(v) => return format!("{:?}", v),
+                None => {},
+            }
             match (*value).downcast_ref::<(bool, i64, i64)>() {
                 Some(v) => return format!("{:?}", v),
                 None => {},

@@ -118,6 +118,14 @@ enum SpecialOP {
 // @formatter:off
 #[allow(dead_code)]
 #[repr(u8)]
+enum RegimmOP {
+    BLTZ = 0, BGEZ = 1, BLTZAL = 16, BGEZAL = 17,
+}
+// @formatter:on
+
+// @formatter:off
+#[allow(dead_code)]
+#[repr(u8)]
 enum CP0OP {
     MFC0 = 0, MTC0 = 4,
 }
@@ -177,6 +185,8 @@ impl RSPAssembler {
         Self { writer: DMEMWriter::new(start_offset) }
     }
 
+    pub fn writer(&self) -> &DMEMWriter { &self.writer }
+
     pub fn get_jump_target(&self) -> RSMAssemblerJumpTarget {
         RSMAssemblerJumpTarget::new(self.writer.offset())
     }
@@ -206,6 +216,13 @@ impl RSPAssembler {
             ((rt as u32) << 16) |
             ((rs as u32) << 21) |
             ((OP::SPECIAL as u32) << 26));
+    }
+
+    fn write_regimm(&mut self, regimm_op: RegimmOP, rs: GPR, imm: u16) {
+        self.writer.write((imm as u32) |
+            ((regimm_op as u32) << 16) |
+            ((rs as u32) << 21) |
+            ((OP::REGIMM as u32) << 26));
     }
 
     fn write_cop0(&mut self, cp0op: CP0OP, cp0register: CP0Register, rt: GPR) {
@@ -350,6 +367,10 @@ impl RSPAssembler {
         self.write_main_immediate(OP::BEQ, rt, rs, offset_as_instruction_count as u16);
     }
 
+    pub fn write_blez(&mut self, rs: GPR, offset_as_instruction_count: i16) {
+        self.write_main_immediate(OP::BLEZ, GPR::R0, rs, offset_as_instruction_count as u16);
+    }
+
     pub fn write_bne(&mut self, rt: GPR, rs: GPR, offset_as_instruction_count: i16) {
         self.write_main_immediate(OP::BNE, rt, rs, offset_as_instruction_count as u16);
     }
@@ -381,6 +402,23 @@ impl RSPAssembler {
 
     pub fn write_or(&mut self, rd: GPR, rs: GPR, rt: GPR) {
         self.write_special(SpecialOP::OR, 0, rd, rs, rt);
+    }
+
+    // Regimm instructions
+    pub fn write_bltz(&mut self, rs: GPR, offset_as_instruction_count: i16) {
+        self.write_regimm(RegimmOP::BLTZ, rs, offset_as_instruction_count as u16);
+    }
+
+    pub fn write_bgez(&mut self, rs: GPR, offset_as_instruction_count: i16) {
+        self.write_regimm(RegimmOP::BGEZ, rs, offset_as_instruction_count as u16);
+    }
+
+    pub fn write_bltzal(&mut self, rs: GPR, offset_as_instruction_count: i16) {
+        self.write_regimm(RegimmOP::BLTZAL, rs, offset_as_instruction_count as u16);
+    }
+
+    pub fn write_bgezal(&mut self, rs: GPR, offset_as_instruction_count: i16) {
+        self.write_regimm(RegimmOP::BGEZAL, rs, offset_as_instruction_count as u16);
     }
 
     // Vector load/store instructions

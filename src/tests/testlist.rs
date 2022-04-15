@@ -132,8 +132,15 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::rsp::op_sw::SWUnaligned {}),
         Box::new(super::rsp::op_j::J {}),
         Box::new(super::rsp::op_jal::JAL {}),
-        Box::new(super::rsp::op_beq::BEQ {}),
-        Box::new(super::rsp::op_bne::BNE {}),
+
+        Box::new(super::rsp::op_branches::BEQ {}),
+        Box::new(super::rsp::op_branches::BNE {}),
+        Box::new(super::rsp::op_branches::BLEZ {}),
+        Box::new(super::rsp::op_branches::BGTZ {}),
+        Box::new(super::rsp::op_branches::BLTZ {}),
+        Box::new(super::rsp::op_branches::BGEZ {}),
+        Box::new(super::rsp::op_branches::BLTZAL {}),
+        Box::new(super::rsp::op_branches::BGEZAL {}),
 
         // RSP Vector instructions
         Box::new(super::rsp::op_lqv_sqv::LQVSQV {}),
