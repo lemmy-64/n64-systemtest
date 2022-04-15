@@ -34,7 +34,10 @@ impl Test for XORI {
         assembler.write_xori(GPR::S6, GPR::V1, 0x0000);
         assembler.write_xori(GPR::S7, GPR::V1, 0xFFFF);
 
-        for (i, gpr) in (GPR::S0..=GPR::S7).enumerate() {
+        assembler.write_li(GPR::T8, 0x12345678);
+        assembler.write_xori(GPR::T8, GPR::T8, 0xF0FF);
+
+        for (i, gpr) in (GPR::S0..=GPR::T8).enumerate() {
             assembler.write_sw(gpr, GPR::R0, (i * 4) as i16);
         }
 
@@ -56,6 +59,8 @@ impl Test for XORI {
         soft_assert_eq(SPMEM::read(0x14), 0x11111163, "0x11111111 ^ 0x0072")?;
         soft_assert_eq(SPMEM::read(0x18), 0x11111111, "0x11111111 ^ 0x0000")?;
         soft_assert_eq(SPMEM::read(0x1C), 0x1111EEEE, "0x11111111 ^ 0xFFFF")?;
+
+        soft_assert_eq(SPMEM::read(0x20), 0x1234A687, "0x12345678 ^ 0xF0FF")?;
 
         soft_assert_eq(SPMEM::read(0x100), 0, "R0 should never change")?;
 
