@@ -138,6 +138,10 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::rsp::op_jal::JAL {}),
         Box::new(super::rsp::op_jr_jalr::JR {}),
         Box::new(super::rsp::op_jr_jalr::JRWithRegisterChangeInDelaySlot {}),
+        Box::new(super::rsp::op_jr_jalr::JALR {}),
+        Box::new(super::rsp::op_jr_jalr::JALRWithRegisterChangeInDelaySlot {}),
+        Box::new(super::rsp::op_jr_jalr::JALRWithReturnAddressChangeInDelaySlot {}),
+        Box::new(super::rsp::op_jr_jalr::JALRWithReturnAddressEqualToTargetAddress {}),
 
         Box::new(super::rsp::op_branches::BEQ {}),
         Box::new(super::rsp::op_branches::BNE {}),

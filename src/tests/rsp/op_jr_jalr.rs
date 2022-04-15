@@ -55,13 +55,17 @@ fn test(jalr: bool, change_target_address_in_delay: bool, jalr_change_ra_in_dela
 
     RSP::run_and_wait(START_OFFSET);
 
-    if !change_target_address_in_delay {
+    if !change_target_address_in_delay && !jalr_change_ra_in_delay {
         soft_assert_eq(SPMEM::read(0x0), 1, "Delay slot in 0x000 is expected to executed")?;
     }
     soft_assert_eq(SPMEM::read(0x4), 0, "Instruction at 0x004 is expected to be skipped")?;
     soft_assert_eq(SPMEM::read(0x8), 1, "Instruction at 0x008 is expected to be executed")?;
     if jalr {
-        soft_assert_eq(SPMEM::read(0xC), 0x004, "JALR's return address not valid")?;
+        if jalr_change_ra_in_delay {
+            soft_assert_eq(SPMEM::read(0xC), 0x7654, "JALR's return address should be overwritten by the change in the delay slot")?;
+        } else {
+            soft_assert_eq(SPMEM::read(0xC), 0x004, "JALR's return address not valid")?;
+        }
     } else {
         soft_assert_eq(SPMEM::read(0xC), 0x1234, "RA must not be changed")?;
     }
