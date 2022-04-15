@@ -453,6 +453,14 @@ impl RSPAssembler {
         self.write_special(SpecialOP::XOR, 0, rd, rs, rt);
     }
 
+    pub fn write_slt(&mut self, rd: GPR, rs: GPR, rt: GPR) {
+        self.write_special(SpecialOP::SLT, 0, rd, rs, rt);
+    }
+
+    pub fn write_sltu(&mut self, rd: GPR, rs: GPR, rt: GPR) {
+        self.write_special(SpecialOP::SLTU, 0, rd, rs, rt);
+    }
+
     pub fn write_jr(&mut self, rs: GPR) {
         self.write_special(SpecialOP::JR, 0, GPR::R0, rs, GPR::R0);
     }

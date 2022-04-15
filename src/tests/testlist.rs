@@ -125,6 +125,8 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::rsp::op_or::OR {}),
         Box::new(super::rsp::op_nor::NOR {}),
         Box::new(super::rsp::op_xor::XOR {}),
+        Box::new(super::rsp::op_slt::SLT {}),
+        Box::new(super::rsp::op_sltu::SLTU {}),
         Box::new(super::rsp::op_slti::SLTI {}),
         Box::new(super::rsp::op_sltiu::SLTIU {}),
         Box::new(super::rsp::op_lb::LB {}),
