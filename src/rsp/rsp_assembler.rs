@@ -417,6 +417,22 @@ impl RSPAssembler {
         self.write_sll(GPR::R0, GPR::R0, 0);
     }
 
+    pub fn write_add(&mut self, rd: GPR, rt: GPR, rs: GPR) {
+        self.write_special(SpecialOP::ADD, 0, rd, rs, rt);
+    }
+
+    pub fn write_addu(&mut self, rd: GPR, rt: GPR, rs: GPR) {
+        self.write_special(SpecialOP::ADDU, 0, rd, rs, rt);
+    }
+
+    pub fn write_sub(&mut self, rd: GPR, rt: GPR, rs: GPR) {
+        self.write_special(SpecialOP::SUB, 0, rd, rs, rt);
+    }
+
+    pub fn write_subu(&mut self, rd: GPR, rt: GPR, rs: GPR) {
+        self.write_special(SpecialOP::SUBU, 0, rd, rs, rt);
+    }
+
     pub fn write_break(&mut self) {
         self.write_special(SpecialOP::BREAK, 0, GPR::R0, GPR::R0, GPR::R0);
     }
