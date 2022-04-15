@@ -142,6 +142,16 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::rsp::op_branches::BLTZAL {}),
         Box::new(super::rsp::op_branches::BGEZAL {}),
 
+        Box::new(super::rsp::op_shifts::SLL {}),
+        Box::new(super::rsp::op_shifts::SRL {}),
+        Box::new(super::rsp::op_shifts::SRA {}),
+        Box::new(super::rsp::op_shifts::SLLV {}),
+        Box::new(super::rsp::op_shifts::SLLVWithShiftAmountOverwrite {}),
+        Box::new(super::rsp::op_shifts::SRLV {}),
+        Box::new(super::rsp::op_shifts::SRLVWithShiftAmountOverwrite {}),
+        Box::new(super::rsp::op_shifts::SRAV {}),
+        Box::new(super::rsp::op_shifts::SRAVWithShiftAmountOverwrite {}),
+
         // RSP Vector instructions
         Box::new(super::rsp::op_lqv_sqv::LQVSQV {}),
         Box::new(super::rsp::op_vsar::VSAR {}),

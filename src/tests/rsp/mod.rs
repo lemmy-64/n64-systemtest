@@ -24,6 +24,7 @@ pub mod op_lqv_sqv;
 pub mod op_ori;
 pub mod op_sb;
 pub mod op_sh;
+pub mod op_shifts;
 pub mod op_slti;
 pub mod op_sltiu;
 pub mod op_sw;
