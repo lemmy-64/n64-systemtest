@@ -433,12 +433,24 @@ impl RSPAssembler {
         self.write_special(SpecialOP::SUBU, 0, rd, rs, rt);
     }
 
+    pub fn write_and(&mut self, rd: GPR, rt: GPR, rs: GPR) {
+        self.write_special(SpecialOP::AND, 0, rd, rs, rt);
+    }
+
     pub fn write_break(&mut self) {
         self.write_special(SpecialOP::BREAK, 0, GPR::R0, GPR::R0, GPR::R0);
     }
 
+    pub fn write_nor(&mut self, rd: GPR, rs: GPR, rt: GPR) {
+        self.write_special(SpecialOP::NOR, 0, rd, rs, rt);
+    }
+
     pub fn write_or(&mut self, rd: GPR, rs: GPR, rt: GPR) {
         self.write_special(SpecialOP::OR, 0, rd, rs, rt);
+    }
+
+    pub fn write_xor(&mut self, rd: GPR, rs: GPR, rt: GPR) {
+        self.write_special(SpecialOP::XOR, 0, rd, rs, rt);
     }
 
     pub fn write_jr(&mut self, rs: GPR) {
