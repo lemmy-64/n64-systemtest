@@ -7,6 +7,7 @@ use crate::rsp::rsp::RSP;
 use crate::tests::{Level, Test};
 use crate::tests::soft_asserts::soft_assert_eq;
 
+pub mod registers;
 pub mod op_addi;
 pub mod op_addiu;
 pub mod op_and;

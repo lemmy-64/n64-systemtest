@@ -13,13 +13,17 @@ enum RegisterOffset {
     Semaphore = 0x1C,
 }
 
-const SP_STATUS_HALT: u32 = 0b1;
-const SP_STATUS_DMA_BUSY: u32 = 0b100;
+pub const SP_STATUS_HALT: u32 = 0b1;
+pub const SP_STATUS_DMA_BUSY: u32 = 0b100;
+pub const SP_STATUS_INTERRUPT_ON_BREAK: u32 = 0b1000000;
 
-const SP_STATUS_SET_CLEAR_HALT: u32 = 0b1;
-const SP_STATUS_SET_CLEAR_BROKE: u32 = 0b100;
-const SP_STATUS_SET_CLEAR_INTERRUPT: u32 = 0b1000;
-const SP_STATUS_SET_CLEAR_INTERRUPT_ON_BREAK: u32 = 0b1_0000_000;
+pub const SP_STATUS_SET_CLEAR_HALT: u32 = 0b1;
+pub const SP_STATUS_SET_SET_HALT: u32 = 0b10;
+pub const SP_STATUS_SET_CLEAR_BROKE: u32 = 0b100;
+pub const SP_STATUS_SET_CLEAR_INTERRUPT: u32 = 0b1000;
+pub const SP_STATUS_SET_SET_INTERRUPT: u32 = 0b1_0000;
+pub const SP_STATUS_SET_CLEAR_INTERRUPT_ON_BREAK: u32 = 0b1_0000_000;
+pub const SP_STATUS_SET_SET_INTERRUPT_ON_BREAK: u32 = 0b10_0000_000;
 
 pub struct RSP {
 }
@@ -37,8 +41,16 @@ impl RSP {
         Self::set_register(RegisterOffset::SPAddress, value);
     }
 
+    pub fn sp_address() -> u32 {
+        Self::get_register(RegisterOffset::SPAddress)
+    }
+
     pub fn set_dram_address(value: u32) {
         Self::set_register(RegisterOffset::DRAMAddress, value);
+    }
+
+    pub fn dram_address() -> u32 {
+        Self::get_register(RegisterOffset::DRAMAddress)
     }
 
     fn set_read_length(value: u32) {
@@ -53,7 +65,7 @@ impl RSP {
         Self::get_register(RegisterOffset::Status)
     }
 
-    fn set_status(value: u32) {
+    pub fn set_status(value: u32) {
         Self::set_register(RegisterOffset::Status, value);
     }
 
@@ -110,7 +122,51 @@ impl RSP {
         Self::wait_until_rsp_is_halted();
     }
 
+    pub fn set_signal(i: u32) {
+        assert!(i < 8);
+        Self::set_status(1 << (10 + i * 2));
+    }
+
+    pub fn clear_signal(i: u32) {
+        assert!(i < 8);
+        Self::set_status(1 << (9 + i * 2));
+    }
+
+    pub fn is_signal(i: u32) -> bool {
+        assert!(i < 8);
+        (Self::status() & (1 << (7 + i))) != 0
+    }
+
+    pub fn set_interrupt() {
+        Self::set_status(SP_STATUS_SET_SET_INTERRUPT);
+    }
+
+    pub fn clear_interrupt() {
+        Self::set_status(SP_STATUS_SET_CLEAR_INTERRUPT);
+    }
+
+    pub fn set_interrupt_on_break() {
+        Self::set_status(SP_STATUS_SET_SET_INTERRUPT_ON_BREAK);
+    }
+
+    pub fn clear_interrupt_on_break() {
+        Self::set_status(SP_STATUS_SET_CLEAR_INTERRUPT_ON_BREAK);
+    }
+
+    pub fn is_interrupt_on_break() -> bool {
+        (Self::status() & SP_STATUS_INTERRUPT_ON_BREAK) != 0
+    }
+
     pub fn clear_broke() {
         Self::set_status(SP_STATUS_SET_CLEAR_BROKE);
     }
+
+    pub fn set_semaphore(value: u32) {
+        Self::set_register(RegisterOffset::Semaphore, value);
+    }
+
+    pub fn semaphore() -> u32 {
+        Self::get_register(RegisterOffset::Semaphore)
+    }
+
 }

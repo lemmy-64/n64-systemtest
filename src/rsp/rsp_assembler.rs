@@ -135,7 +135,7 @@ enum CP0OP {
 #[allow(dead_code)]
 #[repr(u8)]
 pub enum CP0Register {
-    SPAddress = 0, DRAMAddress = 1, ReadLength = 2, WriteLength = 3, SPStatus = 4, Semaphore = 7,
+    SPAddress = 0, DRAMAddress = 1, ReadLength = 2, WriteLength = 3, SPStatus = 4, DmaFull = 5, DmaBusy = 6, Semaphore = 7,
     DPStart = 8, DPEnd = 9, DPStatus = 11, DPClock = 12
 }
 // @formatter:on
@@ -382,6 +382,10 @@ impl RSPAssembler {
     pub fn write_bgtz_backwards(&mut self, rs: GPR, target: &RSMAssemblerJumpTarget) {
         let offset = (((target.offset - self.writer.offset()) & 0xFFF) >> 2) - 1;
         self.write_bgtz(rs, offset as i16);
+    }
+
+    pub fn write_mfc0(&mut self, cp0register: CP0Register, rt: GPR) {
+        self.write_cop0(CP0OP::MFC0, cp0register, rt);
     }
 
     pub fn write_mtc0(&mut self, cp0register: CP0Register, rt: GPR) {

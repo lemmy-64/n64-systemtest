@@ -24,6 +24,7 @@ mod cop0;
 mod exception_handler;
 mod graphics;
 mod isviewer;
+mod mi;
 mod panic;
 mod print;
 mod rsp;

@@ -198,6 +198,17 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::rsp::op_vmulf::VMULFAll1 {}),
         Box::new(super::rsp::op_vmulf::VMULFH0 {}),
         Box::new(super::rsp::op_vmulf::VMULFH1 {}),
+
+        Box::new(super::rsp::registers::SetClearInterrupt {}),
+        Box::new(super::rsp::registers::SetClearHalt {}),
+        Box::new(super::rsp::registers::SetClearSignal {}),
+        Box::new(super::rsp::registers::SetClearInterruptOnBreak {}),
+        Box::new(super::rsp::registers::SPRegisterReadAccessOnRSP {}),
+        Box::new(super::rsp::registers::SemaphoreRegisterCPUOnly {}),
+        Box::new(super::rsp::registers::SemaphoreRegisterRSPOnly {}),
+        Box::new(super::rsp::registers::SemaphoreRegisterMixed {}),
+        Box::new(super::rsp::registers::RSPHaltItselfWithoutBreak {}),
+
         Box::new(super::sp_memory::SW {}),
         Box::new(super::sp_memory::SWOutOfBounds {}),
         Box::new(super::sp_memory::SH {}),
