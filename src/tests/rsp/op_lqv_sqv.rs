@@ -185,3 +185,58 @@ impl Test for LQVSQV {
         Ok(())
     }
 }
+pub struct LQVEndOfDMEM {}
+
+impl Test for LQVEndOfDMEM {
+    fn name(&self) -> &str { "RSP LQV (end of DMEM)" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        // LQV can not overflow as it only reads until the end of the 128bit memory region. Have some tests to ensure
+        // this also works at the very end
+
+        // Prepare input data
+        SPMEM::write_vector_16(0x000, &[0x0112, 0x2334, 0x4556, 0x6778, 0x8998, 0x8776, 0x7665, 0x5443]);
+        SPMEM::write_vector_16(0xFF0, &[0xAABB, 0xCCDD, 0xEEFF, 0xFEED, 0xDCCB, 0xBAAB, 0xBCCD, 0xDEEF]);
+
+        // Assemble RSP program
+        let mut assembler = RSPAssembler::new(0);
+
+        // "Clear" vectors
+        assembler.write_lqv(VR::V0, E::_0, 0, GPR::R0);
+        assembler.write_lqv(VR::V1, E::_0, 0, GPR::R0);
+        assembler.write_lqv(VR::V2, E::_0, 0, GPR::R0);
+        assembler.write_lqv(VR::V3, E::_0, 0, GPR::R0);
+
+        // Do loads from the very end of DMEM
+        assembler.write_li(GPR::S0, 0xFF0);
+        assembler.write_li(GPR::S1, 0xFFC);
+        assembler.write_li(GPR::S2, 0xFFF);
+        assembler.write_li(GPR::S3, 0xFFF);
+
+        assembler.write_lqv(VR::V0, E::_0, 0, GPR::S0);
+        assembler.write_lqv(VR::V1, E::_0, 0, GPR::S1);
+        assembler.write_lqv(VR::V2, E::_0, 0, GPR::S2);
+        assembler.write_lqv(VR::V3, E::_14, 0, GPR::S3);
+
+        // Write back results
+        assembler.write_sqv(VR::V0, E::_0, 0x100, GPR::R0);
+        assembler.write_sqv(VR::V1, E::_0, 0x110, GPR::R0);
+        assembler.write_sqv(VR::V2, E::_0, 0x120, GPR::R0);
+        assembler.write_sqv(VR::V3, E::_0, 0x130, GPR::R0);
+
+        assembler.write_break();
+
+        RSP::run_and_wait(0);
+
+        soft_assert_eq(SPMEM::read_vector_16(0x100), [0xAABB, 0xCCDD, 0xEEFF, 0xFEED, 0xDCCB, 0xBAAB, 0xBCCD, 0xDEEF], "LQV[e=0] from 0xFF0")?;
+        soft_assert_eq(SPMEM::read_vector_16(0x110), [0xBCCD, 0xDEEF, 0x4556, 0x6778, 0x8998, 0x8776, 0x7665, 0x5443], "LQV[e=0] from 0xFFC")?;
+        soft_assert_eq(SPMEM::read_vector_16(0x120), [0xEF12, 0x2334, 0x4556, 0x6778, 0x8998, 0x8776, 0x7665, 0x5443], "LQV[e=0] from 0xFFF")?;
+        soft_assert_eq(SPMEM::read_vector_16(0x130), [0x0112, 0x2334, 0x4556, 0x6778, 0x8998, 0x8776, 0x7665, 0xEF43], "LQV[e=14] from 0xFFF")?;
+
+        Ok(())
+    }
+}

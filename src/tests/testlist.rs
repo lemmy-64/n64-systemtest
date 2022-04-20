@@ -170,6 +170,7 @@ fn default_tests() -> Vec<Box<dyn Test>> {
 
         // RSP Vector instructions
         Box::new(super::rsp::op_lqv_sqv::LQVSQV {}),
+        Box::new(super::rsp::op_lqv_sqv::LQVEndOfDMEM {}),
         Box::new(super::rsp::op_vsar::VSAR {}),
         Box::new(super::rsp::op_vmacf::VMACFAll {}),
         Box::new(super::rsp::op_vmacf::VMACFH0 {}),
