@@ -76,7 +76,7 @@ pub enum Element {
 // @formatter:off
 #[allow(dead_code)]
 #[repr(u8)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub enum E {
     _0 = 0, _1 = 1, _2 = 2, _3 = 3, _4 = 4, _5=5, _6=6, _7=7,
     _8 = 8, _9 = 9, _10 = 10, _11 = 11, _12 = 12, _13 = 13, _14 = 14, _15 = 15,
@@ -491,9 +491,34 @@ impl RSPAssembler {
     }
 
     // Vector load/store instructions
+    pub fn write_lbv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
+        assert!((offset & 0b1111) == 0);
+        self.write_wc2(OP::LWC2, WC2OP::BV, vt, element, offset, base);
+    }
+
+    pub fn write_ldv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
+        assert!((offset & 0b1111) == 0);
+        self.write_wc2(OP::LWC2, WC2OP::DV, vt, element, offset >> 3, base);
+    }
+
+    pub fn write_llv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
+        assert!((offset & 0b1111) == 0);
+        self.write_wc2(OP::LWC2, WC2OP::LV, vt, element, offset >> 2, base);
+    }
+
     pub fn write_lqv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
         assert!((offset & 0b1111) == 0);
         self.write_wc2(OP::LWC2, WC2OP::QV, vt, element, offset >> 4, base);
+    }
+
+    pub fn write_lsv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
+        assert!((offset & 0b1111) == 0);
+        self.write_wc2(OP::LWC2, WC2OP::SV, vt, element, offset >> 1, base);
+    }
+
+    pub fn write_sdv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
+        assert!((offset & 0b1111) == 0);
+        self.write_wc2(OP::SWC2, WC2OP::DV, vt, element, offset >> 3, base);
     }
 
     pub fn write_sqv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {

@@ -16,6 +16,15 @@ impl SPMEM {
         }
     }
 
+    pub fn write_vector_8(addr: usize, vec: &[u8; 16]) {
+        for i in 0..4 {
+            Self::write(addr + (i << 2), ((vec[i << 2] as u32) << 24) |
+                ((vec[(i << 2) + 1] as u32) << 16) |
+                ((vec[(i << 2) + 2] as u32) << 8) |
+                (vec[(i << 2) + 3] as u32));
+        }
+    }
+
     pub fn read(addr: usize) -> u32 {
         let spmem = MemoryMap::uncached_spmem_address::<u32>(addr);
         unsafe {
@@ -33,4 +42,15 @@ impl SPMEM {
         vec
     }
 
+    pub fn read_vector_8(addr: usize) -> [u8; 16] {
+        let mut vec: [u8; 16] = Default::default();
+        for i in 0..4 {
+            let v = Self::read(addr + (i << 2));
+            vec[(i << 2)] = (v >> 24) as u8;
+            vec[(i << 2) + 1] = (v >> 16) as u8;
+            vec[(i << 2) + 2] = (v >> 8) as u8;
+            vec[(i << 2) + 3] = v as u8;
+        }
+        vec
+    }
 }
