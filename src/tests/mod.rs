@@ -61,39 +61,43 @@ pub fn run() {
 
     fn test_value(test: &Box<dyn Test>, value: &Box::<dyn Any>, failed: &mut u32, succeeded: &mut u32, skipped: &mut u32) {
         fn value_desc(value: &Box<dyn Any>) -> String {
+            match (*value).downcast_ref::<()>() {
+                Some(_) => return String::new(),
+                None => {},
+            }
             match (*value).downcast_ref::<u32>() {
-                Some(v) => return format!("{:?}", v),
+                Some(v) => return format!(" with '{:?}'", v),
                 None => {},
             }
             match (*value).downcast_ref::<bool>() {
-                Some(v) => return format!("{:?}", v),
+                Some(v) => return format!(" with '{:?}'", v),
                 None => {},
             }
             match (*value).downcast_ref::<(bool, u32)>() {
-                Some(v) => return format!("{:?}", v),
+                Some(v) => return format!(" with '{:?}'", v),
                 None => {},
             }
             match (*value).downcast_ref::<(bool, u32, u32)>() {
-                Some(v) => return format!("{:?}", v),
+                Some(v) => return format!(" with '{:?}'", v),
                 None => {},
             }
             match (*value).downcast_ref::<(u32, u32, u32)>() {
-                Some(v) => return format!("{:?}", v),
+                Some(v) => return format!(" with '{:?}'", v),
                 None => {},
             }
             match (*value).downcast_ref::<(bool, i64, i64)>() {
-                Some(v) => return format!("{:?}", v),
+                Some(v) => return format!(" with '{:?}'", v),
                 None => {},
             }
             match (*value).downcast_ref::<(bool, u64, u64)>() {
-                Some(v) => return format!("{:?}", v),
+                Some(v) => return format!(" with '{:?}'", v),
                 None => {}
             }
             match (*value).downcast_ref::<(bool, u64, Immediate)>() {
-                Some(v) => return format!("{:?}", v),
+                Some(v) => return format!(" with '{:?}'", v),
                 None => {}
             }
-            return "(value)".to_string();
+            return " with unknown arguments".to_string();
         }
 
         if test.level() == Level::TooWeird {
@@ -110,7 +114,7 @@ pub fn run() {
             match drain_seen_exception() {
                 Some(exception) => {
                     // If the test caused an exception, don't even bother looking at the result. Just count it as failed
-                    crate::println!("Test \"{:?}\' with '{:?}' failed with exception: {:?}", test.name(), value_desc(value), cause_extract_exception(exception.cause));
+                    crate::println!("Test '{}'{} failed with exception: {:?}\n", test.name(), value_desc(value), cause_extract_exception(exception.cause));
                     *failed += 1;
                 }
                 None => {
@@ -119,7 +123,7 @@ pub fn run() {
                             *succeeded += 1
                         }
                         Err(error) => {
-                            crate::println!("Test \"{:?}\' with '{:?}' failed: {}", test.name(), value_desc(value), error);
+                            crate::println!("Test '{}'{} failed: {}\n", test.name(), value_desc(value), error);
                             *failed += 1;
                         }
                     }
@@ -128,7 +132,7 @@ pub fn run() {
         }
     }
 
-    let dummy_test_value: Box<dyn Any> = Box::new(0u32);
+    let dummy_test_value: Box<dyn Any> = Box::new(());
     for test in testlist::tests() {
         let values = test.values();
         if values.len() == 0 {

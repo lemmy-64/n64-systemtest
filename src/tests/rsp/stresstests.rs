@@ -3,7 +3,6 @@ use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::any::Any;
-use core::fmt::{Debug, Formatter};
 
 use crate::{MemoryMap, VIDEO};
 use crate::graphics::color::Color;
@@ -11,44 +10,12 @@ use crate::graphics::color::RGBA1555;
 use crate::graphics::cursor::Cursor;
 use crate::graphics::font::Font;
 use crate::graphics::system_font::FONT_GENEVA_9;
+use crate::math::vector::Vector;
 use crate::rsp::rsp::RSP;
 use crate::rsp::rsp_assembler::{CP0Register, E, Element, GPR, RSPAssembler, VR};
 use crate::rsp::spmem::SPMEM;
 use crate::tests::{Level, Test};
 use crate::tests::soft_asserts::soft_assert_eq2;
-
-union Vector {
-    as_u16: [u16; 8],
-    as_u64: [u64; 2],
-}
-
-impl Vector {
-    fn get(&self, index: usize) -> u16 { unsafe { self.as_u16[index] } }
-}
-
-impl Debug for Vector {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        f.debug_list()
-            .entries(unsafe { &self.as_u16 })
-            .finish()
-    }
-}
-
-impl PartialEq for Vector {
-    fn eq(&self, other: &Self) -> bool {
-        unsafe { self.as_u64 == other.as_u64 }
-    }
-}
-
-impl Eq for Vector {}
-
-impl Default for Vector {
-    fn default() -> Self {
-        Vector {
-            as_u64: [0, 0]
-        }
-    }
-}
 
 fn zero_extend_accum48(v: i64) -> u64 { ((v as u64) << 16) >> 16 }
 
@@ -156,7 +123,7 @@ fn run_stress_test<F: Fn(&mut RSPAssembler) -> (), F2: Fn(u16, u16, u64) -> (u16
         }
 
         let input1 = [a_base, a_base + 1, a_base + 2, a_base + 3, a_base + 4, a_base + 5, a_base + 6, a_base + 7];
-        SPMEM::write_vector_16(0x00, &input1);
+        SPMEM::write_vector16_into_dmem(0x00, &input1);
         // The RSP code will duplicate this along lanes and increment itself
         SPMEM::write(0x10, 0);
 
@@ -190,9 +157,9 @@ fn run_stress_test<F: Fn(&mut RSPAssembler) -> (), F2: Fn(u16, u16, u64) -> (u16
                     let (result_val, result_accum) = cpu_computer(a_base + i as u16, b, cpu_accumulator[i]);
                     cpu_accumulator[i] = result_accum;
 
-                    let rsp_accum = ((rsp_acc_high.get(i) as u64) << 32) | ((rsp_acc_mid.get(i) as u64) << 16) | (rsp_acc_low.get(i) as u64);
-                    if (rsp_accum != result_accum) || (rsp_result.get(i) != result_val) {
-                        soft_assert_eq2(rsp_result.get(i), result_val, || format!("Result vector for inputs 0x{:x} and 0x{:x}", (a_base as usize) as i16, b))?;
+                    let rsp_accum = ((rsp_acc_high.get16(i) as u64) << 32) | ((rsp_acc_mid.get16(i) as u64) << 16) | (rsp_acc_low.get16(i) as u64);
+                    if (rsp_accum != result_accum) || (rsp_result.get16(i) != result_val) {
+                        soft_assert_eq2(rsp_result.get16(i), result_val, || format!("Result vector for inputs 0x{:x} and 0x{:x}", (a_base as usize) as i16, b))?;
                         soft_assert_eq2(rsp_accum, result_accum, || format!("Result accumulator for inputs 0x{:x} and 0x{:x}", (a_base as usize) as i16, b))?;
                     }
                 }

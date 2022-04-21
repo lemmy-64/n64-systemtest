@@ -11,8 +11,8 @@ use crate::tests::soft_asserts::soft_assert_eq;
 
 fn run_test(e: Element, expected_result: [u16; 8], expected_acc_top: [u16; 8], expected_acc_mid: [u16; 8], expected_acc_low: [u16; 8]) -> Result<(), String> {
     // Prepare input data
-    SPMEM::write_vector_16(0x00, &[0x0000, 0x0000, 0x0000, 0xE000, 0x8001, 0x8000, 0x7FFF, 0x8000]);
-    SPMEM::write_vector_16(0x10, &[0x0000, 0x0001, 0xFFFF, 0xFFFF, 0x8000, 0x7FFF, 0x7FFF, 0x8000]);
+    SPMEM::write_vector16_into_dmem(0x00, &[0x0000, 0x0000, 0x0000, 0xE000, 0x8001, 0x8000, 0x7FFF, 0x8000]);
+    SPMEM::write_vector16_into_dmem(0x10, &[0x0000, 0x0001, 0xFFFF, 0xFFFF, 0x8000, 0x7FFF, 0x7FFF, 0x8000]);
 
     // Assemble RSP program. First use VMULF to set accumulator to something known, then use VMUDM
     let mut assembler = RSPAssembler::new(0);
@@ -37,10 +37,10 @@ fn run_test(e: Element, expected_result: [u16; 8], expected_acc_top: [u16; 8], e
 
     RSP::run_and_wait(0);
 
-    soft_assert_eq(SPMEM::read_vector_16(0x100), expected_result, "VMUDM result")?;
-    soft_assert_eq(SPMEM::read_vector_16(0x110), expected_acc_top, "VMUDM Acc[32..48]")?;
-    soft_assert_eq(SPMEM::read_vector_16(0x120), expected_acc_mid, "VMUDM Acc[16..32]")?;
-    soft_assert_eq(SPMEM::read_vector_16(0x130), expected_acc_low, "VMUDM Acc[0..8]")?;
+    soft_assert_eq(SPMEM::read_vector16_from_dmem(0x100), expected_result, "VMUDM result")?;
+    soft_assert_eq(SPMEM::read_vector16_from_dmem(0x110), expected_acc_top, "VMUDM Acc[32..48]")?;
+    soft_assert_eq(SPMEM::read_vector16_from_dmem(0x120), expected_acc_mid, "VMUDM Acc[16..32]")?;
+    soft_assert_eq(SPMEM::read_vector16_from_dmem(0x130), expected_acc_low, "VMUDM Acc[0..8]")?;
 
     Ok(())
 }

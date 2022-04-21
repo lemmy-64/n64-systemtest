@@ -1,3 +1,4 @@
+use core::iter::Step;
 use core::mem::transmute;
 
 use crate::rsp::dmem_writer::DMEMWriter;
@@ -15,7 +16,7 @@ pub enum GPR {
 // @formatter:on
 
 impl GPR {
-    pub fn from_index(index: usize) -> Option<Self> {
+    pub const fn from_index(index: usize) -> Option<Self> {
         if index <= 31 {
             Some(unsafe { transmute(index as u8) })
         } else {
@@ -24,7 +25,51 @@ impl GPR {
     }
 }
 
-impl core::iter::Step for GPR {
+impl Step for GPR {
+    fn steps_between(start: &Self, end: &Self) -> Option<usize> {
+        if (*start as usize) < (*end as usize) {
+            Some(*end as usize - *start as usize)
+        } else {
+            None
+        }
+    }
+
+    fn forward_checked(start: Self, count: usize) -> Option<Self> {
+        Self::from_index(start as usize + count)
+    }
+
+    fn backward_checked(start: Self, count: usize) -> Option<Self> {
+        Self::from_index(start as usize - count)
+    }
+}
+
+// @formatter:off
+#[allow(dead_code)]
+#[repr(u8)]
+#[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Eq)]
+pub enum VR {
+    V0 = 0, V1 = 1, V2 = 2, V3 = 3, V4 = 4, V5 = 5, V6 = 6, V7 = 7,
+    V8 = 8, V9 = 9, V10 = 10, V11 = 11, V12 = 12, V13 = 13, V14 = 14, V15 = 15,
+    V16 = 16, V17 = 17, V18 = 18, V19 = 19, V20 = 20, V21 = 21, V22 = 22, V23 = 23,
+    V24 = 24, V25 = 25, V26 = 26, V27 = 27, V28 = 28, V29 = 29, V30 = 30, V31 = 31,
+}
+// @formatter:on
+
+impl VR {
+    pub const fn from_index(index: usize) -> Option<Self> {
+        if index <= 31 {
+            Some(unsafe { transmute(index as u8) })
+        } else {
+            None
+        }
+    }
+
+    pub const fn index(&self) -> usize {
+        *self as usize
+    }
+}
+
+impl Step for VR {
     fn steps_between(start: &Self, end: &Self) -> Option<usize> {
         if (*start as usize) < (*end as usize) {
             Some(*end as usize - *start as usize)
@@ -46,25 +91,6 @@ impl core::iter::Step for GPR {
 #[allow(dead_code)]
 #[repr(u8)]
 #[derive(Copy, Clone)]
-pub enum VR {
-    V0 = 0, V1 = 1, V2 = 2, V3 = 3, V4 = 4, V5 = 5, V6 = 6, V7 = 7,
-    V8 = 8, V9 = 9, V10 = 10, V11 = 11, V12 = 12, V13 = 13, V14 = 14, V15 = 15,
-    V16 = 16, V17 = 17, V18 = 18, V19 = 19, V20 = 20, V21 = 21, V22 = 22, V23 = 23,
-    V24 = 24, V25 = 25, V26 = 26, V27 = 27, V28 = 28, V29 = 29, V30 = 30, V31 = 31,
-}
-// @formatter:on
-
-impl VR {
-    pub fn from_index(i: u32) -> Self {
-        assert!(i < 32);
-        unsafe { transmute(i as u8) }
-    }
-}
-
-// @formatter:off
-#[allow(dead_code)]
-#[repr(u8)]
-#[derive(Copy, Clone)]
 pub enum Element {
     All = 0, All1 = 1,
     Q0 = 2, Q1 = 3,
@@ -76,7 +102,7 @@ pub enum Element {
 // @formatter:off
 #[allow(dead_code)]
 #[repr(u8)]
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum E {
     _0 = 0, _1 = 1, _2 = 2, _3 = 3, _4 = 4, _5=5, _6=6, _7=7,
     _8 = 8, _9 = 9, _10 = 10, _11 = 11, _12 = 12, _13 = 13, _14 = 14, _15 = 15,
@@ -84,11 +110,37 @@ pub enum E {
 // @formatter:on
 
 impl E {
-    pub fn from_index(i: u32) -> Self {
-        assert!(i < 32);
-        unsafe { transmute(i as u8) }
+    pub const fn from_index(i: usize) -> Option<Self> {
+        if i <= 15 {
+            Some(unsafe { transmute(i as u8) })
+        } else {
+            None
+        }
+    }
+
+    pub const fn index(&self) -> usize {
+        *self as usize
     }
 }
+
+impl Step for E {
+    fn steps_between(start: &Self, end: &Self) -> Option<usize> {
+        if (*start as usize) < (*end as usize) {
+            Some(*end as usize - *start as usize)
+        } else {
+            None
+        }
+    }
+
+    fn forward_checked(start: Self, count: usize) -> Option<Self> {
+        Self::from_index(start as usize + count)
+    }
+
+    fn backward_checked(start: Self, count: usize) -> Option<Self> {
+        Self::from_index(start as usize - count)
+    }
+}
+
 
 // @formatter:off
 #[allow(dead_code)]
@@ -492,18 +544,32 @@ impl RSPAssembler {
 
     // Vector load/store instructions
     pub fn write_lbv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
-        assert!((offset & 0b1111) == 0);
         self.write_wc2(OP::LWC2, WC2OP::BV, vt, element, offset, base);
     }
 
     pub fn write_ldv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
-        assert!((offset & 0b1111) == 0);
+        assert!((offset & 0b111) == 0);
         self.write_wc2(OP::LWC2, WC2OP::DV, vt, element, offset >> 3, base);
     }
 
-    pub fn write_llv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
+    pub fn write_lfv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
         assert!((offset & 0b1111) == 0);
+        self.write_wc2(OP::LWC2, WC2OP::FV, vt, element, offset >> 4, base);
+    }
+
+    pub fn write_lhv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
+        assert!((offset & 0b1111) == 0);
+        self.write_wc2(OP::LWC2, WC2OP::HV, vt, element, offset >> 4, base);
+    }
+
+    pub fn write_llv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
+        assert!((offset & 0b11) == 0);
         self.write_wc2(OP::LWC2, WC2OP::LV, vt, element, offset >> 2, base);
+    }
+
+    pub fn write_lpv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
+        assert!((offset & 0b111) == 0);
+        self.write_wc2(OP::LWC2, WC2OP::PV, vt, element, offset >> 3, base);
     }
 
     pub fn write_lqv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
@@ -511,14 +577,29 @@ impl RSPAssembler {
         self.write_wc2(OP::LWC2, WC2OP::QV, vt, element, offset >> 4, base);
     }
 
-    pub fn write_lsv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
+    pub fn write_lrv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
         assert!((offset & 0b1111) == 0);
+        self.write_wc2(OP::LWC2, WC2OP::RV, vt, element, offset >> 4, base);
+    }
+
+    pub fn write_lsv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
+        assert!((offset & 0b1) == 0);
         self.write_wc2(OP::LWC2, WC2OP::SV, vt, element, offset >> 1, base);
     }
 
-    pub fn write_sdv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
+    pub fn write_ltv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
         assert!((offset & 0b1111) == 0);
-        self.write_wc2(OP::SWC2, WC2OP::DV, vt, element, offset >> 3, base);
+        self.write_wc2(OP::LWC2, WC2OP::TV, vt, element, offset >> 4, base);
+    }
+
+    pub fn write_luv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
+        assert!((offset & 0b111) == 0);
+        self.write_wc2(OP::LWC2, WC2OP::UV, vt, element, offset >> 3, base);
+    }
+
+    pub fn write_lwv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
+        assert!((offset & 0b1111) == 0);
+        self.write_wc2(OP::LWC2, WC2OP::WV, vt, element, offset >> 4, base);
     }
 
     pub fn write_sqv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {

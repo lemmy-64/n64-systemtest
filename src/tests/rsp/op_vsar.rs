@@ -23,10 +23,10 @@ impl Test for VSAR {
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
         // Prepare input data
-        SPMEM::write_vector_16(0x00, &[0xEEEE, 0xFFFF, 0xDDDD, 0xCCCC, 0xBBBB, 0xAAAA, 0x9999, 0x8888]);
-        SPMEM::write_vector_16(0x10, &[0x0010, 0x0001, 0xFFF1, 0x0200, 0xF1E2, 0x0810, 0x7FFF, 0x8100]);
-        SPMEM::write_vector_16(0x20, &[0x0020, 0x0002, 0xFFF2, 0x0300, 0xF2E2, 0x0820, 0x7FFF, 0x8200]);
-        SPMEM::write_vector_16(0x30, &[0x0030, 0x0003, 0xFFF3, 0x0400, 0xF3E2, 0x0830, 0x7FFF, 0x8300]);
+        SPMEM::write_vector16_into_dmem(0x00, &[0xEEEE, 0xFFFF, 0xDDDD, 0xCCCC, 0xBBBB, 0xAAAA, 0x9999, 0x8888]);
+        SPMEM::write_vector16_into_dmem(0x10, &[0x0010, 0x0001, 0xFFF1, 0x0200, 0xF1E2, 0x0810, 0x7FFF, 0x8100]);
+        SPMEM::write_vector16_into_dmem(0x20, &[0x0020, 0x0002, 0xFFF2, 0x0300, 0xF2E2, 0x0820, 0x7FFF, 0x8200]);
+        SPMEM::write_vector16_into_dmem(0x30, &[0x0030, 0x0003, 0xFFF3, 0x0400, 0xF3E2, 0x0830, 0x7FFF, 0x8300]);
 
         // Assemble RSP program
         let mut assembler = RSPAssembler::new(0);
@@ -39,12 +39,12 @@ impl Test for VSAR {
         // Perform a multiplication so that something non-random is in the accumulator
         assembler.write_vmulf(VR::V4, VR::V1, VR::V2, Element::All);
 
-        for i in 0..15 {
+        for e in E::_0..E::_15 {
             // Fill the target register with junk (to see whether it gets overwritten)
-            let vt = VR::from_index(5 + i);
+            let vt = VR::from_index(5 + e.index()).unwrap();
             assembler.write_lqv(vt,  E::_0, 0x000, GPR::R0);
-            assembler.write_vsar(vt, VR::V0, VR::V0, E::from_index(i));
-            assembler.write_sqv(vt, E::_0, (0x100 + i * 16) as i32, GPR::R0);
+            assembler.write_vsar(vt, VR::V0, VR::V0, e);
+            assembler.write_sqv(vt, E::_0, (0x100 + e.index() * 16) as i32, GPR::R0);
         }
 
         assembler.write_break();
@@ -67,7 +67,7 @@ impl Test for VSAR {
                     expected = [0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000];
                 },
             }
-            soft_assert_eq(SPMEM::read_vector_16(0x100 + i * 16), expected, format!("VSAR e={}", i).as_str())?;
+            soft_assert_eq(SPMEM::read_vector16_from_dmem(0x100 + i * 16), expected, format!("VSAR e={}", i).as_str())?;
         }
 
         Ok(())

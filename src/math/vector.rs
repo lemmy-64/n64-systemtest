@@ -1,0 +1,57 @@
+use core::fmt::{Debug, Formatter};
+
+/// Vector allows flexible access via u8,u16,u32,u64, while exposing a big-endian mapping of those
+/// data types. It currently assumes a big endian host system, as it will only ever run on the N64
+#[derive(Copy, Clone)]
+pub union Vector {
+    as_u8: [u8; 16],
+    as_u16: [u16; 8],
+    as_u32: [u32; 4],
+    as_u64: [u64; 2],
+}
+
+impl Vector {
+    pub const fn new() -> Self {
+        Self {
+            as_u64: [0, 0],
+        }
+    }
+
+    pub const fn new_with_u32_elements(data0: u32, data1: u32, data2: u32, data3: u32) -> Self {
+        Self {
+            as_u32: [data0, data1, data2, data3],
+        }
+    }
+
+    pub const fn from_u8(data: [u8; 16]) -> Self {
+        Self {
+            as_u8: data,
+        }
+    }
+
+    pub fn get16(&self, index: usize) -> u16 { unsafe { self.as_u16[index] } }
+    pub fn set16(&mut self, index: usize, value: u16) { unsafe { self.as_u16[index] = value } }
+    pub fn get8(&self, index: usize) -> u8 { unsafe { self.as_u8[index] } }
+    pub fn set8(&mut self, index: usize, value: u8) { unsafe { self.as_u8[index] = value } }
+}
+
+impl Debug for Vector {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        f.debug_list()
+            .entries(unsafe { &self.as_u16 })
+            .finish()
+    }
+}
+
+impl PartialEq for Vector {
+    fn eq(&self, other: &Self) -> bool {
+        unsafe { self.as_u64 == other.as_u64 }
+    }
+}
+
+impl Eq for Vector {}
+
+impl Default for Vector {
+    fn default() -> Self { Self::new() }
+}
+

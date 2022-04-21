@@ -39,7 +39,7 @@ fn dma_test<const N: usize>(source_index: usize, spmem_index: u32, length: u32, 
 
     // Ensure the data arrived as expected
     for i in 0..N {
-        soft_assert_eq2(SPMEM::read_vector_16(expected_start_offset + i * 0x10), expected[i], || format!("SPMEM[0x{:x}] after DMA", expected_start_offset + i * 0x10))?;
+        soft_assert_eq2(SPMEM::read_vector16_from_dmem_or_imem(expected_start_offset + i * 0x10), expected[i], || format!("SPMEM[0x{:x}] after DMA", expected_start_offset + i * 0x10))?;
     }
 
     Ok(())
@@ -166,7 +166,7 @@ impl Test for SPDMAIntoDMEMWithOverflow {
             [0xBADD, 0xECAF, 0xBADD, 0xECAF, 0xBADD, 0xECAF, 0xBADD, 0xECAF]])?;
 
         // But also ensure that DMEM properly overflowed
-        soft_assert_eq2(SPMEM::read_vector_16(0), [0x1212, 0x3434, 0x4545, 0x5656, 0x6767, 0x7878, 0x8989, 0x9A9A], || "SPMEM[0x0] after DMA".to_string())?;
+        soft_assert_eq2(SPMEM::read_vector16_from_dmem(0), [0x1212, 0x3434, 0x4545, 0x5656, 0x6767, 0x7878, 0x8989, 0x9A9A], || "SPMEM[0x0] after DMA".to_string())?;
         Ok(())
     }
 }
@@ -190,7 +190,7 @@ impl Test for SPDMAIntoIMEMWithOverflow {
             [0xBADD, 0xECAF, 0xBADD, 0xECAF, 0xBADD, 0xECAF, 0xBADD, 0xECAF]])?;
 
         // But also ensure that IMEM properly overflowed
-        soft_assert_eq2(SPMEM::read_vector_16(0x1000), [0x1212, 0x3434, 0x4545, 0x5656, 0x6767, 0x7878, 0x8989, 0x9A9A], || "SPMEM[0x1000] after DMA".to_string())?;
+        soft_assert_eq2(SPMEM::read_vector16_from_dmem_or_imem(0x1000), [0x1212, 0x3434, 0x4545, 0x5656, 0x6767, 0x7878, 0x8989, 0x9A9A], || "SPMEM[0x1000] after DMA".to_string())?;
         Ok(())
     }
 }
