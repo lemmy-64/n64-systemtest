@@ -700,6 +700,10 @@ impl RSPAssembler {
         self.write_vector(VectorOp::VSUB, vd, vt, vs, e);
     }
 
+    pub fn write_vsut(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
+        self.write_vector(VectorOp::VSUT, vd, vt, vs, e);
+    }
+
     pub fn write_vxor(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
         self.write_vector(VectorOp::VXOR, vd, vt, vs, e);
     }
