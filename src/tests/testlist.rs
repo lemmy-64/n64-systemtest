@@ -169,6 +169,9 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::rsp::op_shifts::SRAVWithShiftAmountOverwrite {}),
 
         // RSP Vector instructions
+        Box::new(super::rsp::op_cfc2_ctc2::CTC2CFC2 {}),
+        Box::new(super::rsp::op_cfc2_ctc2::CFC2WeirdIndexes {}),
+        Box::new(super::rsp::op_cfc2_ctc2::CTC2WeirdIndexes {}),
         Box::new(super::rsp::op_lqv_sqv::LQVSQV {}),
         Box::new(super::rsp::op_vector_loads::LBV {}),
         Box::new(super::rsp::op_vector_loads::LSV {}),

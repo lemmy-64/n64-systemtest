@@ -211,6 +211,14 @@ enum CP2OP {
 // @formatter:off
 #[allow(dead_code)]
 #[repr(u8)]
+pub enum CP2FlagsRegister {
+    VCO = 0, VCC = 1, VCE = 2
+}
+// @formatter:on
+
+// @formatter:off
+#[allow(dead_code)]
+#[repr(u8)]
 enum VectorOp {
     VMULF = 0, VMULU = 1, VRNDP = 2, VMULQ = 3, VMUDL = 4, VMUDM = 5, VMUDN = 6, VMUDH = 7, VMACF = 8, VMACU = 9, VRNDN = 10, VMACQ = 11, VMADL = 12, VMADM = 13, VMADN = 14, VMADH = 15,
     VADD = 16, VSUB = 17, VSUT = 18, VABS = 19, VADDC = 20, VSUBC = 21, VADDB = 22, VSUBB = 23, VACCB = 24, VSUCB = 25, VSAD = 26, VSAC = 27, VSUM = 28, VSAR = 29,
@@ -295,6 +303,15 @@ impl RSPAssembler {
                 ((vt as u32) << 16) |
                 ((base as u32) << 21) |
                 ((op as u32) << 26);
+        self.writer.write(instruction);
+    }
+
+    fn write_cop2(&mut self, cp2op: CP2OP, rd: u32, rt: GPR) {
+        let instruction: u32 =
+            ((rd as u32) << 11) |
+                ((rt as u32) << 16) |
+                ((cp2op as u32) << 21) |
+                ((OP::COP2 as u32) << 26);
         self.writer.write(instruction);
     }
 
@@ -436,12 +453,32 @@ impl RSPAssembler {
         self.write_bgtz(rs, offset as i16);
     }
 
+    // COP0
     pub fn write_mfc0(&mut self, cp0register: CP0Register, rt: GPR) {
         self.write_cop0(CP0OP::MFC0, cp0register, rt);
     }
 
     pub fn write_mtc0(&mut self, cp0register: CP0Register, rt: GPR) {
         self.write_cop0(CP0OP::MTC0, cp0register, rt);
+    }
+
+    // COP2
+    pub fn write_ctc2(&mut self, flags_register: CP2FlagsRegister, rt: GPR) {
+        self.write_ctc2_any_index(flags_register as u32, rt);
+    }
+
+    pub fn write_ctc2_any_index(&mut self, flags_register: u32, rt: GPR) {
+        assert!(flags_register < 32);
+        self.write_cop2(CP2OP::CTC2, flags_register as u32, rt);
+    }
+
+    pub fn write_cfc2(&mut self, flags_register: CP2FlagsRegister, rt: GPR) {
+        self.write_cfc2_any_index(flags_register as u32, rt);
+    }
+
+    pub fn write_cfc2_any_index(&mut self, flags_register: u32, rt: GPR) {
+        assert!(flags_register < 32);
+        self.write_cop2(CP2OP::CFC2, flags_register as u32, rt);
     }
 
     // Special instructions
