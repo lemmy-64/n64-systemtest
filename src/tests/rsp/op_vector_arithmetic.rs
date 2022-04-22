@@ -367,3 +367,89 @@ impl Test for VADDC {
     }
 }
 
+pub struct VADDCH3 {}
+
+impl Test for VADDCH3 {
+    fn name(&self) -> &str { "RSP VADDC (H3)" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        // VCE and VCC are ignored and left alone. Put some random stuff in there
+        run_test(
+            0x8E11,
+            0x1234,
+            0x89,
+            |assembler| { assembler.write_vaddc(VR::V2, VR::V0, VR::V1, Element::H3); },
+            Vector::from_u16([0x0001, 0x7FFF, 0xF000, 0xF000, 0xFFFF, 0x8000, 0xFFFF, 0xFFFF]),
+            Vector::from_u16([0x0001, 0x7FFF, 0x1000, 0xF001, 0xFFFF, 0xFFFF, 0x8000, 0x0001]),
+            0x00FE,
+            0x1234,
+            0x89,
+            Vector::from_u16([0xF001, 0x6FFF, 0x0000, 0xE001, 0xFFFE, 0xFFFE, 0x7FFF, 0x0000]),
+            Vector::from_u16([0xF001, 0x6FFF, 0x0000, 0xE001, 0xFFFE, 0xFFFE, 0x7FFF, 0x0000]))
+    }
+}
+
+pub struct VSUBC {}
+
+impl Test for VSUBC {
+    fn name(&self) -> &str { "RSP VSUBC" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        // VCE and VCC are ignored and left alone. Put some random stuff in there
+        // VCO is not read but written to, based on the sign of the result:
+        // - 0:   high: 0, low: 0
+        // - >0:  high: 1, low: 0
+        // - <0:  high: 1, low: 1
+        run_test(
+            0x8E11,
+            0x1234,
+            0x89,
+            |assembler| { assembler.write_vsubc(VR::V2, VR::V0, VR::V1, Element::All); },
+            Vector::from_u16([0x0001, 0x0002, 0xFFFF, 0x0000, 0xFFFF, 0x0050, 0x0050, 0x0050]),
+            Vector::from_u16([0x0003, 0x0003, 0x0000, 0xFFFF, 0xFFFF, 0x004F, 0x0050, 0x0051]),
+            0xAF24,
+            0x1234,
+            0x89,
+            Vector::from_u16([0x0002, 0x0001, 0x0001, 0xFFFF, 0x0000, 0xFFFF, 0x0000, 0x0001]),
+            Vector::from_u16([0x0002, 0x0001, 0x0001, 0xFFFF, 0x0000, 0xFFFF, 0x0000, 0x0001]))
+    }
+}
+
+pub struct VSUBCE1 {}
+
+impl Test for VSUBCE1 {
+    fn name(&self) -> &str { "RSP VSUBC (e=1)" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        // VCE and VCC are ignored and left alone. Put some random stuff in there
+        // VCO is not read but written to, based on the sign of the result:
+        // - 0:   high: 0, low: 0
+        // - >0:  high: 1, low: 0
+        // - <0:  high: 1, low: 1
+        run_test(
+            0x8E11,
+            0x1234,
+            0x89,
+            |assembler| { assembler.write_vsubc(VR::V2, VR::V0, VR::V1, Element::All1); },
+            Vector::from_u16([0x0001, 0x0002, 0xFFFF, 0x0000, 0xFFFF, 0x0050, 0x0050, 0x0050]),
+            Vector::from_u16([0x0003, 0x0003, 0x0000, 0xFFFF, 0xFFFF, 0x004F, 0x0050, 0x0051]),
+            0xAF24,
+            0x1234,
+            0x89,
+            Vector::from_u16([0x0002, 0x0001, 0x0001, 0xFFFF, 0x0000, 0xFFFF, 0x0000, 0x0001]),
+            Vector::from_u16([0x0002, 0x0001, 0x0001, 0xFFFF, 0x0000, 0xFFFF, 0x0000, 0x0001]))
+    }
+}
+
