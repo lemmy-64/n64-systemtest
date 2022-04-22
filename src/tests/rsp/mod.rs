@@ -39,7 +39,7 @@ pub mod op_sltu;
 pub mod op_sub_subu;
 pub mod op_sw;
 pub mod op_vector_loads;
-pub mod op_vadd;
+pub mod op_vector_arithmetic;
 pub mod op_vmacf;
 pub mod op_vmadh;
 pub mod op_vmadm;

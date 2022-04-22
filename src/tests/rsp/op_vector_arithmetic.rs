@@ -10,9 +10,11 @@ use crate::rsp::spmem::SPMEM;
 use crate::tests::{Level, Test};
 use crate::tests::soft_asserts::{soft_assert_eq, soft_assert_eq_vector};
 
-fn run_test(
+fn run_test<F: Fn(&mut RSPAssembler)>(
     vco: u16, vcc: u16, vce: u8,
-    e: Element, vector1: Vector, vector2: Vector,
+    emitter: F,
+    vector1: Vector, vector2: Vector,
+
     expected_vco: u16, expected_vcc: u16, expected_vce: u8,
     expected_result: Vector, expected_acc_low: Vector) -> Result<(), String> {
 
@@ -59,7 +61,7 @@ fn run_test(
     assembler.write_lqv(VR::V1, E::_0, 0x030, GPR::R0);
 
     // Perform the calculation
-    assembler.write_vadd(VR::V2, VR::V0, VR::V1, e);
+    emitter(&mut assembler);
 
     // Get flags and accumulators
     assembler.write_cfc2(CP2FlagsRegister::VCO, GPR::S0);
@@ -108,7 +110,7 @@ impl Test for VADD {
             0x8E00,
             0x1234,
             0x89,
-            Element::All,
+            |assembler| { assembler.write_vadd(VR::V2, VR::V0, VR::V1, Element::All); },
             Vector::from_u16([0, 1, 0x8000, 0xFFFF, 0x7fff, 0x8001, 0x8000, 0x0001]),
             Vector::from_u16([0, 2, 0x7FFF, 0x7FFF, 0x7fff, 0x8001, 0xFFFF, 0xFFFF]),
             0,
@@ -136,7 +138,7 @@ impl Test for VADDWithVCO {
             0xFFAA,
             0x1234,
             0x89,
-            Element::All,
+            |assembler| { assembler.write_vadd(VR::V2, VR::V0, VR::V1, Element::All); },
             Vector::from_u16([1, 1, 0x8000, 0x8000, 0x7FFF, 0x7FFF, 0x7FFF, 0x7FFF]),
             Vector::from_u16([2, 2, 0xFFFF, 0xFFFF, 0x0001, 0x0001, 0xFFFF, 0xFFFF]),
             0x0000,
@@ -146,3 +148,86 @@ impl Test for VADDWithVCO {
             Vector::from_u16([3, 4, 0x7FFF, 0x8000, 0x8000, 0x8001, 0x7FFE, 0x7FFF]))
     }
 }
+
+pub struct VADDWithVCOAndElementSpecifier {}
+
+impl Test for VADDWithVCOAndElementSpecifier {
+    fn name(&self) -> &str { "RSP VADD (with Element specifier)" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        // VCE and VCC are ignore and left alone, so put some random stuff in there
+        // For VCO, the upper bits are zeroed out
+        // VCO lower (which actually changes) the result: Every odd bit is set
+        run_test(
+            0xFFAA,
+            0x1234,
+            0x89,
+            |assembler| { assembler.write_vadd(VR::V2, VR::V0, VR::V1, Element::H1); },
+            Vector::from_u16([1, 1, 0x8000, 0x8000, 0x7FFF, 0x7FFF, 0x7FFF, 0x7FFF]),
+            Vector::from_u16([2, 2, 0xFFFF, 0xFFFF, 0x0001, 0x0001, 0xFFFF, 0xFFFF]),
+            0x0000,
+            0x1234,
+            0x89,
+            Vector::from_u16([3, 4, 0, 1, 0x7FFF, 0x7FFF, 0x7FFE, 0x7FFF]),
+            Vector::from_u16([3, 4, 0, 1, 0x8000, 0x8001, 0x7FFE, 0x7FFF]))
+    }
+}
+
+pub struct VSUB {}
+
+impl Test for VSUB {
+    fn name(&self) -> &str { "RSP VSUB" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        // VCE and VCC are ignore and left alone, so put some random stuff in there
+        // The upper bits of VCO are ignored but then cleared. Fill them with random stuff as well
+        run_test(
+            0x8E00,
+            0x1234,
+            0x89,
+            |assembler| { assembler.write_vsub(VR::V2, VR::V0, VR::V1, Element::All); },
+            Vector::from_u16([0, 1, 0x0010, 0xFFFF, 0x7FFF, 0x7FFF, 0x7FFF, 0x8000]),
+            Vector::from_u16([0, 2, 0x7FFF, 0x7FFF, 0x0000, 0xFFFF, 0xFFFE, 0x7FFF]),
+            0,
+            0x1234,
+            0x89,
+            Vector::from_u16([0, 1, 0x7FEF, 0x7FFF, 0x8001, 0x8000, 0x8000, 0x7FFF]),
+            Vector::from_u16([0, 1, 0x7FEF, 0x8000, 0x8001, 0x8000, 0x7FFF, 0xFFFF]))
+    }
+}
+
+pub struct VSUBWithVCO {}
+
+impl Test for VSUBWithVCO {
+    fn name(&self) -> &str { "RSP VSUBWithVCO" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        // VCE and VCC are ignored and left alone, so put some random stuff in there
+        // The upper bits of VCO are ignored but then cleared. Fill them with random stuff as well
+        run_test(
+            0xFFAA,
+            0x1234,
+            0x89,
+            |assembler| { assembler.write_vsub(VR::V2, VR::V0, VR::V1, Element::Q0); },
+            Vector::from_u16([0, 1, 0x0010, 0xFFFF, 0x7FFF, 0x7FFF, 0x7FFF, 0x8000]),
+            Vector::from_u16([0, 2, 0x7FFF, 0x7FFF, 0x0000, 0xFFFF, 0xFFFE, 0x7FFF]),
+            0,
+            0x1234,
+            0x89,
+            Vector::from_u16([0, 1, 0x7FEF, 0x7FEE, 0x8001, 0x8000, 0x8000, 0xFFFF]),
+            Vector::from_u16([0, 1, 0x7FEF, 0x7FEE, 0x8001, 0x7FFF, 0x7FFF, 0xFFFF]))
+    }
+}
+

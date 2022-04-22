@@ -28,8 +28,6 @@ fn default_tests() -> Vec<Box<dyn Test>> {
     vec! {
         // This should be the overall first test
         Box::new(super::startup::StartupTest {}),
-        Box::new(super::rsp::op_vadd::VADD {}),
-        Box::new(super::rsp::op_vadd::VADDWithVCO {}),
         Box::new(super::address_error_exception::UnalignedLW {}),
         Box::new(super::address_error_exception::UnalignedLW2 {}),
         Box::new(super::address_error_exception::UnalignedLWDelay {}),
@@ -199,6 +197,13 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::rsp::op_vector_loads::LFV {}),
         Box::new(super::rsp::op_vector_loads::LWV {}),
         Box::new(super::rsp::op_vector_loads::LTV {}),
+
+        Box::new(super::rsp::op_vector_arithmetic::VADD {}),
+        Box::new(super::rsp::op_vector_arithmetic::VADDWithVCO {}),
+        Box::new(super::rsp::op_vector_arithmetic::VADDWithVCOAndElementSpecifier {}),
+        Box::new(super::rsp::op_vector_arithmetic::VSUB {}),
+        Box::new(super::rsp::op_vector_arithmetic::VSUBWithVCO {}),
+
         Box::new(super::rsp::op_vsar::VSAR {}),
         Box::new(super::rsp::op_vmacf::VMACFAll {}),
         Box::new(super::rsp::op_vmacf::VMACFH0 {}),
