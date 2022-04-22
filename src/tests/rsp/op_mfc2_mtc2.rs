@@ -103,6 +103,11 @@ impl Test for MFC2 {
             assembler.write_sw(gpr, GPR::R0, (i * 4) as i16);
         }
 
+        // Also ensure that MFC2 into R0 doesn't do anything
+        assembler.write_li(GPR::AT, 0);
+        assembler.write_mfc2(VR::V5, GPR::R0, E::_0);
+        assembler.write_sw(GPR::R0, GPR::AT, (16 * 4) as i16);
+
         assembler.write_break();
 
         RSP::run_and_wait(0);
@@ -111,6 +116,7 @@ impl Test for MFC2 {
             let expected = ((TEST_VECTOR1.get8(i) as i16) << 8) | (TEST_VECTOR1.get8((i + 1) & 0xF) as i16);
             soft_assert_eq2(SPMEM::read(i * 4), expected as u32, || format!("MFC2 (e={})", i))?;
         }
+        soft_assert_eq2(SPMEM::read(16 * 4), 0, || format!("MFC2 into R0 mustn't change R0"))?;
 
         Ok(())
     }
