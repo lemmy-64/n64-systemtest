@@ -163,9 +163,9 @@ impl Test for ShiftsIntoR0 {
     fn values(&self) -> Vec<Box<dyn Any>> { vec! {} }
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
-        let mut sll: u64 = 0xDECAF15BADCAFE;
-        let mut srl: u64 = 0xDECAF15BADCAFE;
-        let mut sra: u64 = 0xDECAF15BADCAFE;
+        let mut sll: u64 = 0xDECAF15BADC0FFEE;
+        let mut srl: u64 = 0xDECAF15BADC0FFEE;
+        let mut sra: u64 = 0xDECAF15BADC0FFEE;
 
         unsafe {
             asm!("
