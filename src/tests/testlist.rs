@@ -28,6 +28,8 @@ fn default_tests() -> Vec<Box<dyn Test>> {
     vec! {
         // This should be the overall first test
         Box::new(super::startup::StartupTest {}),
+        Box::new(super::rsp::op_vadd::VADD {}),
+        Box::new(super::rsp::op_vadd::VADDWithVCO {}),
         Box::new(super::address_error_exception::UnalignedLW {}),
         Box::new(super::address_error_exception::UnalignedLW2 {}),
         Box::new(super::address_error_exception::UnalignedLWDelay {}),

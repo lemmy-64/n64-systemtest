@@ -23,9 +23,9 @@ fn run_test(e: Element, expected_result: [u16; 8], expected_acc_top: [u16; 8], e
     assembler.write_vmulf(VR::V2, VR::V0, VR::V1, Element::All);
     assembler.write_vmadh(VR::V2, VR::V0, VR::V1, e);
 
-    assembler.write_vsar(VR::V3, VR::V0, VR::V0, E::_8);
-    assembler.write_vsar(VR::V4, VR::V0, VR::V0, E::_9);
-    assembler.write_vsar(VR::V5, VR::V0, VR::V0, E::_10);
+    assembler.write_vsar_any_index(VR::V3, VR::V0, VR::V0, E::_8);
+    assembler.write_vsar_any_index(VR::V4, VR::V0, VR::V0, E::_9);
+    assembler.write_vsar_any_index(VR::V5, VR::V0, VR::V0, E::_10);
 
     assembler.write_sqv(VR::V2, E::_0, 0x100, GPR::R0);
     assembler.write_sqv(VR::V3, E::_0, 0x110, GPR::R0);
@@ -130,9 +130,9 @@ impl Test for VMADHAccumulatorOverflowed {
         assembler.write_vmadh(VR::V2, VR::V0, VR::V1, Element::All);
         assembler.write_vmadh(VR::V2, VR::V0, VR::V1, Element::All);
 
-        assembler.write_vsar(VR::V3, VR::V0, VR::V0, E::_8);
-        assembler.write_vsar(VR::V4, VR::V0, VR::V0, E::_9);
-        assembler.write_vsar(VR::V5, VR::V0, VR::V0, E::_10);
+        assembler.write_vsar_any_index(VR::V3, VR::V0, VR::V0, E::_8);
+        assembler.write_vsar_any_index(VR::V4, VR::V0, VR::V0, E::_9);
+        assembler.write_vsar_any_index(VR::V5, VR::V0, VR::V0, E::_10);
 
         assembler.write_sqv(VR::V2, E::_0, 0x100, GPR::R0);
         assembler.write_sqv(VR::V3, E::_0, 0x110, GPR::R0);
@@ -142,9 +142,9 @@ impl Test for VMADHAccumulatorOverflowed {
         // Once more overflows the second element
         assembler.write_vmadh(VR::V2, VR::V0, VR::V1, Element::All);
 
-        assembler.write_vsar(VR::V3, VR::V0, VR::V0, E::_8);
-        assembler.write_vsar(VR::V4, VR::V0, VR::V0, E::_9);
-        assembler.write_vsar(VR::V5, VR::V0, VR::V0, E::_10);
+        assembler.write_vsar_any_index(VR::V3, VR::V0, VR::V0, E::_8);
+        assembler.write_vsar_any_index(VR::V4, VR::V0, VR::V0, E::_9);
+        assembler.write_vsar_any_index(VR::V5, VR::V0, VR::V0, E::_10);
 
         assembler.write_sqv(VR::V2, E::_0, 0x140, GPR::R0);
         assembler.write_sqv(VR::V3, E::_0, 0x150, GPR::R0);

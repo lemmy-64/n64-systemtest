@@ -227,6 +227,14 @@ enum VectorOp {
 }
 // @formatter:on
 
+// @formatter:off
+#[allow(dead_code)]
+#[repr(u8)]
+pub enum VSARAccumulator {
+    High = 8, Mid = 9, Low = 10
+}
+// @formatter:on
+
 pub struct RSMAssemblerJumpTarget {
     offset: usize,
 }
@@ -644,6 +652,10 @@ impl RSPAssembler {
         self.write_wc2(OP::SWC2, WC2OP::QV, vt, element, offset >> 4, base);
     }
 
+    pub fn write_vadd(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
+        self.write_vector(VectorOp::VADD, vd, vt, vs, e);
+    }
+
     pub fn write_vmacf(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
         self.write_vector(VectorOp::VMACF, vd, vt, vs, e);
     }
@@ -676,8 +688,12 @@ impl RSPAssembler {
         self.write_vector(VectorOp::VMULF, vd, vt, vs, e);
     }
 
-    pub fn write_vsar(&mut self, vd: VR, vt: VR, vs: VR, e: E) {
+    pub fn write_vsar_any_index(&mut self, vd: VR, vt: VR, vs: VR, e: E) {
         self.write_vector_e(VectorOp::VSAR, vd, vt, vs, e);
+    }
+
+    pub fn write_vsar(&mut self, vd: VR, source: VSARAccumulator) {
+        self.write_vsar_any_index(vd, VR::V0, VR::V0,  E::from_index(source as usize).unwrap());
     }
 
     pub fn write_vxor(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {

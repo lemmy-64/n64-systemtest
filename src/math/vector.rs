@@ -23,14 +23,23 @@ impl Vector {
         }
     }
 
+    pub const fn from_u16(data: [u16; 8]) -> Self {
+        Self {
+            as_u16: data,
+        }
+    }
+
     pub const fn from_u8(data: [u8; 16]) -> Self {
         Self {
             as_u8: data,
         }
     }
 
+    pub fn get32(&self, index: usize) -> u32 { unsafe { self.as_u32[index] } }
+
     pub fn get16(&self, index: usize) -> u16 { unsafe { self.as_u16[index] } }
     pub fn set16(&mut self, index: usize, value: u16) { unsafe { self.as_u16[index] = value } }
+
     pub fn get8(&self, index: usize) -> u8 { unsafe { self.as_u8[index] } }
     pub fn set8(&mut self, index: usize, value: u8) { unsafe { self.as_u8[index] = value } }
 }

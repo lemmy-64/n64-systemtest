@@ -43,7 +43,7 @@ impl Test for VSAR {
             // Fill the target register with junk (to see whether it gets overwritten)
             let vt = VR::from_index(5 + e.index()).unwrap();
             assembler.write_lqv(vt,  E::_0, 0x000, GPR::R0);
-            assembler.write_vsar(vt, VR::V0, VR::V0, e);
+            assembler.write_vsar_any_index(vt, VR::V0, VR::V0, e);
             assembler.write_sqv(vt, E::_0, (0x100 + e.index() * 16) as i32, GPR::R0);
         }
 

@@ -74,9 +74,9 @@ fn run_stress_test<F: Fn(&mut RSPAssembler) -> (), F2: Fn(u16, u16, u64) -> (u16
 
     assembly_maker(&mut assembler);
 
-    assembler.write_vsar(VR::V4, VR::V0, VR::V0, E::_8);
-    assembler.write_vsar(VR::V5, VR::V0, VR::V0, E::_9);
-    assembler.write_vsar(VR::V6, VR::V0, VR::V0, E::_10);
+    assembler.write_vsar_any_index(VR::V4, VR::V0, VR::V0, E::_8);
+    assembler.write_vsar_any_index(VR::V5, VR::V0, VR::V0, E::_9);
+    assembler.write_vsar_any_index(VR::V6, VR::V0, VR::V0, E::_10);
 
     assembler.write_sqv(VR::V3, E::_0, 0x00, GPR::S0);
     assembler.write_sqv(VR::V4, E::_0, 0x10, GPR::S0);

@@ -29,6 +29,14 @@ impl SPMEM {
         }
     }
 
+    // Over time we'll want to migrate to this one
+    pub fn write_vector_into_dmem(addr: usize, vec: &Vector) {
+        assert!((addr & 3) == 0);
+        for i in 0..4 {
+            Self::write((addr + (i << 2)) & 0xFFC, vec.get32(i));
+        }
+    }
+
     pub fn read(addr: usize) -> u32 {
         let spmem = MemoryMap::uncached_spmem_address::<u32>(addr);
         unsafe {
