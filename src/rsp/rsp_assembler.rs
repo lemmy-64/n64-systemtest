@@ -652,6 +652,12 @@ impl RSPAssembler {
         self.write_wc2(OP::SWC2, WC2OP::QV, vt, element, offset >> 4, base);
     }
 
+    // Regular vector instructions
+
+    pub fn write_vabs(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
+        self.write_vector(VectorOp::VABS, vd, vt, vs, e);
+    }
+
     pub fn write_vadd(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
         self.write_vector(VectorOp::VADD, vd, vt, vs, e);
     }
