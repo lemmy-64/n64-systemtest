@@ -314,9 +314,11 @@ impl RSPAssembler {
         self.writer.write(instruction);
     }
 
-    fn write_cop2(&mut self, cp2op: CP2OP, rd: u32, rt: GPR) {
+    fn write_cop2(&mut self, cp2op: CP2OP, rd: u32, rt: GPR, e: E) {
+        assert!(rd < 32);
         let instruction: u32 =
-            ((rd as u32) << 11) |
+            ((e as u32) << 7) |
+                ((rd as u32) << 11) |
                 ((rt as u32) << 16) |
                 ((cp2op as u32) << 21) |
                 ((OP::COP2 as u32) << 26);
@@ -477,7 +479,7 @@ impl RSPAssembler {
 
     pub fn write_ctc2_any_index(&mut self, flags_register: u32, rt: GPR) {
         assert!(flags_register < 32);
-        self.write_cop2(CP2OP::CTC2, flags_register as u32, rt);
+        self.write_cop2(CP2OP::CTC2, flags_register as u32, rt, E::_0);
     }
 
     pub fn write_cfc2(&mut self, flags_register: CP2FlagsRegister, rt: GPR) {
@@ -486,7 +488,15 @@ impl RSPAssembler {
 
     pub fn write_cfc2_any_index(&mut self, flags_register: u32, rt: GPR) {
         assert!(flags_register < 32);
-        self.write_cop2(CP2OP::CFC2, flags_register as u32, rt);
+        self.write_cop2(CP2OP::CFC2, flags_register as u32, rt, E::_0);
+    }
+
+    pub fn write_mfc2(&mut self, vd: VR, rt: GPR, e: E) {
+        self.write_cop2(CP2OP::MFC2, vd as u32, rt, e);
+    }
+
+    pub fn write_mtc2(&mut self, vd: VR, rt: GPR, e: E) {
+        self.write_cop2(CP2OP::MTC2, vd as u32, rt, e);
     }
 
     // Special instructions

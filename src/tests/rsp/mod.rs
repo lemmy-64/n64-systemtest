@@ -26,6 +26,7 @@ pub mod op_lhu;
 pub mod op_lw;
 pub mod op_lwu;
 pub mod op_lqv_sqv;
+pub mod op_mfc2_mtc2;
 pub mod op_nor;
 pub mod op_or;
 pub mod op_ori;
