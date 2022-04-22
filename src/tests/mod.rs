@@ -8,6 +8,7 @@ use crate::cop0::cause_extract_exception;
 use crate::exception_handler::drain_seen_exception;
 use crate::tests::traps::Immediate;
 
+mod arithmetic;
 mod address_error_exception;
 mod cart_memory;
 mod cop0;
@@ -82,6 +83,10 @@ pub fn run() {
                 None => {},
             }
             match (*value).downcast_ref::<(u32, u32, u32)>() {
+                Some(v) => return format!(" with '{:?}'", v),
+                None => {},
+            }
+            match (*value).downcast_ref::<(u64, u32, u64)>() {
                 Some(v) => return format!(" with '{:?}'", v),
                 None => {},
             }
