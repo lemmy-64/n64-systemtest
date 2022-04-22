@@ -28,8 +28,6 @@ fn default_tests() -> Vec<Box<dyn Test>> {
     vec! {
         // This should be the overall first test
         Box::new(super::startup::StartupTest {}),
-        Box::new(super::rsp::op_mfc2_mtc2::MTC2 {}),
-        Box::new(super::rsp::op_mfc2_mtc2::MFC2 {}),
         Box::new(super::address_error_exception::UnalignedLW {}),
         Box::new(super::address_error_exception::UnalignedLW2 {}),
         Box::new(super::address_error_exception::UnalignedLWDelay {}),
@@ -115,6 +113,8 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::rsp::PCRegMasking {}),
         // This should be RSP test #2
         Box::new(super::rsp::op_break::BREAK {}),
+        Box::new(super::rsp::op_break::BREAKWithinDelay {}),
+        Box::new(super::rsp::op_break::BREAKWithinDelay2 {}),
         // This should be RSP test #3
         Box::new(super::rsp::wrap_around::WrapAround {}),
         // Non-vector instructions
@@ -178,6 +178,8 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::rsp::op_cfc2_ctc2::CTC2CFC2 {}),
         Box::new(super::rsp::op_cfc2_ctc2::CFC2WeirdIndexes {}),
         Box::new(super::rsp::op_cfc2_ctc2::CTC2WeirdIndexes {}),
+        Box::new(super::rsp::op_mfc2_mtc2::MTC2 {}),
+        Box::new(super::rsp::op_mfc2_mtc2::MFC2 {}),
         Box::new(super::rsp::op_lqv_sqv::LQVSQV {}),
         Box::new(super::rsp::op_vector_loads::LBV {}),
         Box::new(super::rsp::op_vector_loads::LSV {}),
