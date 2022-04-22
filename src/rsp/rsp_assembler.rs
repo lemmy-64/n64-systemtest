@@ -662,6 +662,10 @@ impl RSPAssembler {
         self.write_vector(VectorOp::VADD, vd, vt, vs, e);
     }
 
+    pub fn write_vaddc(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
+        self.write_vector(VectorOp::VADDC, vd, vt, vs, e);
+    }
+
     pub fn write_vmacf(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
         self.write_vector(VectorOp::VMACF, vd, vt, vs, e);
     }

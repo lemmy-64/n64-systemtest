@@ -250,13 +250,13 @@ impl Test for VSUT {
             0x1234,
             0x89,
             |assembler| { assembler.write_vsut(VR::V2, VR::V0, VR::V1, Element::All); },
-            Vector::from_u16([0, 1, 0x0010, 0xFFFF, 0x7FFF, 0x7FFF, 0x7FFF, 0x8000]),
-            Vector::from_u16([0, 2, 0x7FFF, 0x7FFF, 0x0000, 0xFFFF, 0xFFFE, 0x7FFF]),
+            Vector::from_u16([0, 1, 0x0010, 0xFFFF, 0x7FFF, 0x7FFF, 0x7FFF, 0xFFFF]),
+            Vector::from_u16([0, 2, 0x7FFF, 0x7FFF, 0x0000, 0xFFFF, 0xFFFE, 0xFFFF]),
             0x8E11,
             0x1234,
             0x89,
             Vector::from_u16([0, 0, 0, 0, 0, 0, 0, 0]),
-            Vector::from_u16([0, 3, 0x800F, 0x7FFE, 0x7FFF, 0x7FFE, 0x7FFD, 0xFFFF]))
+            Vector::from_u16([0, 3, 0x800F, 0x7FFE, 0x7FFF, 0x7FFE, 0x7FFD, 0xFFFE]))
     }
 }
 
@@ -300,9 +300,6 @@ impl Test for VABS {
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
         // VCE, VCC and VCO are ignored and left alone. Put some random stuff in there
-        // The target register is cleared
-        // The accumulator register is set to the sum of the two input registers
-        // The upper bits of VCO are ignored but then cleared. Fill them with random stuff as well
         run_test(
             0x8E11,
             0x1234,
@@ -329,9 +326,6 @@ impl Test for VABSQ1 {
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
         // VCE, VCC and VCO are ignored and left alone. Put some random stuff in there
-        // The target register is cleared
-        // The accumulator register is set to the sum of the two input registers
-        // The upper bits of VCO are ignored but then cleared. Fill them with random stuff as well
         run_test(
             0x8E11,
             0x1234,
@@ -344,6 +338,32 @@ impl Test for VABSQ1 {
             0x89,
             Vector::from_u16([0x0000, 0x1234, 0x0001, 0xFFFF, 0x0000, 0x0000, 0x7FFF, 0x7FFF]),
             Vector::from_u16([0x0000, 0x1234, 0x0001, 0xFFFF, 0x0000, 0x0000, 0x8000, 0x8000]))
+    }
+}
+
+pub struct VADDC {}
+
+impl Test for VADDC {
+    fn name(&self) -> &str { "RSP VADDC" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        // VCE and VCC are ignored and left alone. Put some random stuff in there
+        run_test(
+            0x8E11,
+            0x1234,
+            0x89,
+            |assembler| { assembler.write_vaddc(VR::V2, VR::V0, VR::V1, Element::All); },
+            Vector::from_u16([0x0001, 0x7FFF, 0xF000, 0xF000, 0xFFFF, 0x8000, 0xFFFF, 0xFFFF]),
+            Vector::from_u16([0x0001, 0x7FFF, 0x1000, 0xF001, 0xFFFF, 0xFFFF, 0x8000, 0x0001]),
+            0x00FC,
+            0x1234,
+            0x89,
+            Vector::from_u16([0x0002, 0xFFFE, 0x0000, 0xE001, 0xFFFE, 0x7FFF, 0x7FFF, 0x0000]),
+            Vector::from_u16([0x0002, 0xFFFE, 0x0000, 0xE001, 0xFFFE, 0x7FFF, 0x7FFF, 0x0000]))
     }
 }
 
