@@ -6,7 +6,7 @@ use alloc::vec::Vec;
 use core::any::Any;
 use core::arch::asm;
 use crate::assembler::{Assembler, Opcode};
-use crate::MemoryMap;
+use crate::{MemoryMap, pi};
 use crate::tests::soft_asserts::{soft_assert_eq, soft_assert_neq};
 
 // Writing to CART:
@@ -36,9 +36,12 @@ impl Test for WriteAndReadback {
 
         unsafe { p_cart.write_volatile(0xBADC0FFE) }
         unsafe { p_cart.write_volatile(0xDECAF) }
-        soft_assert_eq(unsafe { p_cart.read_volatile() }, 0xBADC0FFE, "Reading first time from cart after writing")?;
-        soft_assert_eq(unsafe { p_cart.read_volatile() }, 0x01234567, "Reading second time from cart after writing")?;
-        soft_assert_eq(unsafe { p_cart.read_volatile() }, 0x01234567, "Reading third time from cart after writing")?;
+        let v1 = unsafe { p_cart.read_volatile() };
+        let v2 = unsafe { p_cart.read_volatile() };
+        let v3 = unsafe { p_cart.read_volatile() };
+        soft_assert_eq(v1, 0xBADC0FFE, "Reading first time from cart after writing")?;
+        soft_assert_eq(v2, 0x01234567, "Reading second time from cart after writing")?;
+        soft_assert_eq(v3, 0x01234567, "Reading third time from cart after writing")?;
 
         Ok(())
     }
@@ -58,9 +61,12 @@ impl Test for WriteAndReadback2 {
 
         unsafe { p_cart.add(1).write_volatile(0xBADC0FFE) }
         unsafe { p_cart.write_volatile(0xDECAF) }
-        soft_assert_eq(unsafe { p_cart.read_volatile() }, 0xBADC0FFE, "Reading first time from cart after writing")?;
-        soft_assert_eq(unsafe { p_cart.read_volatile() }, 0x01234567, "Reading second time from cart after writing")?;
-        soft_assert_eq(unsafe { p_cart.read_volatile() }, 0x01234567, "Reading third time from cart after writing")?;
+        let v1 = unsafe { p_cart.read_volatile() };
+        let v2 = unsafe { p_cart.read_volatile() };
+        let v3 = unsafe { p_cart.read_volatile() };
+        soft_assert_eq(v1, 0xBADC0FFE, "Reading first time from cart after writing")?;
+        soft_assert_eq(v2, 0x01234567, "Reading second time from cart after writing")?;
+        soft_assert_eq(v3, 0x01234567, "Reading third time from cart after writing")?;
 
         Ok(())
     }
@@ -80,9 +86,12 @@ impl Test for WriteAndReadback3 {
 
         unsafe { (0xB000_0000usize as *mut u32).write_volatile(0xBADC0FFE) }
         unsafe { p_cart.write_volatile(0xDECAF) }
-        soft_assert_eq(unsafe { p_cart.read_volatile() }, 0xBADC0FFE, "Reading first time from cart after writing")?;
-        soft_assert_eq(unsafe { p_cart.read_volatile() }, 0x01234567, "Reading second time from cart after writing")?;
-        soft_assert_eq(unsafe { p_cart.read_volatile() }, 0x01234567, "Reading third time from cart after writing")?;
+        let v1 = unsafe { p_cart.read_volatile() };
+        let v2 = unsafe { p_cart.read_volatile() };
+        let v3 = unsafe { p_cart.read_volatile() };
+        soft_assert_eq(v1, 0xBADC0FFE, "Reading first time from cart after writing")?;
+        soft_assert_eq(v2, 0x01234567, "Reading second time from cart after writing")?;
+        soft_assert_eq(v3, 0x01234567, "Reading third time from cart after writing")?;
 
         Ok(())
     }
@@ -102,9 +111,12 @@ impl Test for WriteAndReadback4 {
 
         unsafe { (0xBFBF_FFFCusize as *mut u32).write_volatile(0xBADC0FFE) }
         unsafe { p_cart.write_volatile(0xDECAF) }
-        soft_assert_eq(unsafe { p_cart.read_volatile() }, 0xBADC0FFE, "Reading first time from cart after writing")?;
-        soft_assert_eq(unsafe { p_cart.read_volatile() }, 0x01234567, "Reading second time from cart after writing")?;
-        soft_assert_eq(unsafe { p_cart.read_volatile() }, 0x01234567, "Reading third time from cart after writing")?;
+        let v1 = unsafe { p_cart.read_volatile() };
+        let v2 = unsafe { p_cart.read_volatile() };
+        let v3 = unsafe { p_cart.read_volatile() };
+        soft_assert_eq(v1, 0xBADC0FFE, "Reading first time from cart after writing")?;
+        soft_assert_eq(v2, 0x01234567, "Reading second time from cart after writing")?;
+        soft_assert_eq(v3, 0x01234567, "Reading third time from cart after writing")?;
 
         Ok(())
     }
@@ -124,9 +136,12 @@ impl Test for WriteAndReadback5 {
 
         unsafe { (0xBFC0_0000usize as *mut u32).write_volatile(0xBADC0FFE) }
         unsafe { p_cart.write_volatile(0xDECAF) }
-        soft_assert_eq(unsafe { p_cart.read_volatile() }, 0xDECAF, "Reading first time from cart after writing")?;
-        soft_assert_eq(unsafe { p_cart.read_volatile() }, 0x01234567, "Reading second time from cart after writing")?;
-        soft_assert_eq(unsafe { p_cart.read_volatile() }, 0x01234567, "Reading third time from cart after writing")?;
+        let v1 = unsafe { p_cart.read_volatile() };
+        let v2 = unsafe { p_cart.read_volatile() };
+        let v3 = unsafe { p_cart.read_volatile() };
+        soft_assert_eq(v1, 0xDECAF, "Reading first time from cart after writing")?;
+        soft_assert_eq(v2, 0x01234567, "Reading second time from cart after writing")?;
+        soft_assert_eq(v3, 0x01234567, "Reading third time from cart after writing")?;
 
         Ok(())
     }
@@ -178,7 +193,7 @@ impl DecayAfterSomeClockCycles {
 }
 
 impl Test for DecayAfterSomeClockCycles {
-    fn name(&self) -> &str { "cart-writing: Temp value decay" }
+    fn name(&self) -> &str { "cart-writing: Temp value  decay" }
 
     fn level(&self) -> Level { Level::Weird }
 
@@ -233,8 +248,10 @@ impl Test for Write32AndReadback8 {
 
         unsafe { (0xB000_0000usize as *mut u32).write_volatile(0xBADC0FFE) }
         unsafe { p_cart.write_volatile(0xDECAF) }
-        soft_assert_eq(unsafe { (p_cart as *mut u8).read_volatile() }, 0xBA, "Reading first time from cart after writing")?;
-        soft_assert_eq(unsafe { (p_cart as *mut u8).read_volatile() }, 0x01, "Reading second time from cart after writing")?;
+        let v1 = unsafe { (p_cart as *mut u8).read_volatile() };
+        let v2 = unsafe { (p_cart as *mut u8).read_volatile() };
+        soft_assert_eq(v1, 0xBA, "Reading first time from cart after writing")?;
+        soft_assert_eq(v2, 0x01, "Reading second time from cart after writing")?;
 
         Ok(())
     }
@@ -254,8 +271,10 @@ impl Test for Write32AndReadback16 {
 
         unsafe { (0xB000_0000usize as *mut u32).write_volatile(0xBADC0FFE) }
         unsafe { p_cart.write_volatile(0xDECAF) }
-        soft_assert_eq(unsafe { (p_cart as *mut u16).read_volatile() }, 0xBADC, "Reading first time from cart after writing")?;
-        soft_assert_eq(unsafe { (p_cart as *mut u16).read_volatile() }, 0x0123, "Reading second time from cart after writing")?;
+        let v1 = unsafe { (p_cart as *mut u16).read_volatile() };
+        let v2 = unsafe { (p_cart as *mut u16).read_volatile() };
+        soft_assert_eq(v1, 0xBADC, "Reading first time from cart after writing")?;
+        soft_assert_eq(v2, 0x0123, "Reading second time from cart after writing")?;
 
         Ok(())
     }
@@ -275,8 +294,10 @@ impl Test for Write8AndReadback32 {
 
         unsafe { (0xB000_0000usize as *mut u8).write_volatile(0xBA) }
         unsafe { p_cart.write_volatile(0xDECAF) }
-        soft_assert_eq(unsafe { p_cart.read_volatile() }, 0xBA000000, "Reading first time from cart after writing")?;
-        soft_assert_eq(unsafe { p_cart.read_volatile() }, 0x01234567, "Reading second time from cart after writing")?;
+        let v1 = unsafe { p_cart.read_volatile() };
+        let v2 = unsafe { p_cart.read_volatile() };
+        soft_assert_eq(v1, 0xBA000000, "Reading first time from cart after writing")?;
+        soft_assert_eq(v2, 0x01234567, "Reading second time from cart after writing")?;
 
         Ok(())
     }
@@ -307,8 +328,10 @@ impl Test for Write8WithOffsetAndReadback32 {
         }
 
         unsafe { p_cart.write_volatile(0xDECAF) }
-        soft_assert_eq(unsafe { p_cart.read_volatile() }, 0x56BA0000, "Reading first time from cart after writing")?;
-        soft_assert_eq(unsafe { p_cart.read_volatile() }, 0x01234567, "Reading second time from cart after writing")?;
+        let v1 = unsafe { p_cart.read_volatile() };
+        let v2 = unsafe { p_cart.read_volatile() };
+        soft_assert_eq(v1, 0x56BA0000, "Reading first time from cart after writing")?;
+        soft_assert_eq(v2, 0x01234567, "Reading second time from cart after writing")?;
 
         Ok(())
     }
@@ -328,8 +351,10 @@ impl Test for Write16AndReadback32 {
 
         unsafe { (0xB000_0000usize as *mut u16).write_volatile(0xBADC) }
         unsafe { p_cart.write_volatile(0xDECAF) }
-        soft_assert_eq(unsafe { p_cart.read_volatile() }, 0xBADC0000, "Reading first time from cart after writing")?;
-        soft_assert_eq(unsafe { p_cart.read_volatile() }, 0x01234567, "Reading second time from cart after writing")?;
+        let v1 = unsafe { p_cart.read_volatile() };
+        let v2 = unsafe { p_cart.read_volatile() };
+        soft_assert_eq(v1, 0xBADC0000, "Reading first time from cart after writing")?;
+        soft_assert_eq(v2, 0x01234567, "Reading second time from cart after writing")?;
 
         Ok(())
     }
@@ -349,8 +374,38 @@ impl Test for Write64AndReadback32 {
 
         unsafe { (0xB000_0000usize as *mut u64).write_volatile(0x98765432_1AF1231A) }
         unsafe { (p_cart as *mut u64).write_volatile(0x01010101_23232323) }
-        soft_assert_eq(unsafe { (p_cart as *mut u32).read_volatile() }, 0x98765432, "Reading first time from cart after writing")?;
-        soft_assert_eq(unsafe { (p_cart as *mut u32).read_volatile() }, 0x01234567, "Reading second time from cart after writing")?;
+        let v1 = unsafe { (p_cart as *mut u32).read_volatile() };
+        let v2 = unsafe { (p_cart as *mut u32).read_volatile() };
+        soft_assert_eq(v1, 0x98765432, "Reading first time from cart after writing")?;
+        soft_assert_eq(v2, 0x01234567, "Reading second time from cart after writing")?;
+
+        Ok(())
+    }
+}
+
+pub struct WriteAndCheckPIFlag {}
+
+impl Test for WriteAndCheckPIFlag {
+    fn name(&self) -> &str { "cart-writing: Write32, check PI.STATUS IOBUSY" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        let p_cart = MemoryMap::uncached_cart_address(&DATA[0] as *const u64 as *const u32) as *mut u32;
+
+        unsafe { (p_cart as *mut u64).write_volatile(0x01010101_23232323) }
+
+        // After writing, the IO BUSY flag should be set
+        let b1 = pi::is_io_busy();
+
+        // Do a read from cart - that should be synchronous and ensure that IO is no longer busy
+        unsafe { p_cart.read_volatile() };
+        let b2 = pi::is_io_busy();
+
+        soft_assert_eq(b1, true, "Reading IO BUSY after writing to cart should return true")?;
+        soft_assert_eq(b2, false, "Reading IO BUSY after reading should always return false")?;
 
         Ok(())
     }

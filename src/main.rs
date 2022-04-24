@@ -29,6 +29,7 @@ mod math;
 mod memory_map;
 mod mi;
 mod panic;
+mod pi;
 mod print;
 mod rsp;
 mod tests;

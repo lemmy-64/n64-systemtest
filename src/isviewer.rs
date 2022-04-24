@@ -1,3 +1,5 @@
+use crate::pi;
+
 /// Write the length of the text here
 const ISVIEWER_WRITE_LEN: *mut u32 = 0xB3FF0014 as *mut u32;
 
@@ -5,12 +7,10 @@ const ISVIEWER_WRITE_LEN: *mut u32 = 0xB3FF0014 as *mut u32;
 const ISVIEWER_BUFFER_START: *mut u32 = 0xB3FF0020 as *mut u32;
 const ISVIEWER_BUFFER_LENGTH: usize = 0x200;
 
-const PI_STATUS: *mut u32 = 0xA4600010 as *mut u32;
-const PI_STATUS_IO_BUSY: u32 = 0x2;
-
 fn pi_wait() {
-    while unsafe { PI_STATUS.read_volatile() } & PI_STATUS_IO_BUSY != 0 {}
+    while pi::is_io_busy() {}
 }
+
 
 // This method simply prints text without synchronization. This should only be used from within
 // the exception handler which can't wait for a lock
