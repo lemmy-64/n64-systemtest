@@ -10,13 +10,13 @@ use crate::rsp::spmem::SPMEM;
 use crate::tests::{Level, Test};
 use crate::tests::soft_asserts::soft_assert_eq;
 
-fn test<F: FnOnce(&mut RSPAssembler)>(value1: u32, value2: u32, expected_branch: bool, expected_ra_change: bool, write_branch: F) -> Result<(), String> {
+fn test<F: FnOnce(&mut RSPAssembler)>(value1_reg: GPR, value1: u32, value2: u32, expected_branch: bool, expected_ra_change: bool, write_branch: F) -> Result<(), String> {
     const START_OFFSET: usize = 0xFD8;
     let mut assembler = RSPAssembler::new(START_OFFSET);
 
-    assembler.write_li(GPR::A0, value1);
-    assembler.write_li(GPR::A1, value2);
     assembler.write_li(GPR::RA, 0);
+    assembler.write_li(value1_reg, value1);
+    assembler.write_li(GPR::A1, value2);
     assembler.write_li(GPR::S1, 0);
     assembler.write_li(GPR::S2, 0);
     assembler.write_li(GPR::S3, 0);
@@ -81,17 +81,17 @@ impl Test for BEQ {
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
         if let Some((expected_branch, value1, value2)) =(*value).downcast_ref::<(bool, u32, u32)>() {
-            test(*value1, *value2, *expected_branch, false, |assembler| {
+            test(GPR::A0, *value1, *value2, *expected_branch, false, |assembler| {
                 assembler.write_beq(GPR::A0, GPR::A1, 2)
             })
         } else if let Some((expected_branch, value)) =(*value).downcast_ref::<(bool, u32)>() {
             // Single value means we compare against itself. This is a useful test for recompilers that might want to optimize this
-            test(*value, 0, *expected_branch, false,  |assembler| {
+            test(GPR::A0, *value, 0, *expected_branch, false,  |assembler| {
                 assembler.write_beq(GPR::A0, GPR::A0, 2)
             })
         } else if let Some(expected_branch) =(*value).downcast_ref::<bool>() {
             // No value means we compare R0 against R0. This is a useful test for recompilers that might want to optimize this
-            test(0, 0, *expected_branch, false, |assembler| {
+            test(GPR::A0, 0, 0, *expected_branch, false, |assembler| {
                 assembler.write_beq(GPR::R0, GPR::R0, 2)
             })
         } else {
@@ -121,17 +121,17 @@ impl Test for BNE {
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
         if let Some((expected_branch, value1, value2)) =(*value).downcast_ref::<(bool, u32, u32)>() {
-            test(*value1, *value2, *expected_branch, false, |assembler| {
+            test(GPR::A0, *value1, *value2, *expected_branch, false, |assembler| {
                 assembler.write_bne(GPR::A0, GPR::A1, 2)
             })
         } else if let Some((expected_branch, value)) =(*value).downcast_ref::<(bool, u32)>() {
             // Single value means we compare against itself. This is a useful test for recompilers that might want to optimize this
-            test(*value, 0, *expected_branch, false, |assembler| {
+            test(GPR::A0, *value, 0, *expected_branch, false, |assembler| {
                 assembler.write_bne(GPR::A0, GPR::A0, 2)
             })
         } else if let Some(expected_branch) =(*value).downcast_ref::<bool>() {
             // No value means we compare R0 against R0. This is a useful test for recompilers that might want to optimize this
-            test(0, 0, *expected_branch, false, |assembler| {
+            test(GPR::A0, 0, 0, *expected_branch, false, |assembler| {
                 assembler.write_bne(GPR::R0, GPR::R0, 2)
             })
         } else {
@@ -160,12 +160,12 @@ impl Test for BLEZ {
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
         if let Some((expected_branch, value)) =(*value).downcast_ref::<(bool, u32)>() {
-            test(*value, 0, *expected_branch, false, |assembler| {
+            test(GPR::A0, *value, 0, *expected_branch, false, |assembler| {
                 assembler.write_blez(GPR::A0, 2)
             })
         } else if let Some(expected_branch) =(*value).downcast_ref::<bool>() {
             // No value means we compare R0 against R0. This is a useful test for recompilers that might want to optimize this
-            test(0, 0, *expected_branch, false, |assembler| {
+            test(GPR::A0, 0, 0, *expected_branch, false, |assembler| {
                 assembler.write_blez(GPR::R0, 2)
             })
         } else {
@@ -194,11 +194,11 @@ impl Test for BGTZ {
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
         if let Some((expected_branch, value)) =(*value).downcast_ref::<(bool, u32)>() {
-            test(*value, 0, *expected_branch, false, |assembler| {
+            test(GPR::A0, *value, 0, *expected_branch, false, |assembler| {
                 assembler.write_bgtz(GPR::A0, 2)
             })
         } else if let Some(expected_branch) =(*value).downcast_ref::<bool>() {
-            test(0, 0, *expected_branch, false, |assembler| {
+            test(GPR::A0, 0, 0, *expected_branch, false, |assembler| {
                 assembler.write_bgtz(GPR::R0, 2)
             })
         } else {
@@ -227,11 +227,11 @@ impl Test for BLTZ {
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
         if let Some((expected_branch, value)) =(*value).downcast_ref::<(bool, u32)>() {
-            test(*value, 0, *expected_branch, false, |assembler| {
+            test(GPR::A0, *value, 0, *expected_branch, false, |assembler| {
                 assembler.write_bltz(GPR::A0, 2)
             })
         } else if let Some(expected_branch) =(*value).downcast_ref::<bool>() {
-            test(0, 0, *expected_branch, false, |assembler| {
+            test(GPR::A0, 0, 0, *expected_branch, false, |assembler| {
                 assembler.write_bltz(GPR::R0, 2)
             })
         } else {
@@ -260,11 +260,11 @@ impl Test for BGEZ {
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
         if let Some((expected_branch, value)) =(*value).downcast_ref::<(bool, u32)>() {
-            test(*value, 0, *expected_branch, false, |assembler| {
+            test(GPR::A0, *value, 0, *expected_branch, false, |assembler| {
                 assembler.write_bgez(GPR::A0, 2)
             })
         } else if let Some(expected_branch) =(*value).downcast_ref::<bool>() {
-            test(0, 0, *expected_branch, false, |assembler| {
+            test(GPR::A0, 0, 0, *expected_branch, false, |assembler| {
                 assembler.write_bgez(GPR::R0, 2)
             })
         } else {
@@ -293,12 +293,40 @@ impl Test for BLTZAL {
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
         if let Some((expected_branch, value)) =(*value).downcast_ref::<(bool, u32)>() {
-            test(*value, 0, *expected_branch, true, |assembler| {
+            test(GPR::A0, *value, 0, *expected_branch, true, |assembler| {
                 assembler.write_bltzal(GPR::A0, 2)
             })
         } else if let Some(expected_branch) =(*value).downcast_ref::<bool>() {
-            test(0, 0, *expected_branch, true, |assembler| {
+            test(GPR::A0, 0, 0, *expected_branch, true, |assembler| {
                 assembler.write_bltzal(GPR::R0, 2)
+            })
+        } else {
+            Err("Value is not valid".to_string())
+        }
+    }
+}
+
+pub struct BLTZALTestRA {}
+
+impl Test for BLTZALTestRA {
+    fn name(&self) -> &str { "RSP BLTZAL (test RA)" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> {
+        vec! {
+            Box::new((false, 0u32)),
+            Box::new((false, 1u32)),
+            Box::new((false, 0x7FFFFFFFu32)),
+            Box::new((true, 0xFFFFFFFFu32)),
+            Box::new((true, 0xFFFF0000u32)),
+        }
+    }
+
+    fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
+        if let Some((expected_branch, value)) =(*value).downcast_ref::<(bool, u32)>() {
+            test(GPR::RA, *value, 0, *expected_branch, true, |assembler| {
+                assembler.write_bltzal(GPR::RA, 2)
             })
         } else {
             Err("Value is not valid".to_string())
@@ -326,12 +354,40 @@ impl Test for BGEZAL {
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
         if let Some((expected_branch, value)) =(*value).downcast_ref::<(bool, u32)>() {
-            test(*value, 0, *expected_branch, true, |assembler| {
+            test(GPR::A0, *value, 0, *expected_branch, true, |assembler| {
                 assembler.write_bgezal(GPR::A0, 2)
             })
         } else if let Some(expected_branch) =(*value).downcast_ref::<bool>() {
-            test(0, 0, *expected_branch, true, |assembler| {
+            test(GPR::A0, 0, 0, *expected_branch, true, |assembler| {
                 assembler.write_bgezal(GPR::R0, 2)
+            })
+        } else {
+            Err("Value is not valid".to_string())
+        }
+    }
+}
+
+pub struct BGEZALTestRA {}
+
+impl Test for BGEZALTestRA {
+    fn name(&self) -> &str { "RSP BGEZAL (test RA)" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> {
+        vec! {
+            Box::new((true, 0u32)),
+            Box::new((true, 1u32)),
+            Box::new((true, 0x7FFFFFFFu32)),
+            Box::new((false, 0xFFFFFFFFu32)),
+            Box::new((false, 0xFFFF0000u32)),
+        }
+    }
+
+    fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
+        if let Some((expected_branch, value)) =(*value).downcast_ref::<(bool, u32)>() {
+            test(GPR::RA, *value, 0, *expected_branch, true, |assembler| {
+                assembler.write_bgezal(GPR::RA, 2)
             })
         } else {
             Err("Value is not valid".to_string())

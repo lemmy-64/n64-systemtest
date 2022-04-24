@@ -162,7 +162,9 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::rsp::op_branches::BLTZ {}),
         Box::new(super::rsp::op_branches::BGEZ {}),
         Box::new(super::rsp::op_branches::BLTZAL {}),
+        Box::new(super::rsp::op_branches::BLTZALTestRA {}),
         Box::new(super::rsp::op_branches::BGEZAL {}),
+        Box::new(super::rsp::op_branches::BGEZALTestRA {}),
 
         Box::new(super::rsp::op_shifts::SLL {}),
         Box::new(super::rsp::op_shifts::SRL {}),
