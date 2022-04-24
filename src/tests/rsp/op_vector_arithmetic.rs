@@ -1,5 +1,6 @@
 use alloc::boxed::Box;
 use alloc::string::{String, ToString};
+use alloc::vec;
 use alloc::vec::Vec;
 use core::any::Any;
 
@@ -597,3 +598,514 @@ impl Test for VSUMNoNops {
             Vector::from_u16([0x4000, 0x0002, 0x8006, 0x7FFE, 0x7FFE, 0x7FFE, 0xBFFD, 0xBFFE]))
     }
 }
+
+pub struct VLT {}
+
+impl Test for VLT {
+    fn name(&self) -> &str { "RSP VLT" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        // This instruction picks the smaller of the corresponding u16 in the vector. It also
+        // writes the pick (0 or 1) into the lower half of VCC (while clearing the upper half)
+
+        // VCE is ignored and not modified
+
+        // In the case of equality, VCC picks the winner: If both the lower and upper bit
+        // are set, vs is picked. Otherwise vt.
+
+        run_test(
+            0x8E00,
+            0x1200,
+            0xDE,
+            |assembler| { assembler.write_vlt(VR::V2, VR::V4, VR::V5, Element::All); },
+            Vector::from_u16([0x1234, 0x1234, 0x1234, 0xF234, 0xF234, 0xF234, 0xF234, 0x1234]),
+            Vector::from_u16([0x1233, 0x1234, 0x1235, 0xF233, 0xF234, 0xF235, 0x1234, 0xF234]),
+            0x0000,
+            0x0089,
+            0xDE,
+            Vector::from_u16([0x1233, 0x1234, 0x1234, 0xF233, 0xF234, 0xF234, 0xF234, 0xF234]),
+            Vector::from_u16([0x1233, 0x1234, 0x1234, 0xF233, 0xF234, 0xF234, 0xF234, 0xF234]))
+    }
+}
+
+pub struct VLTAllEqualAndFlags {}
+
+impl Test for VLTAllEqualAndFlags {
+    fn name(&self) -> &str { "RSP VLT (all equal)" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> {
+        vec! {
+            Box::new(0x0000u16),
+            Box::new(0xFF00u16),
+            Box::new(0x00FFu16),
+            Box::new(0xFFFFu16),
+        }
+    }
+
+    fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
+        if let Some(&vcc) = value.downcast_ref::<u16>() {
+            // VCO (high), VCO (low) decide whether to pick
+            // VCE and VCC are ignored
+            run_test(
+                0b00001111_00110011,
+                vcc,
+                0b10101001,
+                |assembler| { assembler.write_vlt(VR::V2, VR::V4, VR::V5, Element::All); },
+                Vector::from_u16([0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234]),
+                Vector::from_u16([0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234]),
+                0x0000,
+                0b00000011,
+                0b10101001,
+                Vector::from_u16([0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234]),
+                Vector::from_u16([0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234]))?;
+            Ok(())
+        } else {
+            panic!("Invalid value")
+        }
+    }
+}
+
+pub struct VLTAllSmallerAndFlags {}
+
+impl Test for VLTAllSmallerAndFlags {
+    fn name(&self) -> &str { "RSP VLT (all smaller)" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> {
+        vec! {
+            Box::new(0x0000u16),
+            Box::new(0xFF00u16),
+            Box::new(0x00FFu16),
+            Box::new(0xFFFFu16),
+        }
+    }
+
+    fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
+        if let Some(&vcc) = value.downcast_ref::<u16>() {
+            // VCO (high), VCO (low) decide whether to pick
+            // VCE and VCC are ignored
+            run_test(
+                0b00001111_00110011,
+                vcc,
+                0b10101001,
+                |assembler| { assembler.write_vlt(VR::V2, VR::V4, VR::V5, Element::All); },
+                Vector::from_u16([0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234]),
+                Vector::from_u16([0x1233, 0x1233, 0x1233, 0x1233, 0x1233, 0x1233, 0x1233, 0x1233]),
+                0x0000,
+                0b11111111,
+                0b10101001,
+                Vector::from_u16([0x1233, 0x1233, 0x1233, 0x1233, 0x1233, 0x1233, 0x1233, 0x1233]),
+                Vector::from_u16([0x1233, 0x1233, 0x1233, 0x1233, 0x1233, 0x1233, 0x1233, 0x1233]))?;
+            Ok(())
+        } else {
+            panic!("Invalid value")
+        }
+    }
+}
+
+pub struct VLTAllLargerAndFlags {}
+
+impl Test for VLTAllLargerAndFlags {
+    fn name(&self) -> &str { "RSP VLT (all larger)" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> {
+        vec! {
+            Box::new(0x0000u16),
+            Box::new(0xFF00u16),
+            Box::new(0x00FFu16),
+            Box::new(0xFFFFu16),
+        }
+    }
+
+    fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
+        if let Some(&vcc) = value.downcast_ref::<u16>() {
+            // VCO (high), VCO (low) decide whether to pick
+            // VCE and VCC are ignored
+            run_test(
+                0b00001111_00110011,
+                vcc,
+                0b10101001,
+                |assembler| { assembler.write_vlt(VR::V2, VR::V4, VR::V5, Element::All); },
+                Vector::from_u16([0x1233, 0x1233, 0x1233, 0x1233, 0x1233, 0x1233, 0x1233, 0x1233]),
+                Vector::from_u16([0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234]),
+                0x0000,
+                0b00000000,
+                0b10101001,
+                Vector::from_u16([0x1233, 0x1233, 0x1233, 0x1233, 0x1233, 0x1233, 0x1233, 0x1233]),
+                Vector::from_u16([0x1233, 0x1233, 0x1233, 0x1233, 0x1233, 0x1233, 0x1233, 0x1233]))?;
+            Ok(())
+        } else {
+            panic!("Invalid value")
+        }
+    }
+}
+
+pub struct VEQ {}
+
+impl Test for VEQ {
+    fn name(&self) -> &str { "RSP VEQ" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        // This instruction copies vt into the target register and sets VCC if rs and rt
+        // are equal AND the upper bit in VCO is cleared. It will also clear the upper half of VCC
+
+        // VCE is ignored and not modified
+        // VCO is ignored and cleared
+
+        // In the case of equality, VCC picks the winner: If both the lower and upper bit
+        // are set, vs is picked. Otherwise vt.
+
+        run_test(
+            0x0012,
+            0x1200,
+            0xDE,
+            |assembler| { assembler.write_veq(VR::V2, VR::V4, VR::V5, Element::All); },
+            Vector::from_u16([0x1234, 0x1234, 0x1234, 0xF234, 0xF234, 0xF234, 0xF234, 0x1234]),
+            Vector::from_u16([0x1233, 0x1234, 0x1235, 0xF233, 0xF234, 0xF235, 0x1234, 0xF234]),
+            0x0000,
+            0b00010010,
+            0xDE,
+            Vector::from_u16([0x1234, 0x1234, 0x1234, 0xF234, 0xF234, 0xF234, 0xF234, 0x1234]),
+            Vector::from_u16([0x1234, 0x1234, 0x1234, 0xF234, 0xF234, 0xF234, 0xF234, 0x1234]))
+    }
+}
+
+
+pub struct VEQAllDifferent {}
+
+impl Test for VEQAllDifferent {
+    fn name(&self) -> &str { "RSP VEQ (all different)" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> {
+        vec! {
+            Box::new(0x0000u16),
+            Box::new(0xFF00u16),
+            Box::new(0x00FFu16),
+            Box::new(0xFFFFu16),
+        }
+    }
+
+    fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
+        if let Some(&vcc) = value.downcast_ref::<u16>() {
+            run_test(
+                0b00001111_00110011,
+                vcc,
+                0b10101001,
+                |assembler| { assembler.write_veq(VR::V2, VR::V4, VR::V5, Element::All); },
+                Vector::from_u16([0x1111, 0x2222, 0x3333, 0x4444, 0x5555, 0x6666, 0x7777, 0x8888]),
+                Vector::from_u16([0xAAAA, 0xBBBB, 0xCCCC, 0xDDDD, 0xEEEE, 0xFFFF, 0xEFEF, 0xEFEF]),
+                0x0000,
+                0x0000,
+                0b10101001,
+                Vector::from_u16([0x1111, 0x2222, 0x3333, 0x4444, 0x5555, 0x6666, 0x7777, 0x8888]),
+                Vector::from_u16([0x1111, 0x2222, 0x3333, 0x4444, 0x5555, 0x6666, 0x7777, 0x8888]))?;
+        }
+        Ok(())
+    }
+}
+
+pub struct VEQAllEqual {}
+
+impl Test for VEQAllEqual {
+    fn name(&self) -> &str { "RSP VEQ (all equal)" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> {
+        vec! {
+            Box::new(0x0000u16),
+            Box::new(0xFF00u16),
+            Box::new(0x00FFu16),
+            Box::new(0xFFFFu16),
+        }
+    }
+
+    fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
+        if let Some(&vcc) = value.downcast_ref::<u16>() {
+            run_test(
+                0b00001111_00110011,
+                vcc,
+                0b10101001,
+                |assembler| { assembler.write_veq(VR::V2, VR::V4, VR::V5, Element::All); },
+                Vector::from_u16([0x1111, 0x2222, 0x3333, 0x4444, 0x5555, 0x6666, 0x7777, 0x8888]),
+                Vector::from_u16([0x1111, 0x2222, 0x3333, 0x4444, 0x5555, 0x6666, 0x7777, 0x8888]),
+                0x0000,
+                0x00F0,
+                0b10101001,
+                Vector::from_u16([0x1111, 0x2222, 0x3333, 0x4444, 0x5555, 0x6666, 0x7777, 0x8888]),
+                Vector::from_u16([0x1111, 0x2222, 0x3333, 0x4444, 0x5555, 0x6666, 0x7777, 0x8888]))?;
+        }
+        Ok(())
+    }
+}
+
+pub struct VNE {}
+
+impl Test for VNE {
+    fn name(&self) -> &str { "RSP VNE" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        // This instruction copies vt into the target register and sets VCC if rs and rt
+        // are different OR the upper bit in VCO is set. It will also clear the upper half of VCC
+
+        // VCE is ignored and not modified
+        // VCO is ignored and cleared
+
+        // In the case of equality, VCC picks the winner: If both the lower and upper bit
+        // are set, vs is picked. Otherwise vt.
+
+        run_test(
+            0x0012,
+            0x1200,
+            0xDE,
+            |assembler| { assembler.write_vne(VR::V2, VR::V4, VR::V5, Element::All); },
+            Vector::from_u16([0x1234, 0x1234, 0x1234, 0xF234, 0xF234, 0xF234, 0xF234, 0x1234]),
+            Vector::from_u16([0x1233, 0x1234, 0x1235, 0xF233, 0xF234, 0xF235, 0x1234, 0xF234]),
+            0x0000,
+            0b11101101,
+            0xDE,
+            Vector::from_u16([0x1233, 0x1234, 0x1235, 0xF233, 0xF234, 0xF235, 0x1234, 0xF234]),
+            Vector::from_u16([0x1233, 0x1234, 0x1235, 0xF233, 0xF234, 0xF235, 0x1234, 0xF234]))
+    }
+}
+
+
+pub struct VNEAllDifferent {}
+
+impl Test for VNEAllDifferent {
+    fn name(&self) -> &str { "RSP VNE (all different)" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> {
+        vec! {
+            Box::new(0x0000u16),
+            Box::new(0xFF00u16),
+            Box::new(0x00FFu16),
+            Box::new(0xFFFFu16),
+        }
+    }
+
+    fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
+        if let Some(&vcc) = value.downcast_ref::<u16>() {
+            run_test(
+                0b00001111_00110011,
+                vcc,
+                0b10101001,
+                |assembler| { assembler.write_vne(VR::V2, VR::V4, VR::V5, Element::All); },
+                Vector::from_u16([0x1111, 0x2222, 0x3333, 0x4444, 0x5555, 0x6666, 0x7777, 0x8888]),
+                Vector::from_u16([0xAAAA, 0xBBBB, 0xCCCC, 0xDDDD, 0xEEEE, 0xFFFF, 0xEFEF, 0xEFEF]),
+                0x0000,
+                0x00FF,
+                0b10101001,
+                Vector::from_u16([0xAAAA, 0xBBBB, 0xCCCC, 0xDDDD, 0xEEEE, 0xFFFF, 0xEFEF, 0xEFEF]),
+                Vector::from_u16([0xAAAA, 0xBBBB, 0xCCCC, 0xDDDD, 0xEEEE, 0xFFFF, 0xEFEF, 0xEFEF]))?;
+        }
+        Ok(())
+    }
+}
+
+pub struct VNEAllEqual {}
+
+impl Test for VNEAllEqual {
+    fn name(&self) -> &str { "RSP VNE (all equal)" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> {
+        vec! {
+            Box::new(0x0000u16),
+            Box::new(0xFF00u16),
+            Box::new(0x00FFu16),
+            Box::new(0xFFFFu16),
+        }
+    }
+
+    fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
+        if let Some(&vcc) = value.downcast_ref::<u16>() {
+            run_test(
+                0b00001111_00110011,
+                vcc,
+                0b10101001,
+                |assembler| { assembler.write_vne(VR::V2, VR::V4, VR::V5, Element::All); },
+                Vector::from_u16([0x1111, 0x2222, 0x3333, 0x4444, 0x5555, 0x6666, 0x7777, 0x8888]),
+                Vector::from_u16([0x1111, 0x2222, 0x3333, 0x4444, 0x5555, 0x6666, 0x7777, 0x8888]),
+                0x0000,
+                0x000F,
+                0b10101001,
+                Vector::from_u16([0x1111, 0x2222, 0x3333, 0x4444, 0x5555, 0x6666, 0x7777, 0x8888]),
+                Vector::from_u16([0x1111, 0x2222, 0x3333, 0x4444, 0x5555, 0x6666, 0x7777, 0x8888]))?;
+        }
+        Ok(())
+    }
+}
+
+pub struct VGE {}
+
+impl Test for VGE {
+    fn name(&self) -> &str { "RSP VGE" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        // This instruction picks the larger of the corresponding u16 in the vector. It also
+        // writes the pick (0 or 1) into the lower half of VCC (while clearing the upper half)
+
+        // VCE is ignored and not modified
+
+        // In the case of equality, VCC picks the winner: If neither the lower nor the upper bit
+        // are set, vs is picked. Otherwise vt.
+
+        run_test(
+            0x8E00,
+            0x1200,
+            0xDE,
+            |assembler| { assembler.write_vge(VR::V2, VR::V4, VR::V5, Element::All); },
+            Vector::from_u16([0x1234, 0x1234, 0x1234, 0xF234, 0xF234, 0xF234, 0xF234, 0x1234]),
+            Vector::from_u16([0x1233, 0x1234, 0x1235, 0xF233, 0xF234, 0xF235, 0x1234, 0xF234]),
+            0x0000,
+            0x0076,
+            0xDE,
+            Vector::from_u16([0x1234, 0x1234, 0x1235, 0xF234, 0xF234, 0xF235, 0x1234, 0x1234]),
+            Vector::from_u16([0x1234, 0x1234, 0x1235, 0xF234, 0xF234, 0xF235, 0x1234, 0x1234]))
+    }
+}
+
+pub struct VGEAllEqualAndFlags {}
+
+impl Test for VGEAllEqualAndFlags {
+    fn name(&self) -> &str { "RSP VGE (all equal)" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> {
+        vec! {
+            Box::new(0x0000u16),
+            Box::new(0xFF00u16),
+            Box::new(0x00FFu16),
+            Box::new(0xFFFFu16),
+        }
+    }
+
+    fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
+        if let Some(&vcc) = value.downcast_ref::<u16>() {
+            // VCO (high), VCO (low) decide whether to pick
+            // VCE and VCC are ignored
+            run_test(
+                0b00001111_00110011,
+                vcc,
+                0b10101001,
+                |assembler| { assembler.write_vge(VR::V2, VR::V4, VR::V5, Element::All); },
+                Vector::from_u16([0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234]),
+                Vector::from_u16([0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234]),
+                0x0000,
+                0b11111100,
+                0b10101001,
+                Vector::from_u16([0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234]),
+                Vector::from_u16([0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234]))?;
+            Ok(())
+        } else {
+            panic!("Invalid value")
+        }
+    }
+}
+
+pub struct VGEAllSmallerAndFlags {}
+
+impl Test for VGEAllSmallerAndFlags {
+    fn name(&self) -> &str { "RSP VGE (all smaller)" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> {
+        vec! {
+            Box::new(0x0000u16),
+            Box::new(0xFF00u16),
+            Box::new(0x00FFu16),
+            Box::new(0xFFFFu16),
+        }
+    }
+
+    fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
+        if let Some(&vcc) = value.downcast_ref::<u16>() {
+            // VCO (high), VCO (low) decide whether to pick
+            // VCE and VCC are ignored
+            run_test(
+                0b00001111_00110011,
+                vcc,
+                0b10101001,
+                |assembler| { assembler.write_vge(VR::V2, VR::V4, VR::V5, Element::All); },
+                Vector::from_u16([0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234]),
+                Vector::from_u16([0x1233, 0x1233, 0x1233, 0x1233, 0x1233, 0x1233, 0x1233, 0x1233]),
+                0x0000,
+                0b00000000,
+                0b10101001,
+                Vector::from_u16([0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234]),
+                Vector::from_u16([0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234]))?;
+            Ok(())
+        } else {
+            panic!("Invalid value")
+        }
+    }
+}
+
+pub struct VGEAllLargerAndFlags {}
+
+impl Test for VGEAllLargerAndFlags {
+    fn name(&self) -> &str { "RSP VGE (all larger)" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> {
+        vec! {
+            Box::new(0x0000u16),
+            Box::new(0xFF00u16),
+            Box::new(0x00FFu16),
+            Box::new(0xFFFFu16),
+        }
+    }
+
+    fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
+        if let Some(&vcc) = value.downcast_ref::<u16>() {
+            // VCO (high), VCO (low) decide whether to pick
+            // VCE and VCC are ignored
+            run_test(
+                0b00001111_00110011,
+                vcc,
+                0b10101001,
+                |assembler| { assembler.write_vge(VR::V2, VR::V4, VR::V5, Element::All); },
+                Vector::from_u16([0x1233, 0x1233, 0x1233, 0x1233, 0x1233, 0x1233, 0x1233, 0x1233]),
+                Vector::from_u16([0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234]),
+                0x0000,
+                0b11111111,
+                0b10101001,
+                Vector::from_u16([0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234]),
+                Vector::from_u16([0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234]))?;
+            Ok(())
+        } else {
+            panic!("Invalid value")
+        }
+    }
+}
+
