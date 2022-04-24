@@ -19,6 +19,7 @@ use crate::tests::soft_asserts::{soft_assert_eq, soft_assert_neq};
 //   Reading from cart takes about 130-200 cycles, so it is quite possible that a actually causes b
 // - Does any game exercise this? Actually yes! A Bug's Life does and locks up if this isn't done
 //   correctly
+// - The above seems to correlate with STATUS.IOBUSY. So after rom writing, that flag will be true for a bit
 
 const DATA: [u64; 2] = [0x0123456789ABCDEF, 0x2143658799BADCFE];
 
