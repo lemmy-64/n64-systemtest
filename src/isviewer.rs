@@ -5,6 +5,13 @@ const ISVIEWER_WRITE_LEN: *mut u32 = 0xB3FF0014 as *mut u32;
 const ISVIEWER_BUFFER_START: *mut u32 = 0xB3FF0020 as *mut u32;
 const ISVIEWER_BUFFER_LENGTH: usize = 0x200;
 
+const PI_STATUS: *mut u32 = 0xA4600010 as *mut u32;
+const PI_STATUS_IO_BUSY: u32 = 0x2;
+
+fn pi_wait() {
+    while unsafe { PI_STATUS.read_volatile() } & PI_STATUS_IO_BUSY != 0 {}
+}
+
 // This method simply prints text without synchronization. This should only be used from within
 // the exception handler which can't wait for a lock
 pub fn text_out(s: &str) {
@@ -16,6 +23,7 @@ pub fn text_out(s: &str) {
         for byte in chunk {
             value |= (*byte as u32) << shift;
             if shift == 0 {
+                pi_wait();
                 unsafe { ISVIEWER_BUFFER_START.add(i).write_volatile(value) };
                 i += 1;
                 shift = 24;
@@ -25,8 +33,12 @@ pub fn text_out(s: &str) {
             }
         }
         if shift < 24 {
+            pi_wait();
             unsafe { ISVIEWER_BUFFER_START.add(i).write_volatile(value) };
         }
-        unsafe { ISVIEWER_WRITE_LEN.write_volatile(chunk.len() as u32); }
+        pi_wait();
+        unsafe {
+            ISVIEWER_WRITE_LEN.write_volatile(chunk.len() as u32);
+        }
     }
 }
