@@ -1,5 +1,5 @@
-use alloc::{format, vec};
 use alloc::boxed::Box;
+use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::any::Any;
@@ -620,14 +620,7 @@ impl Test for VMRG {
 
     fn level(&self) -> Level { Level::BasicFunctionality }
 
-    fn values(&self) -> Vec<Box<dyn Any>> {
-        vec! {
-            Box::new(0x0000u16),
-            Box::new(0xFF00u16),
-            Box::new(0x00FFu16),
-            Box::new(0xFFFFu16),
-        }
-    }
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
         run_test_with_emulation_all_flags_and_elements_vector2_variations(

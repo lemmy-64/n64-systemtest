@@ -6,6 +6,7 @@ use core::any::Any;
 
 use crate::cop0::cause_extract_exception;
 use crate::exception_handler::drain_seen_exception;
+use crate::{print, println};
 use crate::tests::traps::Immediate;
 
 mod arithmetic;
@@ -60,7 +61,7 @@ pub fn run() {
     let mut skipped = 0;
     let mut failed = 0;
 
-    fn test_value(test: &Box<dyn Test>, value: &Box::<dyn Any>, failed: &mut u32, succeeded: &mut u32, skipped: &mut u32) {
+    fn test_value(test: &Box<dyn Test>, value: &Box::<dyn Any>, failed: &mut u32, succeeded: &mut u32, skipped: &mut u32, time: &mut u32) {
         fn value_desc(value: &Box<dyn Any>) -> String {
             match (*value).downcast_ref::<()>() {
                 Some(_) => return String::new(),
@@ -112,7 +113,10 @@ pub fn run() {
             // will have to set that themselves
             unsafe { crate::cop0::set_status(0x24000000); }
 
+            let counter_before = crate::cop0::count();
             let test_result = test.run(&value);
+            let counter_after = crate::cop0::count();
+            *time += counter_after - counter_before;
 
             unsafe { crate::cop0::set_status(0x24000000); }
 
@@ -137,23 +141,41 @@ pub fn run() {
         }
     }
 
+    let tests = testlist::tests();
+    let mut test_times: Vec<(usize, u32)> = Vec::new();
     let dummy_test_value: Box<dyn Any> = Box::new(());
-    for test in testlist::tests() {
+    for (index, test) in tests.iter().enumerate() {
         let values = test.values();
+        let mut time = 0u32;
         if values.len() == 0 {
-            test_value(&test, &dummy_test_value, &mut failed, &mut succeeded, &mut skipped);
+            test_value(&test, &dummy_test_value, &mut failed, &mut succeeded, &mut skipped, &mut time);
         } else {
             for value in values {
-                test_value(&test, &value, &mut failed, &mut succeeded, &mut skipped);
+                test_value(&test, &value, &mut failed, &mut succeeded, &mut skipped, &mut time);
             }
         }
+        test_times.push((index, time));
     }
 
-    crate::println!();
+    println!();
     if (failed + succeeded) == 0 {
-        crate::println!("Done, but no tests were executed");
+        println!("Done, but no tests were executed");
     } else {
-        crate::println!("Done! Tests: {}. Failed: {}. Success rate: {}%. Skipped {} tests", failed + succeeded, failed, succeeded * 100 / (failed + succeeded), skipped);
+        println!("Done! Tests: {}. Failed: {}. Success rate: {}%. Skipped {} tests", failed + succeeded, failed, succeeded * 100 / (failed + succeeded), skipped);
     }
 
+    test_times.sort_by(|(_, a), (_, b)| { a.cmp(b).reverse() });
+    let total_time = test_times.iter().fold(0u32, |acc, (_, time)| acc + time);
+
+    println!("");
+    print!("Slowest tests: ");
+    for i in 0..5 {
+        let (test_index, test_time) = test_times[i];
+        let test_name = tests[test_index].name();
+        if i > 0 {
+            print!(", ");
+        }
+        print!("{} ({}%)", test_name, test_time * 100 / total_time);
+    }
+    println!("");
 }

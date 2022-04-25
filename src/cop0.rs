@@ -214,6 +214,11 @@ pub unsafe fn set_badvaddr(value: u64) {
     unsafe { write_cop0_64::<INDEX>(value) }
 }
 
+pub fn count() -> u32 {
+    const INDEX: u32 = RegisterIndex::Count as u32;
+    unsafe { read_cop0::<INDEX>() }
+}
+
 pub fn entry_hi() -> u64 {
     const INDEX: u32 = RegisterIndex::EntryHi as u32;
     unsafe { read_cop0_64::<INDEX>() }

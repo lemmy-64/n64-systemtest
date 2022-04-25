@@ -182,7 +182,7 @@ impl DecayAfterSomeClockCycles {
     }
 
     fn test<const INSTRUCTION: u32, const LOWER_BOUND: u32, const UPPER_BOUND: u32>() -> Result<(), String> {
-        for _ in 0..200 {
+        for _ in 0..100 {
             // The cut-off is somewhere around 70 loop iterations, but it's not clear cut (depending
             // on how code is laid out in memory).
             Self::inner_test::<0, INSTRUCTION>(false)?;

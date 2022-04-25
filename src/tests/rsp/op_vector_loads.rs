@@ -454,9 +454,9 @@ impl Test for LTV {
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
         // There are 16 values for E, 32 target registers and 16 possible misalignments, resulting in 8192 tests.
-        // Let's cut this down somewhat to 648
+        // Let's cut this down somewhat to 576
         const TEST_ELEMENT: [E; 8] = [E::_0, E::_1, E::_2, E::_7, E::_8, E::_9, E::_14, E::_15];
-        const TEST_OFFSETS: [u32; 9] = [0, 1, 2, 7, 8, 9, 14, 15, 16];
+        const TEST_OFFSETS: [u32; 8] = [0, 1, 2, 7, 8, 14, 15, 16];
         const TEST_VT: [VR; 9] = [VR::V0, VR::V1, VR::V2, VR::V7, VR::V8, VR::V9, VR::V18, VR::V25, VR::V31];
 
         let mut test_data: [u8; 256] = [0; 256];
@@ -485,7 +485,7 @@ impl Test for LTV {
                         assembler.write_sqv(vr, E::_0, (0x100 + vr.index() * 0x10) as i32, GPR::R0);
                     }
                     assembler.write_break();
-                    RSP::run_and_wait(0);
+                    RSP::start_running(0);
 
                     // Simulate on the CPU
                     let mut expected: [Vector; 32] = [clear_vector; 32];
@@ -499,6 +499,8 @@ impl Test for LTV {
                         expected[vt_base_index + reg_offset].set8(i * 2, test_data[base_address + ((odd_offset + e.index() + i * 2) & 0xF)]);
                         expected[vt_base_index + reg_offset].set8(i * 2 + 1, test_data[base_address + ((odd_offset + e.index() + i * 2 + 1) & 0xF)]);
                     }
+
+                    RSP::wait_until_rsp_is_halted();
 
                     // Verify results
                     for i in 0..31 {
