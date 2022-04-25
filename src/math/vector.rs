@@ -35,6 +35,12 @@ impl Vector {
         }
     }
 
+    pub fn new_with_broadcast_16(&self, index: usize) -> Vector {
+        let v16 = self.get16(index) as u32;
+        let v32 = (v16 << 16) | v16;
+        Self::new_with_u32_elements(v32, v32, v32, v32)
+    }
+
     pub fn get32(&self, index: usize) -> u32 { unsafe { self.as_u32[index] } }
 
     pub fn get16(&self, index: usize) -> u16 { unsafe { self.as_u16[index] } }

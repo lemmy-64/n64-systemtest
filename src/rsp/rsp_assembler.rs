@@ -90,7 +90,7 @@ impl Step for VR {
 // @formatter:off
 #[allow(dead_code)]
 #[repr(u8)]
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Eq)]
 pub enum Element {
     All = 0, All1 = 1,
     Q0 = 2, Q1 = 3,
@@ -98,6 +98,60 @@ pub enum Element {
     _0 = 8, _1 = 9, _2 = 10, _3 = 11, _4 = 12, _5 = 13, _6 = 14, _7 = 15,
 }
 // @formatter:on
+
+impl Element {
+    pub const fn from_index(index: usize) -> Option<Self> {
+        if index <= 15 {
+            Some(unsafe { transmute(index as u8) })
+        } else {
+            None
+        }
+    }
+
+    pub fn get_effective_element_index(&self, index: usize) -> usize {
+        const fn q(n: usize) -> [usize; 8] { [n, n, n + 2, n + 2, n + 4, n + 4, n + 6, n + 6] }
+        const fn h(n: usize) -> [usize; 8] { [n, n, n, n, n + 4, n + 4, n + 4, n + 4] }
+        const EFFECTIVE_INDEX: [[usize; 8]; 16] = [
+            [0, 1, 2, 3, 4, 5, 6, 7],
+            [0, 1, 2, 3, 4, 5, 6, 7],
+            q(0),
+            q(1),
+            h(0),
+            h(1),
+            h(2),
+            h(3),
+            [0; 8],
+            [1; 8],
+            [2; 8],
+            [3; 8],
+            [4; 8],
+            [5; 8],
+            [6; 8],
+            [7; 8],
+        ];
+
+        EFFECTIVE_INDEX[*self as usize][index]
+    }
+}
+
+impl Step for Element {
+    fn steps_between(start: &Self, end: &Self) -> Option<usize> {
+        if (*start as usize) < (*end as usize) {
+            Some(*end as usize - *start as usize)
+        } else {
+            None
+        }
+    }
+
+    fn forward_checked(start: Self, count: usize) -> Option<Self> {
+        Self::from_index(start as usize + count)
+    }
+
+    fn backward_checked(start: Self, count: usize) -> Option<Self> {
+        Self::from_index(start as usize - count)
+    }
+}
+
 
 // @formatter:off
 #[allow(dead_code)]
