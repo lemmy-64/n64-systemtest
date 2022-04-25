@@ -119,6 +119,22 @@ fn run_vzero<F: Fn(&mut RSPAssembler)>(emitter: F) -> Result<(), String> {
         Vector::from_u16([0, 3, 0x800F, 0x7FFE, 0x7FFF, 0x7FFE, 0x7FFD, 0xFFFE]))
 }
 
+/// Some instructions do absolutely nothing
+fn run_noop<F: Fn(&mut RSPAssembler)>(emitter: F) -> Result<(), String> {
+    run_test(
+        0x8E11,
+        0x1234,
+        0x89,
+        emitter,
+        Vector::from_u16([0, 1, 0x0010, 0xFFFF, 0x7FFF, 0x7FFF, 0x7FFF, 0xFFFF]),
+        Vector::from_u16([0, 2, 0x7FFF, 0x7FFF, 0x0000, 0xFFFF, 0xFFFE, 0xFFFF]),
+        0x8E11,
+        0x1234,
+        0x89,
+        Vector::from_u16([0xFFFF, 0x8001, 0xFFFF, 0, 0xFFFF, 0x0001, 0xFFFF, 0xFFFF]),
+        Vector::from_u16([0x0001, 0x8001, 0xFFF0, 0, 0xFFFF, 0x0001, 0x0001, 0x0000]))
+}
+
 pub struct VADD {}
 
 impl Test for VADD {
@@ -1367,3 +1383,114 @@ impl Test for VNXOR {
     }
 }
 
+pub struct VNOP {}
+
+impl Test for VNOP {
+    fn name(&self) -> &str { "RSP VNOP" }
+
+    fn level(&self) -> Level { Level::RarelyUsed }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        run_noop(|assembler| { assembler.write_vnop(VR::V2, VR::V4, VR::V5, Element::All); })
+    }
+}
+
+pub struct VEXTT {}
+
+impl Test for VEXTT {
+    fn name(&self) -> &str { "RSP VEXTT" }
+
+    fn level(&self) -> Level { Level::RarelyUsed }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        run_vzero(|assembler| { assembler.write_vextt(VR::V2, VR::V4, VR::V5, Element::All); })
+    }
+}
+
+pub struct VEXTQ {}
+
+impl Test for VEXTQ {
+    fn name(&self) -> &str { "RSP VEXTQ" }
+
+    fn level(&self) -> Level { Level::RarelyUsed }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        run_vzero(|assembler| { assembler.write_vextq(VR::V2, VR::V4, VR::V5, Element::All); })
+    }
+}
+
+pub struct VEXTN {}
+
+impl Test for VEXTN {
+    fn name(&self) -> &str { "RSP VEXTN" }
+
+    fn level(&self) -> Level { Level::RarelyUsed }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        run_vzero(|assembler| { assembler.write_vextn(VR::V2, VR::V4, VR::V5, Element::All); })
+    }
+}
+
+pub struct VINST {}
+
+impl Test for VINST {
+    fn name(&self) -> &str { "RSP VINST" }
+
+    fn level(&self) -> Level { Level::RarelyUsed }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        run_vzero(|assembler| { assembler.write_vinst(VR::V2, VR::V4, VR::V5, Element::All); })
+    }
+}
+
+pub struct VINSQ {}
+
+impl Test for VINSQ {
+    fn name(&self) -> &str { "RSP VINSQ" }
+
+    fn level(&self) -> Level { Level::RarelyUsed }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        run_vzero(|assembler| { assembler.write_vinsq(VR::V2, VR::V4, VR::V5, Element::All); })
+    }
+}
+
+pub struct VINSN {}
+
+impl Test for VINSN {
+    fn name(&self) -> &str { "RSP VINSN" }
+
+    fn level(&self) -> Level { Level::RarelyUsed }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        run_vzero(|assembler| { assembler.write_vinsn(VR::V2, VR::V4, VR::V5, Element::All); })
+    }
+}
+
+pub struct VNULL {}
+
+impl Test for VNULL {
+    fn name(&self) -> &str { "RSP VNULL" }
+
+    fn level(&self) -> Level { Level::RarelyUsed }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        run_noop(|assembler| { assembler.write_vnull(VR::V2, VR::V4, VR::V5, Element::All); })
+    }
+}
