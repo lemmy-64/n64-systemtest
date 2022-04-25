@@ -783,7 +783,6 @@ impl Test for VEQ {
     }
 }
 
-
 pub struct VEQAllDifferent {}
 
 impl Test for VEQAllDifferent {
@@ -1102,6 +1101,265 @@ impl Test for VGEAllLargerAndFlags {
                 0b10101001,
                 Vector::from_u16([0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234]),
                 Vector::from_u16([0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234]))?;
+            Ok(())
+        } else {
+            panic!("Invalid value")
+        }
+    }
+}
+
+pub struct VMRG {}
+
+impl Test for VMRG {
+    fn name(&self) -> &str { "RSP VMRG" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> {
+        vec! {
+            Box::new(0x0000u16),
+            Box::new(0xFF00u16),
+            Box::new(0x00FFu16),
+            Box::new(0xFFFFu16),
+        }
+    }
+
+    fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
+        if let Some(&vco) = value.downcast_ref::<u16>() {
+            run_test(
+                vco,
+                0b00001111_00110011,
+                0b10101001,
+                |assembler| { assembler.write_vmrg(VR::V2, VR::V4, VR::V5, Element::All); },
+                Vector::from_u16([0x1111, 0x2222, 0x3333, 0x4444, 0x5555, 0x6666, 0x7777, 0x8888]),
+                Vector::from_u16([0xAAAA, 0xBBBB, 0xCCCC, 0xDDDD, 0xEEEE, 0xFFFF, 0xEFEF, 0xEFEF]),
+                0,
+                0b00001111_00110011,
+                0b10101001,
+                Vector::from_u16([0xAAAA, 0xBBBB, 0x3333, 0x4444, 0xEEEE, 0xFFFF, 0x7777, 0x8888]),
+                Vector::from_u16([0xAAAA, 0xBBBB, 0x3333, 0x4444, 0xEEEE, 0xFFFF, 0x7777, 0x8888]))?;
+            Ok(())
+        } else {
+            panic!("Invalid value")
+        }
+    }
+}
+
+pub struct VAND {}
+
+impl Test for VAND {
+    fn name(&self) -> &str { "RSP VAND" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> {
+        vec! {
+            Box::new(0x0000u16),
+            Box::new(0xFF00u16),
+            Box::new(0x00FFu16),
+            Box::new(0xFFFFu16),
+        }
+    }
+
+    fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
+        if let Some(&vco) = value.downcast_ref::<u16>() {
+            run_test(
+                vco,
+                0b00001111_00110011,
+                0b10101001,
+                |assembler| { assembler.write_vand(VR::V2, VR::V4, VR::V5, Element::All); },
+                Vector::from_u16([0x1111, 0x1245, 0x3333, 0x4444, 0xB0C5, 0x6666, 0x0000, 0xFFFF]),
+                Vector::from_u16([0xFF0F, 0xEF20, 0x0000, 0xFFFF, 0x3312, 0x0000, 0xEFEF, 0xEFEF]),
+                vco,
+                0b00001111_00110011,
+                0b10101001,
+                Vector::from_u16([0x1101, 0x0200, 0x0000, 0x4444, 0x3000, 0x0000, 0x0000, 0xEFEF]),
+                Vector::from_u16([0x1101, 0x0200, 0x0000, 0x4444, 0x3000, 0x0000, 0x0000, 0xEFEF]))?;
+            Ok(())
+        } else {
+            panic!("Invalid value")
+        }
+    }
+}
+
+pub struct VNAND {}
+
+impl Test for VNAND {
+    fn name(&self) -> &str { "RSP VNAND" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> {
+        vec! {
+            Box::new(0x0000u16),
+            Box::new(0xFF00u16),
+            Box::new(0x00FFu16),
+            Box::new(0xFFFFu16),
+        }
+    }
+
+    fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
+        if let Some(&vco) = value.downcast_ref::<u16>() {
+            run_test(
+                vco,
+                0b00001111_00110011,
+                0b10101001,
+                |assembler| { assembler.write_vnand(VR::V2, VR::V4, VR::V5, Element::All); },
+                Vector::from_u16([0x1111, 0x1245, 0x3333, 0x4444, 0xB0C5, 0x6666, 0x0000, 0xFFFF]),
+                Vector::from_u16([0xFF0F, 0xEF20, 0x0000, 0xFFFF, 0x3312, 0x0000, 0xEFEF, 0xEFEF]),
+                vco,
+                0b00001111_00110011,
+                0b10101001,
+                Vector::from_u16([0xEEFE, 0xFDFF, 0xFFFF, 0xBBBB, 0xCFFF, 0xFFFF, 0xFFFF, 0x1010]),
+                Vector::from_u16([0xEEFE, 0xFDFF, 0xFFFF, 0xBBBB, 0xCFFF, 0xFFFF, 0xFFFF, 0x1010]))?;
+            Ok(())
+        } else {
+            panic!("Invalid value")
+        }
+    }
+}
+
+pub struct VOR {}
+
+impl Test for VOR {
+    fn name(&self) -> &str { "RSP VOR" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> {
+        vec! {
+            Box::new(0x0000u16),
+            Box::new(0xFF00u16),
+            Box::new(0x00FFu16),
+            Box::new(0xFFFFu16),
+        }
+    }
+
+    fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
+        if let Some(&vco) = value.downcast_ref::<u16>() {
+            run_test(
+                vco,
+                0b00001111_00110011,
+                0b10101001,
+                |assembler| { assembler.write_vor(VR::V2, VR::V4, VR::V5, Element::All); },
+                Vector::from_u16([0x1111, 0x1245, 0x3333, 0x4444, 0xB0C5, 0x6666, 0x0000, 0xFFFF]),
+                Vector::from_u16([0xFF0F, 0xEF20, 0x0000, 0xFFFF, 0x3312, 0x0000, 0xEFEF, 0xEFEF]),
+                vco,
+                0b00001111_00110011,
+                0b10101001,
+                Vector::from_u16([0xFF1F, 0xFF65, 0x3333, 0xFFFF, 0xB3D7, 0x6666, 0xEFEF, 0xFFFF]),
+                Vector::from_u16([0xFF1F, 0xFF65, 0x3333, 0xFFFF, 0xB3D7, 0x6666, 0xEFEF, 0xFFFF]))?;
+            Ok(())
+        } else {
+            panic!("Invalid value")
+        }
+    }
+}
+
+pub struct VNOR {}
+
+impl Test for VNOR {
+    fn name(&self) -> &str { "RSP VNOR" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> {
+        vec! {
+            Box::new(0x0000u16),
+            Box::new(0xFF00u16),
+            Box::new(0x00FFu16),
+            Box::new(0xFFFFu16),
+        }
+    }
+
+    fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
+        if let Some(&vco) = value.downcast_ref::<u16>() {
+            run_test(
+                vco,
+                0b00001111_00110011,
+                0b10101001,
+                |assembler| { assembler.write_vnor(VR::V2, VR::V4, VR::V5, Element::All); },
+                Vector::from_u16([0x1111, 0x1245, 0x3333, 0x4444, 0xB0C5, 0x6666, 0x0000, 0xFFFF]),
+                Vector::from_u16([0xFF0F, 0xEF20, 0x0000, 0xFFFF, 0x3312, 0x0000, 0xEFEF, 0xEFEF]),
+                vco,
+                0b00001111_00110011,
+                0b10101001,
+                Vector::from_u16([0x00E0, 0x009A, 0xCCCC, 0x0000, 0x4C28, 0x9999, 0x1010, 0x0000]),
+                Vector::from_u16([0x00E0, 0x009A, 0xCCCC, 0x0000, 0x4C28, 0x9999, 0x1010, 0x0000]))?;
+            Ok(())
+        } else {
+            panic!("Invalid value")
+        }
+    }
+}
+
+pub struct VXOR {}
+
+impl Test for VXOR {
+    fn name(&self) -> &str { "RSP VXOR" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> {
+        vec! {
+            Box::new(0x0000u16),
+            Box::new(0xFF00u16),
+            Box::new(0x00FFu16),
+            Box::new(0xFFFFu16),
+        }
+    }
+
+    fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
+        if let Some(&vco) = value.downcast_ref::<u16>() {
+            run_test(
+                vco,
+                0b00001111_00110011,
+                0b10101001,
+                |assembler| { assembler.write_vxor(VR::V2, VR::V4, VR::V5, Element::All); },
+                Vector::from_u16([0x1111, 0x1245, 0x3333, 0x4444, 0xB0C5, 0x6666, 0x0000, 0xFFFF]),
+                Vector::from_u16([0xFF0F, 0xEF20, 0x0000, 0xFFFF, 0x3312, 0x0000, 0xEFEF, 0xEFEF]),
+                vco,
+                0b00001111_00110011,
+                0b10101001,
+                Vector::from_u16([0xEE1E, 0xFD65, 0x3333, 0xBBBB, 0x83D7, 0x6666, 0xEFEF, 0x1010]),
+                Vector::from_u16([0xEE1E, 0xFD65, 0x3333, 0xBBBB, 0x83D7, 0x6666, 0xEFEF, 0x1010]))?;
+            Ok(())
+        } else {
+            panic!("Invalid value")
+        }
+    }
+}
+
+pub struct VNXOR {}
+
+impl Test for VNXOR {
+    fn name(&self) -> &str { "RSP VNXOR" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> {
+        vec! {
+            Box::new(0x0000u16),
+            Box::new(0xFF00u16),
+            Box::new(0x00FFu16),
+            Box::new(0xFFFFu16),
+        }
+    }
+
+    fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
+        if let Some(&vco) = value.downcast_ref::<u16>() {
+            run_test(
+                vco,
+                0b00001111_00110011,
+                0b10101001,
+                |assembler| { assembler.write_vnxor(VR::V2, VR::V4, VR::V5, Element::All); },
+                Vector::from_u16([0x1111, 0x1245, 0x3333, 0x4444, 0xB0C5, 0x6666, 0x0000, 0xFFFF]),
+                Vector::from_u16([0xFF0F, 0xEF20, 0x0000, 0xFFFF, 0x3312, 0x0000, 0xEFEF, 0xEFEF]),
+                vco,
+                0b00001111_00110011,
+                0b10101001,
+                Vector::from_u16([0x11E1, 0x029A, 0xCCCC, 0x4444, 0x7C28, 0x9999, 0x1010, 0xEFEF]),
+                Vector::from_u16([0x11E1, 0x029A, 0xCCCC, 0x4444, 0x7C28, 0x9999, 0x1010, 0xEFEF]))?;
             Ok(())
         } else {
             panic!("Invalid value")

@@ -684,6 +684,10 @@ impl RSPAssembler {
         self.write_vector(VectorOp::VADDC, vd, vt, vs, e);
     }
 
+    pub fn write_vand(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
+        self.write_vector(VectorOp::VAND, vd, vt, vs, e);
+    }
+
     pub fn write_vlt(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
         self.write_vector(VectorOp::VLT, vd, vt, vs, e);
     }
@@ -712,6 +716,10 @@ impl RSPAssembler {
         self.write_vector(VectorOp::VMADN, vd, vt, vs, e);
     }
 
+    pub fn write_vmrg(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
+        self.write_vector(VectorOp::VMRG, vd, vt, vs, e);
+    }
+
     pub fn write_vmudh(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
         self.write_vector(VectorOp::VMUDH, vd, vt, vs, e);
     }
@@ -728,8 +736,24 @@ impl RSPAssembler {
         self.write_vector(VectorOp::VMULF, vd, vt, vs, e);
     }
 
+    pub fn write_vnand(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
+        self.write_vector(VectorOp::VNAND, vd, vt, vs, e);
+    }
+
     pub fn write_vne(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
         self.write_vector(VectorOp::VNE, vd, vt, vs, e);
+    }
+
+    pub fn write_vnor(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
+        self.write_vector(VectorOp::VNOR, vd, vt, vs, e);
+    }
+
+    pub fn write_vnxor(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
+        self.write_vector(VectorOp::VNXOR, vd, vt, vs, e);
+    }
+
+    pub fn write_vor(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
+        self.write_vector(VectorOp::VOR, vd, vt, vs, e);
     }
 
     pub fn write_vsac(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {

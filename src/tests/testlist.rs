@@ -240,6 +240,13 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::rsp::op_vector_arithmetic::VGEAllEqualAndFlags {}),
         Box::new(super::rsp::op_vector_arithmetic::VGEAllSmallerAndFlags {}),
         Box::new(super::rsp::op_vector_arithmetic::VGEAllLargerAndFlags {}),
+        Box::new(super::rsp::op_vector_arithmetic::VMRG {}),
+        Box::new(super::rsp::op_vector_arithmetic::VAND {}),
+        Box::new(super::rsp::op_vector_arithmetic::VNAND {}),
+        Box::new(super::rsp::op_vector_arithmetic::VOR {}),
+        Box::new(super::rsp::op_vector_arithmetic::VNOR {}),
+        Box::new(super::rsp::op_vector_arithmetic::VXOR {}),
+        Box::new(super::rsp::op_vector_arithmetic::VNXOR {}),
 
         Box::new(super::rsp::op_vsar::VSAR {}),
         Box::new(super::rsp::op_vmacf::VMACFAll {}),
