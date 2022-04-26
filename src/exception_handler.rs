@@ -322,8 +322,8 @@ fn invalidate_instruction_cache(start: *const u32, bytes: usize) {
             cop0::cache::<25, 0>(p);
             cop0::cache::<25, 16>(p);
 
-            // 16: hit invalidate - instruction
-            cop0::cache::<16, 0>(p);
+            // 0: invalidate - instruction
+            cop0::cache::<0, 0>(p);
         }
     }
 }
