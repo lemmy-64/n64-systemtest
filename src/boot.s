@@ -18,6 +18,23 @@
 .set FS_START,              0x8000031C
 
 _start:
+    // IPL3 copied over the first 1MB. Copy over the next MB
+    // TODO: Any way to determine the actual size of the binary? We're overcopying quite a bit here
+    li $t1, 0x10101000
+    li $t3, 0x80100400
+    li $t2, 0xFFFFF
+
+    lui $t0, 0xA460
+    sw $t1, 0x4($t0)  // cart
+    sw $t3, 0x0($t0)  // dram
+    sw $t2, 0xC($t0)  // lenth
+
+wait_for_dma_finished:
+    lw $t1, 0x10($t0)
+    andi $t1, $t1, 1
+    bnez $t1, wait_for_dma_finished
+    nop
+
     // Initialize stack
     li $t0, OS_MEM_SIZE
     lw $t0, 0($t0)

@@ -5,8 +5,11 @@ ipl3 = mini-ipl3/mini-ipl3
 
 n64_output_file = target/mips-nintendo64-none/release/n64-systemtest.n64
 
+# Alow 2MB binaries
+cargo_maximum_file_size = 2097152
+
 n64:
-	@cargo n64 build --ipl3 $(ipl3).bin -- --features default_tests -p n64-systemtest
+	@cargo n64 build --ipl3 $(ipl3).bin --maximum-binary-size=$(cargo_maximum_file_size) -- --features default_tests -p n64-systemtest
 	@echo Rom file: $(n64_output_file)
 
 mini-ipl3:
