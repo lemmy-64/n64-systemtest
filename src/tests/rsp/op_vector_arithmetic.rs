@@ -93,46 +93,57 @@ fn run_test_with_emulation_whole_reg<FEmitter: Fn(&mut RSPAssembler, VR, VR, VR,
     let acc_high = Vector::from_u16([0x3FFF, 0xFFFF, 0x0007, 0x0000, 0xFFFF, 0x0000, 0x3FFF, 0x3FFF]);
     let acc_mid = Vector::from_u16([0x4000, 0xFFFF, 0xFFF7, 0x0000, 0xFFFF, 0x0000, 0x4000, 0xC000]);
 
-    // Set flags
-    assembler.write_li(GPR::AT, vco as u32);
-    assembler.write_ctc2(CP2FlagsRegister::VCO, GPR::AT);
-    assembler.write_li(GPR::AT, vcc as u32);
-    assembler.write_ctc2(CP2FlagsRegister::VCC, GPR::AT);
-    assembler.write_li(GPR::AT, vce as u32);
-    assembler.write_ctc2(CP2FlagsRegister::VCE, GPR::AT);
+    let register_configurations = [
+        (0x90, VR::V2, VR::V4, VR::V5),
+        (0x190, VR::V6, VR::V6, VR::V7),
+        (0x290, VR::V8, VR::V9, VR::V8)
+    ];
 
-    // Load the actual input
-    assembler.write_lqv(VR::V4, E::_0, 0x020, GPR::R0);
-    assembler.write_lqv(VR::V5, E::_0, 0x030, GPR::R0);
+    // We'll run the test several times with different source/target configurations (so that source and target are also the same).
+    for (result_address, target, source1, source2) in register_configurations {
+        // Set flags
+        assembler.write_li(GPR::AT, vco as u32);
+        assembler.write_ctc2(CP2FlagsRegister::VCO, GPR::AT);
+        assembler.write_li(GPR::AT, vcc as u32);
+        assembler.write_ctc2(CP2FlagsRegister::VCC, GPR::AT);
+        assembler.write_li(GPR::AT, vce as u32);
+        assembler.write_ctc2(CP2FlagsRegister::VCE, GPR::AT);
 
-    // Perform the calculation
-    emitter(&mut assembler, VR::V2, VR::V4, VR::V5, e);
+        // Load the actual input
+        assembler.write_lqv(source1, E::_0, 0x020, GPR::R0);
+        assembler.write_lqv(source2, E::_0, 0x030, GPR::R0);
 
-    // Get flags and accumulators
-    assembler.write_cfc2(CP2FlagsRegister::VCO, GPR::S0);
-    assembler.write_cfc2(CP2FlagsRegister::VCC, GPR::S1);
-    assembler.write_cfc2(CP2FlagsRegister::VCE, GPR::S2);
-    assembler.write_vsar(VR::V3, VSARAccumulator::High);
-    assembler.write_vsar(VR::V4, VSARAccumulator::Mid);
-    assembler.write_vsar(VR::V5, VSARAccumulator::Low);
+        // Perform the calculation
+        emitter(&mut assembler, target, source1, source2, e);
 
-    assembler.write_sw(GPR::S0, GPR::R0, 0x90);
-    assembler.write_sw(GPR::S1, GPR::R0, 0x94);
-    assembler.write_sw(GPR::S2, GPR::R0, 0x98);
-    assembler.write_sqv(VR::V2, E::_0, 0x100, GPR::R0);
-    assembler.write_sqv(VR::V3, E::_0, 0x110, GPR::R0);
-    assembler.write_sqv(VR::V4, E::_0, 0x120, GPR::R0);
-    assembler.write_sqv(VR::V5, E::_0, 0x130, GPR::R0);
+        // Get flags and accumulators
+        assembler.write_cfc2(CP2FlagsRegister::VCO, GPR::S0);
+        assembler.write_cfc2(CP2FlagsRegister::VCC, GPR::S1);
+        assembler.write_cfc2(CP2FlagsRegister::VCE, GPR::S2);
+        assembler.write_vsar(VR::V3, VSARAccumulator::High);
+        assembler.write_vsar(VR::V4, VSARAccumulator::Mid);
+        assembler.write_vsar(VR::V5, VSARAccumulator::Low);
+
+        assembler.write_sw(GPR::S0, GPR::R0, result_address + 0);
+        assembler.write_sw(GPR::S1, GPR::R0, result_address + 4);
+        assembler.write_sw(GPR::S2, GPR::R0, result_address + 8);
+        assembler.write_sqv(target, E::_0, (result_address + 16) as i32, GPR::R0);
+        assembler.write_sqv(VR::V3, E::_0, (result_address + 32) as i32, GPR::R0);
+        assembler.write_sqv(VR::V4, E::_0, (result_address + 48) as i32, GPR::R0);
+        assembler.write_sqv(VR::V5, E::_0, (result_address + 64) as i32, GPR::R0);
+    }
 
     assembler.write_break();
 
     RSP::start_running(0);
 
-    // In the meantime, run the emulation on the CPU
+    // TARGET_REGISTER_DEFAULT is only accurate for the first register configuration. We'll do a test below
+    // to skip checking if it remains unchanged
+    const TARGET_REGISTER_DEFAULT: Vector = Vector::from_u16([0xFFFF, 0x8001, 0xFFFF, 0, 0xFFFF, 0x0001, 0xFFFF, 0xFFFF]);
     let mut emulation_registers = EmulationRegisters {
         source_register1: vector1,
         source_register2: vector2,
-        target_register: Vector::from_u16([0xFFFF, 0x8001, 0xFFFF, 0, 0xFFFF, 0x0001, 0xFFFF, 0xFFFF]),
+        target_register: TARGET_REGISTER_DEFAULT,
         accum_0_16: Vector::from_u16([0x0001, 0x8001, 0xFFF0, 0x0000, 0xFFFF, 0x0001, 0x0001, 0x0000]),
         vco,
         vcc,
@@ -143,15 +154,19 @@ fn run_test_with_emulation_whole_reg<FEmitter: Fn(&mut RSPAssembler, VR, VR, VR,
 
     RSP::wait_until_rsp_is_halted();
 
-    soft_assert_eq_vector(SPMEM::read_vector_from_dmem(0x100), emulation_registers.target_register, || format!("Output register (main calculation result) for e={:?}", e))?;
-    soft_assert_eq2(SPMEM::read(0x90) as u16, emulation_registers.vco, || format!("VCO after calculation for e={:?}", e))?;
-    soft_assert_eq2(SPMEM::read(0x94) as u16, emulation_registers.vcc, || format!("VCC after calculation for e={:?}", e))?;
-    soft_assert_eq2(SPMEM::read(0x98) as u8, emulation_registers.vce, || format!("VCE after calculation for e={:?}", e))?;
-    soft_assert_eq_vector(SPMEM::read_vector_from_dmem(0x130), emulation_registers.accum_0_16, || format!("Acc[0..16] after calculation for e={:?}", e))?;
-    soft_assert_eq_vector(SPMEM::read_vector_from_dmem(0x120), acc_mid, || format!("Acc[16..32] after calculation for e={:?}", e))?;
-    soft_assert_eq_vector(SPMEM::read_vector_from_dmem(0x110), acc_high, || format!("Acc[32..48] after calculation for e={:?}", e))?;
-
-    // TODO: Verify all other registers. We can prefill them with something random and they should all be unaffected
+    for (result_address, target, source1, source2) in register_configurations {
+        let addr = result_address as usize;
+        // The default for target_register is only accurate when V2 is the target reg. NOOP instructions don't overwrite it, so don't check for those
+        if (target == VR::V2) || (emulation_registers.target_register != TARGET_REGISTER_DEFAULT) {
+            soft_assert_eq_vector(SPMEM::read_vector_from_dmem(addr + 16), emulation_registers.target_register, || format!("Output register (main calculation result) for {:?},{:?},{:?}[{:?}]", target, source1, source2, e))?;
+        }
+        soft_assert_eq2(SPMEM::read(addr) as u16, emulation_registers.vco, || format!("VCO after calculation for {:?},{:?},{:?}[{:?}]", target, source1, source2, e))?;
+        soft_assert_eq2(SPMEM::read(addr + 4) as u16, emulation_registers.vcc, || format!("VCC after calculation for {:?},{:?},{:?}[{:?}]", target, source1, source2, e))?;
+        soft_assert_eq2(SPMEM::read(addr + 8) as u8, emulation_registers.vce, || format!("VCE after calculation for {:?},{:?},{:?}[{:?}]", target, source1, source2, e))?;
+        soft_assert_eq_vector(SPMEM::read_vector_from_dmem(addr + 64), emulation_registers.accum_0_16, || format!("Acc[0..16] after calculation for {:?},{:?},{:?}[{:?}]", target, source1, source2, e))?;
+        soft_assert_eq_vector(SPMEM::read_vector_from_dmem(addr + 48), acc_mid, || format!("Acc[16..32] after calculation for {:?},{:?},{:?}[{:?}]", target, source1, source2, e))?;
+        soft_assert_eq_vector(SPMEM::read_vector_from_dmem(addr + 32), acc_high, || format!("Acc[32..48] after calculation for {:?},{:?},{:?}[{:?}]", target, source1, source2, e))?;
+    }
 
     Ok(())
 }
