@@ -18,7 +18,7 @@ struct EmulationRegisters {
     accum_0_16: Vector,
     vco: u16,
     vcc: u16,
-    vce: u8
+    vce: u8,
 }
 
 struct VectorElements {
@@ -94,9 +94,16 @@ fn run_test_with_emulation_whole_reg<FEmitter: Fn(&mut RSPAssembler, VR, VR, VR,
     let acc_mid = Vector::from_u16([0x4000, 0xFFFF, 0xFFF7, 0x0000, 0xFFFF, 0x0000, 0x4000, 0xC000]);
 
     let register_configurations = [
-        (0x90, VR::V2, VR::V4, VR::V5),
-        (0x190, VR::V6, VR::V6, VR::V7),
-        (0x290, VR::V8, VR::V9, VR::V8)
+        // all three different
+        (0x90 + 80 * 0, VR::V2, VR::V4, VR::V5),
+        // target == source1
+        (0x90 + 80 * 1, VR::V6, VR::V6, VR::V7),
+        // target == source2
+        (0x90 + 80 * 2, VR::V8, VR::V9, VR::V8),
+        // source1==source2
+        (0x90 + 80 * 3, VR::V10, VR::V11, VR::V11),
+        // all three the same
+        (0x90 + 80 * 4, VR::V12, VR::V12, VR::V12),
     ];
 
     // We'll run the test several times with different source/target configurations (so that source and target are also the same).
@@ -111,7 +118,9 @@ fn run_test_with_emulation_whole_reg<FEmitter: Fn(&mut RSPAssembler, VR, VR, VR,
 
         // Load the actual input
         assembler.write_lqv(source1, E::_0, 0x020, GPR::R0);
-        assembler.write_lqv(source2, E::_0, 0x030, GPR::R0);
+        if source1 != source2 {
+            assembler.write_lqv(source2, E::_0, 0x030, GPR::R0);
+        }
 
         // Perform the calculation
         emitter(&mut assembler, target, source1, source2, e);
@@ -137,8 +146,10 @@ fn run_test_with_emulation_whole_reg<FEmitter: Fn(&mut RSPAssembler, VR, VR, VR,
 
     RSP::start_running(0);
 
-    // TARGET_REGISTER_DEFAULT is only accurate for the first register configuration. We'll do a test below
-    // to skip checking if it remains unchanged
+    // Dependings on the input registers, we get different results. However, running the emulation is
+    // somewhat expensive so we're making some assumptions:
+    // - The first three can be treated the same way (with the exception of complete NOPs, which are handled in the result checker)
+    // -
     const TARGET_REGISTER_DEFAULT: Vector = Vector::from_u16([0xFFFF, 0x8001, 0xFFFF, 0, 0xFFFF, 0x0001, 0xFFFF, 0xFFFF]);
     let mut emulation_registers = EmulationRegisters {
         source_register1: vector1,
@@ -147,23 +158,36 @@ fn run_test_with_emulation_whole_reg<FEmitter: Fn(&mut RSPAssembler, VR, VR, VR,
         accum_0_16: Vector::from_u16([0x0001, 0x8001, 0xFFF0, 0x0000, 0xFFFF, 0x0001, 0x0001, 0x0000]),
         vco,
         vcc,
-        vce
+        vce,
     };
 
     emulate(e, &mut emulation_registers);
 
+    let mut emulation_registers_same_input = EmulationRegisters {
+        source_register1: vector1,
+        source_register2: vector1,
+        target_register: TARGET_REGISTER_DEFAULT,
+        accum_0_16: Vector::from_u16([0x0001, 0x8001, 0xFFF0, 0x0000, 0xFFFF, 0x0001, 0x0001, 0x0000]),
+        vco,
+        vcc,
+        vce,
+    };
+
+    emulate(e, &mut emulation_registers_same_input);
+
     RSP::wait_until_rsp_is_halted();
 
     for (result_address, target, source1, source2) in register_configurations {
+        let expected_result = if source1 == source2 { &emulation_registers_same_input } else { &emulation_registers };
         let addr = result_address as usize;
         // The default for target_register is only accurate when V2 is the target reg. NOOP instructions don't overwrite it, so don't check for those
-        if (target == VR::V2) || (emulation_registers.target_register != TARGET_REGISTER_DEFAULT) {
-            soft_assert_eq_vector(SPMEM::read_vector_from_dmem(addr + 16), emulation_registers.target_register, || format!("Output register (main calculation result) for {:?},{:?},{:?}[{:?}]", target, source1, source2, e))?;
+        if (target == VR::V2) || (expected_result.target_register != TARGET_REGISTER_DEFAULT) {
+            soft_assert_eq_vector(SPMEM::read_vector_from_dmem(addr + 16), expected_result.target_register, || format!("Output register (main calculation result) for {:?},{:?},{:?}[{:?}]", target, source1, source2, e))?;
         }
-        soft_assert_eq2(SPMEM::read(addr) as u16, emulation_registers.vco, || format!("VCO after calculation for {:?},{:?},{:?}[{:?}]", target, source1, source2, e))?;
-        soft_assert_eq2(SPMEM::read(addr + 4) as u16, emulation_registers.vcc, || format!("VCC after calculation for {:?},{:?},{:?}[{:?}]", target, source1, source2, e))?;
-        soft_assert_eq2(SPMEM::read(addr + 8) as u8, emulation_registers.vce, || format!("VCE after calculation for {:?},{:?},{:?}[{:?}]", target, source1, source2, e))?;
-        soft_assert_eq_vector(SPMEM::read_vector_from_dmem(addr + 64), emulation_registers.accum_0_16, || format!("Acc[0..16] after calculation for {:?},{:?},{:?}[{:?}]", target, source1, source2, e))?;
+        soft_assert_eq2(SPMEM::read(addr) as u16, expected_result.vco, || format!("VCO after calculation for {:?},{:?},{:?}[{:?}]", target, source1, source2, e))?;
+        soft_assert_eq2(SPMEM::read(addr + 4) as u16, expected_result.vcc, || format!("VCC after calculation for {:?},{:?},{:?}[{:?}]", target, source1, source2, e))?;
+        soft_assert_eq2(SPMEM::read(addr + 8) as u8, expected_result.vce, || format!("VCE after calculation for {:?},{:?},{:?}[{:?}]", target, source1, source2, e))?;
+        soft_assert_eq_vector(SPMEM::read_vector_from_dmem(addr + 64), expected_result.accum_0_16, || format!("Acc[0..16] after calculation for {:?},{:?},{:?}[{:?}]", target, source1, source2, e))?;
         soft_assert_eq_vector(SPMEM::read_vector_from_dmem(addr + 48), acc_mid, || format!("Acc[16..32] after calculation for {:?},{:?},{:?}[{:?}]", target, source1, source2, e))?;
         soft_assert_eq_vector(SPMEM::read_vector_from_dmem(addr + 32), acc_high, || format!("Acc[32..48] after calculation for {:?},{:?},{:?}[{:?}]", target, source1, source2, e))?;
     }
@@ -176,8 +200,7 @@ fn run_test_with_emulation_all_flags_and_elements<FEmitter: Fn(&mut RSPAssembler
     emitter: &FEmitter,
     vector1: Vector, vector2: Vector,
     emulate: FEmulation) -> Result<(), String> {
-
-    for e in Element::All..Element::_7 {
+    for e in Element::All..=Element::_7 {
         // There are five flags: VCO.low, VCO.high, VCC.low, VCC.high, VCE. We can set the bits in a way that four tests are enough to get through all combinations
         // For VCC and VCE, the first bitmask is the one that should test all combinations for a given vector. Throw in two extras to also have some other cases
         for vco in [0x0000, 0x00FF, 0xFF00, 0xFFFF] {
@@ -221,9 +244,8 @@ fn run_test_with_emulation_all_flags_and_elements_vector2_variations<FEmitter: F
     emitter: &FEmitter,
     vector1: Vector, vector2: Vector,
     emulate: FEmulation) -> Result<(), String> {
-
-    run_test_with_emulation_all_flags_and_elements(emitter, vector1, vector2, |elements| { emulate(elements)})?;
-    run_test_with_emulation_all_flags_and_elements(emitter, vector1, vector2.new_with_broadcast_16(0), |elements| { emulate(elements)})?;
+    run_test_with_emulation_all_flags_and_elements(emitter, vector1, vector2, |elements| { emulate(elements) })?;
+    run_test_with_emulation_all_flags_and_elements(emitter, vector1, vector2.new_with_broadcast_16(0), |elements| { emulate(elements) })?;
 
     Ok(())
 }
@@ -239,7 +261,6 @@ fn run_vzero<FEmitter: Fn(&mut RSPAssembler, VR, VR, VR, Element)>(emitter: &FEm
             elements.accum_0_16 = elements.source1 + elements.source2;
             elements.target = 0;
         })
-
 }
 
 /// Some instructions do absolutely nothing
@@ -378,7 +399,7 @@ impl Test for VSUBC {
                 let result32 = (elements.source2 as i32) - (elements.source1 as i32);
                 let result16 = result32 as u16;
                 elements.vco_high = result32 != 0;
-                elements.vco_low =  result32 < 0;
+                elements.vco_low = result32 < 0;
                 elements.target = result16;
                 elements.accum_0_16 = result16;
             })
