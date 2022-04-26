@@ -307,25 +307,35 @@ pub fn install_exception_handlers() {
     install_handler(exception_handler_080 as *mut u8, 0x8000_0080 as *mut u8, size_080, 0x100);
     install_handler(exception_handler_180 as *mut u8, 0x8000_0180 as *mut u8, size_180, 0x180);
 
-    let bytes_to_invalidate = 0x300;
-    invalidate_instruction_cache(0x8000_0000 as *const u32, bytes_to_invalidate);
+    // Invalidate the full 8Kbytes in the Data Cache
+    invalidate_data_cache(0x8000_0000 as *const u32, 8 * 1024);
+
+    // Invalidate the full 16Kbytes in the Instruction Cache
+    invalidate_instruction_cache(0x8000_0000 as *const u32, 16 * 1024);
 }
 
 fn invalidate_instruction_cache(start: *const u32, bytes: usize) {
-    assert_eq!(start as usize % 32, 0);
-    assert_eq!(bytes % 32, 0);
+    assert_eq!(start as usize & 31, 0);
+    assert_eq!(bytes & 31, 0);
     for i in (0..bytes).step_by(32) {
-        let p = (start as usize) + i;
-
         unsafe {
-            // 25: index load data
-            cop0::cache::<25, 0>(p);
-            cop0::cache::<25, 16>(p);
-
-            // 0: invalidate - instruction
-            cop0::cache::<0, 0>(p);
+            // 0: Invalidate Instruction Cache
+            cop0::cache::<0, 0>((start as usize) + i);
         }
     }
+
+}
+
+fn invalidate_data_cache(start: *const u32, bytes: usize) {
+    assert_eq!(start as usize & 15, 0);
+    assert_eq!(bytes & 15, 0);
+    for i in (0..bytes).step_by(16) {
+        unsafe {
+            // 1: Index_Write_Back_Invalidate
+            cop0::cache::<1, 0>((start as usize) + i);
+        }
+    }
+
 }
 
 /// Attempts to take over video and show various cop0 registers.
