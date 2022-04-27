@@ -53,6 +53,8 @@ impl EmulationRegisters {
     }
 }
 
+// inline(never) saves 4s of compilation time (9.7s instead 13.4s). The runtime cost is measurable but minimal
+#[inline(never)]
 fn run_test_with_emulation_whole_reg<FEmitter: Fn(&mut RSPAssembler, VR, VR, VR, Element), FEmulation: Fn(Element, &mut EmulationRegisters)>(
     vco: u16, vcc: u16, vce: u8,
     e: Element,
@@ -196,6 +198,7 @@ fn run_test_with_emulation_whole_reg<FEmitter: Fn(&mut RSPAssembler, VR, VR, VR,
 }
 
 /// Tests all combination of flag bits and all possible Element specifiers (64 roundtrips to the RSP)
+#[inline(never)]
 fn run_test_with_emulation_all_flags_and_elements<FEmitter: Fn(&mut RSPAssembler, VR, VR, VR, Element), FEmulation: Fn(&mut VectorElements)>(
     emitter: &FEmitter,
     vector1: Vector, vector2: Vector,
@@ -204,34 +207,32 @@ fn run_test_with_emulation_all_flags_and_elements<FEmitter: Fn(&mut RSPAssembler
         // There are five flags: VCO.low, VCO.high, VCC.low, VCC.high, VCE. We can set the bits in a way that four tests are enough to get through all combinations
         // For VCC and VCE, the first bitmask is the one that should test all combinations for a given vector. Throw in two extras to also have some other cases
         for vco in [0x0000, 0x00FF, 0xFF00, 0xFFFF] {
-            for vcc in [0b00001111_00110011, 0, 0xFFFF] {
-                for vce in [0b10101001, 0, 0xFF] {
-                    run_test_with_emulation_whole_reg(vco, vcc, vce, e, emitter, vector1, vector2, |e, registers| {
-                        for i in 0..8 {
-                            let mut vector_elements = VectorElements {
-                                source1: registers.source_register1.get16(e.get_effective_element_index(i)),
-                                source2: registers.source_register2.get16(i),
-                                target: registers.target_register.get16(i),
-                                accum_0_16: registers.accum_0_16.get16(i),
-                                vco_low: ((registers.vco >> i) & 1) != 0,
-                                vco_high: ((registers.vco >> (8 + i)) & 1) != 0,
-                                vcc_low: ((registers.vcc >> i) & 1) != 0,
-                                vcc_high: ((registers.vcc >> (8 + i)) & 1) != 0,
-                                vce: ((registers.vce >> i) & 1) != 0,
-                            };
-                            emulate(&mut vector_elements);
-                            registers.source_register1.set16(i, vector_elements.source1);
-                            registers.source_register2.set16(i, vector_elements.source2);
-                            registers.target_register.set16(i, vector_elements.target);
-                            registers.accum_0_16.set16(i, vector_elements.accum_0_16);
-                            registers.set_vcc_low(i, vector_elements.vcc_low);
-                            registers.set_vcc_high(i, vector_elements.vcc_high);
-                            registers.set_vco_low(i, vector_elements.vco_low);
-                            registers.set_vco_high(i, vector_elements.vco_high);
-                            registers.set_vce(i, vector_elements.vce);
-                        }
-                    })?;
-                }
+            for (vcc, vce) in [(0b00001111_00110011, 0b10101001), (0, 0), (0xFFFF, 0xFF)] {
+                run_test_with_emulation_whole_reg(vco, vcc, vce, e, emitter, vector1, vector2, |e, registers| {
+                    for i in 0..8 {
+                        let mut vector_elements = VectorElements {
+                            source1: registers.source_register1.get16(e.get_effective_element_index(i)),
+                            source2: registers.source_register2.get16(i),
+                            target: registers.target_register.get16(i),
+                            accum_0_16: registers.accum_0_16.get16(i),
+                            vco_low: ((registers.vco >> i) & 1) != 0,
+                            vco_high: ((registers.vco >> (8 + i)) & 1) != 0,
+                            vcc_low: ((registers.vcc >> i) & 1) != 0,
+                            vcc_high: ((registers.vcc >> (8 + i)) & 1) != 0,
+                            vce: ((registers.vce >> i) & 1) != 0,
+                        };
+                        emulate(&mut vector_elements);
+                        registers.source_register1.set16(i, vector_elements.source1);
+                        registers.source_register2.set16(i, vector_elements.source2);
+                        registers.target_register.set16(i, vector_elements.target);
+                        registers.accum_0_16.set16(i, vector_elements.accum_0_16);
+                        registers.set_vcc_low(i, vector_elements.vcc_low);
+                        registers.set_vcc_high(i, vector_elements.vcc_high);
+                        registers.set_vco_low(i, vector_elements.vco_low);
+                        registers.set_vco_high(i, vector_elements.vco_high);
+                        registers.set_vce(i, vector_elements.vce);
+                    }
+                })?;
             }
         }
     }
@@ -240,6 +241,7 @@ fn run_test_with_emulation_all_flags_and_elements<FEmitter: Fn(&mut RSPAssembler
 }
 
 // Runs the test with the given two vectors and then again with a vector2 that has the first element duplicated into all lanes
+#[inline(never)]
 fn run_test_with_emulation_all_flags_and_elements_vector2_variations<FEmitter: Fn(&mut RSPAssembler, VR, VR, VR, Element), FEmulation: Fn(&mut VectorElements)>(
     emitter: &FEmitter,
     vector1: Vector, vector2: Vector,

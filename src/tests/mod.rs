@@ -56,6 +56,11 @@ pub trait Test {
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String>;
 }
 
+fn cycles_to_seconds(value: u32) -> f32
+{
+    value as f32 / (93_750_000f32 / 2f32)
+}
+
 pub fn run() {
     let mut succeeded = 0;
     let mut skipped = 0;
@@ -144,6 +149,7 @@ pub fn run() {
     let tests = testlist::tests();
     let mut test_times: Vec<(usize, u32)> = Vec::new();
     let dummy_test_value: Box<dyn Any> = Box::new(());
+    let counter_before = crate::cop0::count();
     for (index, test) in tests.iter().enumerate() {
         let values = test.values();
         let mut time = 0u32;
@@ -156,12 +162,13 @@ pub fn run() {
         }
         test_times.push((index, time));
     }
+    let counter_after = crate::cop0::count();
 
     println!();
     if (failed + succeeded) == 0 {
         println!("Done, but no tests were executed");
     } else {
-        println!("Done! Tests: {}. Failed: {}. Success rate: {}%. Skipped {} tests", failed + succeeded, failed, succeeded * 100 / (failed + succeeded), skipped);
+        println!("Finished in {:0.2}s. Tests: {}. Failed: {}. Success rate: {}%. Skipped {} tests.", cycles_to_seconds(counter_after - counter_before), failed + succeeded, failed, succeeded * 100 / (failed + succeeded), skipped);
     }
 
     test_times.sort_by(|(_, a), (_, b)| { a.cmp(b).reverse() });
@@ -174,7 +181,7 @@ pub fn run() {
         if i > 0 {
             print!(", ");
         }
-        print!("{} ({:0.2}s)", test_name, test_time as f32 / (93_750_000f32 / 2f32));
+        print!("{} ({:0.2}s)", test_name, cycles_to_seconds(test_time));
     }
     println!("");
 }

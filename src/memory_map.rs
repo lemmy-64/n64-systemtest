@@ -52,7 +52,7 @@ impl MemoryMap {
         // it doesn't come from the cart
         let memory_address = p as usize;
         assert!(memory_address >= 0x8000_0400);
-        assert!(memory_address < 0x8000_0400 + 1 * 1024 * 1024);
+        assert!(memory_address < 0x8000_0400 + 2 * 1024 * 1024);
 
         Self::uncached((memory_address + 0x10001000 - 0x400) as *const T)
     }
