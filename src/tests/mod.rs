@@ -165,7 +165,6 @@ pub fn run() {
     }
 
     test_times.sort_by(|(_, a), (_, b)| { a.cmp(b).reverse() });
-    let total_time = test_times.iter().fold(0u32, |acc, (_, time)| acc + time);
 
     println!("");
     print!("Slowest tests: ");
@@ -175,7 +174,7 @@ pub fn run() {
         if i > 0 {
             print!(", ");
         }
-        print!("{} ({}%)", test_name, test_time * 100 / total_time);
+        print!("{} ({:0.2}s)", test_name, test_time as f32 / (93_750_000f32 / 2f32));
     }
     println!("");
 }
