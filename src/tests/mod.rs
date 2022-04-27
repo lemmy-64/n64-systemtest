@@ -3,6 +3,7 @@ use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::any::Any;
+use core::cmp::min;
 
 use crate::cop0::cause_extract_exception;
 use crate::exception_handler::drain_seen_exception;
@@ -175,7 +176,7 @@ pub fn run() {
 
     println!("");
     print!("Slowest tests: ");
-    for i in 0..5 {
+    for i in 0..min(5, test_times.len()) {
         let (test_index, test_time) = test_times[i];
         let test_name = tests[test_index].name();
         if i > 0 {
