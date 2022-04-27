@@ -4,7 +4,7 @@ use alloc::vec::Vec;
 use core::any::Any;
 
 use crate::rsp::rsp::RSP;
-use crate::rsp::rsp_assembler::{E, Element, GPR, RSPAssembler, VR};
+use crate::rsp::rsp_assembler::{E, Element, GPR, RSPAssembler, VR, VSARAccumulator};
 use crate::rsp::spmem::SPMEM;
 use crate::tests::{Level, Test};
 use crate::tests::soft_asserts::soft_assert_eq;
@@ -20,18 +20,27 @@ fn run_test(e: Element, expected_result: [u16; 8], expected_acc_top: [u16; 8], e
     assembler.write_lqv(VR::V0, E::_0, 0x000, GPR::R0);
     assembler.write_lqv(VR::V1, E::_0, 0x010, GPR::R0);
 
+    assembler.write_lqv(VR::V6, E::_0, 0x000, GPR::R0);
+    assembler.write_lqv(VR::V7, E::_0, 0x010, GPR::R0);
+
     // Ensure something is in the lower accumulator as we expect VMUDH to clear it with zeroes
     assembler.write_vmulf(VR::V2, VR::V0, VR::V1, e);
     assembler.write_vmudh(VR::V2, VR::V0, VR::V1, e);
 
-    assembler.write_vsar_any_index(VR::V3, VR::V0, VR::V0, E::_8);
-    assembler.write_vsar_any_index(VR::V4, VR::V0, VR::V0, E::_9);
-    assembler.write_vsar_any_index(VR::V5, VR::V0, VR::V0, E::_10);
+    assembler.write_vsar(VR::V3, VSARAccumulator::High);
+    assembler.write_vsar(VR::V4, VSARAccumulator::Mid);
+    assembler.write_vsar(VR::V5, VSARAccumulator::Low);
+
+    // again but this time destructive by overwriting a source reg
+    assembler.write_vmudh(VR::V6, VR::V6, VR::V1, e);
+    assembler.write_vmudh(VR::V7, VR::V0, VR::V7, e);
 
     assembler.write_sqv(VR::V2, E::_0, 0x100, GPR::R0);
     assembler.write_sqv(VR::V3, E::_0, 0x110, GPR::R0);
     assembler.write_sqv(VR::V4, E::_0, 0x120, GPR::R0);
     assembler.write_sqv(VR::V5, E::_0, 0x130, GPR::R0);
+    assembler.write_sqv(VR::V6, E::_0, 0x140, GPR::R0);
+    assembler.write_sqv(VR::V7, E::_0, 0x150, GPR::R0);
 
     assembler.write_break();
 
@@ -41,6 +50,8 @@ fn run_test(e: Element, expected_result: [u16; 8], expected_acc_top: [u16; 8], e
     soft_assert_eq(SPMEM::read_vector16_from_dmem(0x110), expected_acc_top, "VMUDH Acc[32..48]")?;
     soft_assert_eq(SPMEM::read_vector16_from_dmem(0x120), expected_acc_mid, "VMUDH Acc[16..32]")?;
     soft_assert_eq(SPMEM::read_vector16_from_dmem(0x130), expected_acc_low, "VMUDH Acc[0..8]")?;
+    soft_assert_eq(SPMEM::read_vector16_from_dmem(0x140), expected_result, "VMUDH result when doing VMUDH V6, V6, V1")?;
+    soft_assert_eq(SPMEM::read_vector16_from_dmem(0x150), expected_result, "VMUDH result when doing VMUDH V7, V0, V7")?;
 
     Ok(())
 }
@@ -80,6 +91,26 @@ impl Test for VMUDHQ1 {
             [0, 0, 0x2000, 0x2000, 0x7FFF, 0x8000, 0x8000, 0x7fff],
             [0, 0, 0, 0, 0x4000, 0xc000, 0xc000, 0x4000],
             [0, 0, 0x2000, 0x2000, 0, 0x8000, 0x8000, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+        )
+    }
+}
+
+pub struct VMUDHH0 {}
+
+impl Test for VMUDHH0 {
+    fn name(&self) -> &str { "RSP VMUDH (e=H0)" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        run_test(
+            Element::H0,
+            [0, 0, 0, 0, 0x7FFF, 0x8000, 0x8000, 0x7FFF],
+            [0, 0, 0, 0, 0x3FFF, 0xC000, 0xC000, 0x3FFF],
+            [0, 0, 0, 0, 0x8000, 0xFFFF, 0xFFFF, 0x8000],
             [0, 0, 0, 0, 0, 0, 0, 0],
         )
     }
