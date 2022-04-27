@@ -60,7 +60,7 @@ impl Debug for Vector {
 
 impl PartialEq for Vector {
     fn eq(&self, other: &Self) -> bool {
-        unsafe { self.as_u64 == other.as_u64 }
+        unsafe { (self.as_u64[0] == other.as_u64[0]) && (self.as_u64[1] == other.as_u64[1])}
     }
 }
 
