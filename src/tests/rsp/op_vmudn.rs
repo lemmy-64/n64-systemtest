@@ -47,7 +47,7 @@ fn run_test(e: Element, expected_result: [u16; 8], expected_acc_top: [u16; 8], e
     soft_assert_eq(SPMEM::read_vector16_from_dmem(0x100), expected_result, "VMUDN result")?;
     soft_assert_eq(SPMEM::read_vector16_from_dmem(0x110), expected_acc_top, "VMUDN Acc[32..48]")?;
     soft_assert_eq(SPMEM::read_vector16_from_dmem(0x120), expected_acc_mid, "VMUDN Acc[16..32]")?;
-    soft_assert_eq(SPMEM::read_vector16_from_dmem(0x130), expected_acc_low, "VMUDN Acc[0..8]")?;
+    soft_assert_eq(SPMEM::read_vector16_from_dmem(0x130), expected_acc_low, "VMUDN Acc[0..16]")?;
     soft_assert_eq(SPMEM::read_vector16_from_dmem(0x140), expected_result, "VMUDN result when doing VMUDN V6, V6, V1")?;
     soft_assert_eq(SPMEM::read_vector16_from_dmem(0x150), expected_result, "VMUDN result when doing VMUDN V7, V0, V7")?;
 
