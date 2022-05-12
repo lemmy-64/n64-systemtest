@@ -36,7 +36,7 @@ use crate::tests::soft_asserts::{soft_assert_eq, soft_assert_eq2, soft_assert_eq
 fn test<F: Fn(&mut RSPAssembler, E), F2: Fn(&mut [u8; 16], &[u8; 256], E, u32)>(base_offset: usize, load_emitter: F, calculate_expected: F2) -> Result<(), String> {
     // Alignment and element specifiers to test. If we pass these, we'll probably pass everything
     const TEST_MISALIGNMENTS: [u32; 11] = [0, 1, 6, 7, 8, 10, 11, 12, 13, 14, 15];
-    const TEST_ELEMENTS: [E; 8] = [E::_0, E::_1, E::_4, E::_5, E::_6, E::_12, E::_14, E::_15];
+    const TEST_ELEMENTS: [E; 9] = [E::_0, E::_1, E::_4, E::_5, E::_6, E::_8, E::_12, E::_14, E::_15];
     const OUTPUT_MEMORY_START: u32 = 0x100;
 
     // Prepare input data: Each byte will simply be its index
