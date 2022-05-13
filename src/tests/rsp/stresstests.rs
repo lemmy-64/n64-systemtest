@@ -318,6 +318,36 @@ impl Test for VMACF {
     }
 }
 
+pub struct VMADL {}
+
+impl Test for VMADL {
+    fn name(&self) -> &str { "RSP VMADL (Stress test)" }
+
+    fn level(&self) -> Level { Level::StressTest }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        run_stress_test("VMADL", |assembler| {
+            assembler.write_vmadl(VR::V3, VR::V1, VR::V0, Element::All);
+        }, |a, b, accum| {
+            let product = (a as u32) * (b as u32);
+            let product_shifted = (product >> 16) as u16;
+
+            let new_accum = (product_shifted as i64) + sign_extend_accum48(accum);
+            let result_val =
+                if new_accum >= 0 {
+                    if (new_accum & !0x7FFFFFFF) != 0 { 0xffff } else { new_accum as u16 }
+                } else {
+                    if (!new_accum & !0x7FFFFFFF) != 0 { 0 } else { new_accum as u16 }
+                } as u16;
+
+            (result_val, zero_extend_accum48(new_accum))
+        })?;
+        Ok(())
+    }
+}
+
 pub struct VMADH {}
 
 impl Test for VMADH {

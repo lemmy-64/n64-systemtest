@@ -17,6 +17,8 @@ fn append_stress_tests(_target: &mut Vec<Box<dyn Test>>) {
     _target.push(Box::new(super::rsp::stresstests::VMUDN {}));
     #[cfg(feature = "vmacf_stress_test")]
     _target.push(Box::new(super::rsp::stresstests::VMACF {}));
+    #[cfg(feature = "vmadl_stress_test")]
+    _target.push(Box::new(super::rsp::stresstests::VMADL {}));
     #[cfg(feature = "vmadh_stress_test")]
     _target.push(Box::new(super::rsp::stresstests::VMADH {}));
     #[cfg(feature = "vmadm_stress_test")]
