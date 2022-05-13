@@ -46,6 +46,7 @@ pub mod op_vmadh;
 pub mod op_vmadm;
 pub mod op_vmadn;
 pub mod op_vmudh;
+pub mod op_vmudl;
 pub mod op_vmudm;
 pub mod op_vmudn;
 pub mod op_vmulf;

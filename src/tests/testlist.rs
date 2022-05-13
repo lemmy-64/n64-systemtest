@@ -7,6 +7,8 @@ use crate::tests::Test;
 fn append_stress_tests(_target: &mut Vec<Box<dyn Test>>) {
     #[cfg(feature = "vmulf_stress_test")]
     _target.push(Box::new(super::rsp::stresstests::VMULF {}));
+    #[cfg(feature = "vmudl_stress_test")]
+    _target.push(Box::new(super::rsp::stresstests::VMUDL {}));
     #[cfg(feature = "vmudh_stress_test")]
     _target.push(Box::new(super::rsp::stresstests::VMUDH {}));
     #[cfg(feature = "vmudm_stress_test")]
@@ -263,7 +265,7 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::rsp::op_vmudh::VMUDH7 {}),
         Box::new(super::rsp::op_vmudm::VMUDMAll {}),
         Box::new(super::rsp::op_vmudm::VMUDMH1 {}),
-        Box::new(super::rsp::op_vmudm::VMUDM6 {}),
+        Box::new(super::rsp::op_vmudm::VMUDM7 {}),
         Box::new(super::rsp::op_vmudn::VMUDNAll {}),
         Box::new(super::rsp::op_vmudn::VMUDNH2 {}),
         Box::new(super::rsp::op_vmudn::VMUDN7 {}),

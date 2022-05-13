@@ -195,6 +195,28 @@ impl Test for VMULF {
     }
 }
 
+pub struct VMUDL {}
+
+impl Test for VMUDL {
+    fn name(&self) -> &str { "RSP VMUDL (Stress test)" }
+
+    fn level(&self) -> Level { Level::StressTest }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        run_stress_test("VMUDL", |assembler| {
+            assembler.write_vmudl(VR::V3, VR::V1, VR::V0, Element::All);
+        }, |a, b, _accum| {
+            let product = (a as u32) * (b as u32);
+            let product_shifted = (product >> 16) as u16;
+
+            (product_shifted, product_shifted as u64)
+        })?;
+        Ok(())
+    }
+}
+
 pub struct VMUDH {}
 
 impl Test for VMUDH {

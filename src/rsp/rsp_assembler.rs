@@ -802,6 +802,10 @@ impl RSPAssembler {
         self.write_vector(VectorOp::VMUDH, vd, vt, vs, e);
     }
 
+    pub fn write_vmudl(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
+        self.write_vector(VectorOp::VMUDL, vd, vt, vs, e);
+    }
+
     pub fn write_vmudn(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
         self.write_vector(VectorOp::VMUDN, vd, vt, vs, e);
     }

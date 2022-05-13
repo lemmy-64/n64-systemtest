@@ -9,6 +9,7 @@ edition = "2021"
 default = []
 default_tests = []
 vmulf_stress_test = []
+vmudl_stress_test = []
 vmudh_stress_test = []
 vmudm_stress_test = []
 vmudn_stress_test = []
