@@ -189,16 +189,16 @@ impl Test for VMADHAccumulatorOverflowed {
         RSP::run_and_wait(0);
 
         // After first overflow
-        soft_assert_eq(SPMEM::read_vector16_from_dmem(0x100), [0x8000, 0x8000, 0, 0, 0, 0, 0, 0], "VMACF result after accumulator overflow in [0]")?;
-        soft_assert_eq(SPMEM::read_vector16_from_dmem(0x110), [0x8000, 0x8000, 0, 0, 0, 0, 0, 0], "VMACF Acc[32..48] after accumulator overflow in [0]")?;
-        soft_assert_eq(SPMEM::read_vector16_from_dmem(0x120), [0x8000, 0x8001, 0, 0, 0, 0, 0, 0], "VMACF Acc[16..32] after accumulator overflow in [0]")?;
-        soft_assert_eq(SPMEM::read_vector16_from_dmem(0x130), [0x8000, 0x8000, 0x8000, 0x8000, 0x8000, 0x8000, 0x8000, 0x8000], "VMACF Acc[0..16] after accumulator overflow in [0]")?;
+        soft_assert_eq(SPMEM::read_vector16_from_dmem(0x100), [0x8000, 0x8000, 0, 0, 0, 0, 0, 0], "Result after accumulator overflow in [0]")?;
+        soft_assert_eq(SPMEM::read_vector16_from_dmem(0x110), [0x8000, 0x8000, 0, 0, 0, 0, 0, 0], "Acc[32..48] after accumulator overflow in [0]")?;
+        soft_assert_eq(SPMEM::read_vector16_from_dmem(0x120), [0x8000, 0x8001, 0, 0, 0, 0, 0, 0], "Acc[16..32] after accumulator overflow in [0]")?;
+        soft_assert_eq(SPMEM::read_vector16_from_dmem(0x130), [0x8000, 0x8000, 0x8000, 0x8000, 0x8000, 0x8000, 0x8000, 0x8000], "Acc[0..16] after accumulator overflow in [0]")?;
 
         // After second overflow
-        soft_assert_eq(SPMEM::read_vector16_from_dmem(0x140), [0x8000, 0x7FFF, 0, 0, 0, 0, 0, 0], "VMACF result after accumulator overflow in [1]")?;
-        soft_assert_eq(SPMEM::read_vector16_from_dmem(0x150), [0xc000, 0x4001, 0, 0, 0, 0, 0, 0], "VMACF Acc[32..48] after accumulator overflow in [1]")?;
-        soft_assert_eq(SPMEM::read_vector16_from_dmem(0x160), [0x8000, 1, 0, 0, 0, 0, 0, 0], "VMACF Acc[16..32] after accumulator overflow in [1]")?;
-        soft_assert_eq(SPMEM::read_vector16_from_dmem(0x170), [0x8000, 0x8000, 0x8000, 0x8000, 0x8000, 0x8000, 0x8000, 0x8000], "VMACF Acc[0..16] after accumulator overflow in [1]")?;
+        soft_assert_eq(SPMEM::read_vector16_from_dmem(0x140), [0x8000, 0x7FFF, 0, 0, 0, 0, 0, 0], "Result after accumulator overflow in [1]")?;
+        soft_assert_eq(SPMEM::read_vector16_from_dmem(0x150), [0xc000, 0x4001, 0, 0, 0, 0, 0, 0], "Acc[32..48] after accumulator overflow in [1]")?;
+        soft_assert_eq(SPMEM::read_vector16_from_dmem(0x160), [0x8000, 1, 0, 0, 0, 0, 0, 0], "Acc[16..32] after accumulator overflow in [1]")?;
+        soft_assert_eq(SPMEM::read_vector16_from_dmem(0x170), [0x8000, 0x8000, 0x8000, 0x8000, 0x8000, 0x8000, 0x8000, 0x8000], "Acc[0..16] after accumulator overflow in [1]")?;
 
         Ok(())
     }
