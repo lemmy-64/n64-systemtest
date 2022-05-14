@@ -912,3 +912,57 @@ impl Test for VNULL {
         run_noop(&|assembler, target, source1, source2, e| { assembler.write_vnull(target, source1, source2, e); })
     }
 }
+
+pub struct VCL {}
+
+impl Test for VCL {
+    fn name(&self) -> &str { "RSP VCL" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        run_test_with_emulation_all_flags_and_elements(&|assembler, target, source1, source2, e| { assembler.write_vcl(target, source1, source2, e); }, Vector::from_u16([0x1111, 0x1245, 0x3333, 0x4444, 0xB0C5, 0x6666, 0x0000, 0xFFFF]), Vector::from_u16([0xFF0F, 0xEF20, 0x0000, 0xFFFF, 0x3312, 0x0000, 0xEFEF, 0xEFEF]), |elements| {
+            // TODO: What happens if source1==-MININT16 is being negated?
+            if false {
+                if elements.vco_low {
+                    let (sum, carry) = elements.source2.overflowing_add(elements.source1);
+                    if !elements.vco_high {
+                        elements.vcc_low = (((sum == 0) && !carry)) || (elements.vce && ((sum == 0) || !carry));
+                    }
+                    elements.target = if elements.vcc_low { -(elements.source1 as i16) as u16 } else { elements.source2 };
+                } else {
+                    if !elements.vco_high {
+                        elements.vcc_high = elements.source2 >= elements.source1;
+                    }
+                    elements.target = if elements.vcc_high { elements.source1 } else { elements.source2 };
+                }
+            } else {
+                fn merge<T>(condition: bool, value1: T, value2: T) -> T { if condition { value1 } else { value2 } }
+
+                // VCO_LOW=true side:
+                let (sum, carry) = elements.source2.overflowing_add(elements.source1);
+                let t1 = (sum == 0) || !carry;
+                let t2 = (sum == 0) && !carry;
+                let vcc_low1 = merge(elements.vco_high, elements.vcc_low, t2 || (elements.vce && t1));
+                let neg_source1 = -(elements.source1 as i16) as u16;
+                let target1 = merge(vcc_low1, neg_source1, elements.source2);
+
+                // VCO_LOW==false side:
+                let vcc_high2 = merge(elements.vco_high, elements.vcc_high, elements.source2 >= elements.source1);
+                let target2 = merge(vcc_high2, elements.source1, elements.source2);
+
+                elements.target = merge(elements.vco_low, target1, target2);
+                elements.vcc_low = merge(elements.vco_low, vcc_low1, elements.vcc_low);
+                elements.vcc_high = merge(elements.vco_low, elements.vcc_high, vcc_high2);
+            }
+
+            elements.accum_0_16 = elements.target;
+            elements.vco_low = false;
+            elements.vco_high = false;
+            elements.vce = false;
+        })
+    }
+}
+
