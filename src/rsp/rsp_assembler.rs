@@ -742,8 +742,16 @@ impl RSPAssembler {
         self.write_vector(VectorOp::VAND, vd, vt, vs, e);
     }
 
+    pub fn write_vch(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
+        self.write_vector(VectorOp::VCH, vd, vt, vs, e);
+    }
+
     pub fn write_vcl(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
         self.write_vector(VectorOp::VCL, vd, vt, vs, e);
+    }
+
+    pub fn write_vcr(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
+        self.write_vector(VectorOp::VCR, vd, vt, vs, e);
     }
 
     pub fn write_vextn(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {

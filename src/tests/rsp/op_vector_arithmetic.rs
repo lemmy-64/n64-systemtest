@@ -926,26 +926,101 @@ impl Test for VCL {
         run_test_with_emulation_all_flags_and_elements(
             &|assembler, target, source1, source2, e| { assembler.write_vcl(target, source1, source2, e); },
             Vector::from_u16([0x0000, 0x0001, 0x7FFE, 0x7FFF, 0x8000, 0xFFFE, 0xFFFF, 0x0000]),
-            Vector::from_u16([0x0000, 0x0001, 0x7FFE, 0x7FFF, 0x8000, 0xFFFE, 0xFFFF, 0x0000]),
+            Vector::from_u16([0x8000, 0xFFFE, 0xFFFF, 0x0000, 0x0000, 0x0001, 0x7FFE, 0x7FFF]),
             |elements| {
-            if elements.vco_low {
-                let (sum, carry) = elements.source2.overflowing_add(elements.source1);
-                if !elements.vco_high {
-                    elements.vcc_low = (((sum == 0) && !carry)) || (elements.vce && ((sum == 0) || !carry));
+                if elements.vco_low {
+                    let (sum, carry) = elements.source2.overflowing_add(elements.source1);
+                    if !elements.vco_high {
+                        elements.vcc_low = (((sum == 0) && !carry)) || (elements.vce && ((sum == 0) || !carry));
+                    }
+                    elements.target = if elements.vcc_low { -(elements.source1 as i16) as u16 } else { elements.source2 };
+                } else {
+                    if !elements.vco_high {
+                        elements.vcc_high = elements.source2 >= elements.source1;
+                    }
+                    elements.target = if elements.vcc_high { elements.source1 } else { elements.source2 };
                 }
-                elements.target = if elements.vcc_low { -(elements.source1 as i16) as u16 } else { elements.source2 };
-            } else {
-                if !elements.vco_high {
-                    elements.vcc_high = elements.source2 >= elements.source1;
-                }
-                elements.target = if elements.vcc_high { elements.source1 } else { elements.source2 };
-            }
 
-            elements.accum_0_16 = elements.target;
-            elements.vco_low = false;
-            elements.vco_high = false;
-            elements.vce = false;
-        })
+                elements.accum_0_16 = elements.target;
+                elements.vco_low = false;
+                elements.vco_high = false;
+                elements.vce = false;
+            })
+    }
+}
+
+pub struct VCH {}
+
+impl Test for VCH {
+    fn name(&self) -> &str { "RSP VCH" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        run_test_with_emulation_all_flags_and_elements(
+            &|assembler, target, source1, source2, e| { assembler.write_vch(target, source1, source2, e); },
+            Vector::from_u16([0x0000, 0x0001, 0x7FFE, 0x7FFF, 0x8000, 0xFFFE, 0xFFFF, 0x0000]),
+            Vector::from_u16([0x8000, 0xFFFE, 0xFFFF, 0x0000, 0x0000, 0x0001, 0x7FFE, 0x7FFF]),
+            |elements| {
+                let i1 = elements.source1 as i16;
+                let i2 = elements.source2 as i16;
+                elements.vco_low = (i1 ^ i2) < 0;
+                if elements.vco_low {
+                    elements.vcc_high = i1 < 0;
+                    let sum = i1 + i2;
+                    elements.vcc_low = sum <= 0;
+                    elements.vce = sum == -1;
+                    elements.vco_high = sum != 0 && (i1 != !i2);
+                    elements.target = (if elements.vcc_low { -i1 } else { i2 }) as u16;
+                } else {
+                    elements.vcc_low = i1 < 0;
+                    let diff = i2 - i1;
+                    elements.vcc_high = diff >= 0;
+                    elements.vce = false;
+                    elements.vco_high = diff != 0;
+                    elements.target = (if elements.vcc_high { i1 } else { i2 }) as u16;
+                }
+
+                elements.accum_0_16 = elements.target;
+            })
+    }
+}
+
+pub struct VCR {}
+
+impl Test for VCR {
+    fn name(&self) -> &str { "RSP VCR" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        run_test_with_emulation_all_flags_and_elements(
+            &|assembler, target, source1, source2, e| { assembler.write_vcr(target, source1, source2, e); },
+            Vector::from_u16([0x0000, 0x0001, 0x7FFE, 0x7FFF, 0x8000, 0xFFFE, 0xFFFF, 0x0000]),
+            Vector::from_u16([0x8000, 0xFFFE, 0xFFFF, 0x0000, 0x0000, 0x0001, 0x7FFE, 0x7FFF]),
+            |elements| {
+                let i1 = elements.source1 as i16;
+                let i2 = elements.source2 as i16;
+                let high_bit_set = (i1 ^ i2) < 0;
+                if high_bit_set {
+                    elements.vcc_high = i1 < 0;
+                    elements.vcc_low = i1 + i2 < 0;
+                    elements.target = (if elements.vcc_low { !i1 } else { i2 }) as u16;
+                } else {
+                    elements.vcc_low = i1 < 0;
+                    elements.vcc_high = (i2 - i1) >= 0;
+                    elements.target = (if elements.vcc_high { i1 } else { i2 }) as u16;
+                }
+
+                elements.accum_0_16 = elements.target;
+                elements.vco_low = false;
+                elements.vco_high = false;
+                elements.vce = false;
+            })
     }
 }
 

@@ -242,7 +242,10 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::rsp::op_vector_arithmetic::VINSQ {}),
         Box::new(super::rsp::op_vector_arithmetic::VINSN {}),
         Box::new(super::rsp::op_vector_arithmetic::VNULL {}),
+
         Box::new(super::rsp::op_vector_arithmetic::VCL {}),
+        Box::new(super::rsp::op_vector_arithmetic::VCH {}),
+        Box::new(super::rsp::op_vector_arithmetic::VCR {}),
 
         Box::new(super::rsp::op_vsar::VSAR {}),
         Box::new(super::rsp::op_vmacf::VMACFAll {}),
