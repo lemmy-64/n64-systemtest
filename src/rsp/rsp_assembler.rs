@@ -794,6 +794,10 @@ impl RSPAssembler {
         self.write_vector(VectorOp::VMACF, vd, vt, vs, e);
     }
 
+    pub fn write_vmacu(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
+        self.write_vector(VectorOp::VMACU, vd, vt, vs, e);
+    }
+
     pub fn write_vmadh(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
         self.write_vector(VectorOp::VMADH, vd, vt, vs, e);
     }
@@ -832,6 +836,10 @@ impl RSPAssembler {
 
     pub fn write_vmulf(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
         self.write_vector(VectorOp::VMULF, vd, vt, vs, e);
+    }
+
+    pub fn write_vmulu(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
+        self.write_vector(VectorOp::VMULU, vd, vt, vs, e);
     }
 
     pub fn write_vnand(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {

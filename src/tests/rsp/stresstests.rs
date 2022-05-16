@@ -195,6 +195,36 @@ impl Test for VMULF {
     }
 }
 
+pub struct VMULU {}
+
+impl Test for VMULU {
+    fn name(&self) -> &str { "RSP VMULU (Stress test)" }
+
+    fn level(&self) -> Level { Level::StressTest }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        run_stress_test("VMULU", |assembler| {
+            assembler.write_vmulu(VR::V3, VR::V1, VR::V0, Element::All);
+        }, |a, b, _accum| {
+            let product = (a as i16 as i32) * (b as i16 as i32);
+            let product_shifted = ((product as i64) << 1) + 0x8000;
+            let result_val =
+                if (product_shifted & (1 << 48)) != 0 {
+                    0
+                } else if (product_shifted & !((1 << 31) - 1)) != 0 {
+                    0xFFFF
+                } else {
+                    (product_shifted >> 16) as u16
+                };
+
+            (result_val, zero_extend_accum48(product_shifted))
+        })?;
+        Ok(())
+    }
+}
+
 pub struct VMUDL {}
 
 impl Test for VMUDL {
@@ -311,6 +341,36 @@ impl Test for VMACF {
                 } else {
                     if (!temp_shifted32 & !0x7FFF) != 0 { 0x8000u16 } else { temp_shifted32 as u16 }
                 } as u16;
+
+            (result_val, zero_extend_accum48(new_accum))
+        })?;
+        Ok(())
+    }
+}
+
+pub struct VMACU {}
+
+impl Test for VMACU {
+    fn name(&self) -> &str { "RSP VMACU (Stress test)" }
+
+    fn level(&self) -> Level { Level::StressTest }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        run_stress_test("VMACU", |assembler| {
+            assembler.write_vmacu(VR::V3, VR::V1, VR::V0, Element::All);
+        }, |a, b, accum| {
+            let product = (a as i16 as i32) * (b as i16 as i32);
+            let new_accum = ((product as i64) << 1) + sign_extend_accum48(accum);
+            let result_val =
+                if (new_accum & (1 << 48)) != 0 {
+                    0
+                } else if (new_accum & !((1 << 31) - 1)) != 0 {
+                    0xFFFF
+                } else {
+                    (new_accum >> 16) as u16
+                };
 
             (result_val, zero_extend_accum48(new_accum))
         })?;

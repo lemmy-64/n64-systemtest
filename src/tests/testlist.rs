@@ -7,6 +7,8 @@ use crate::tests::Test;
 fn append_stress_tests(_target: &mut Vec<Box<dyn Test>>) {
     #[cfg(feature = "vmulf_stress_test")]
     _target.push(Box::new(super::rsp::stresstests::VMULF {}));
+    #[cfg(feature = "vmulu_stress_test")]
+    _target.push(Box::new(super::rsp::stresstests::VMULU {}));
     #[cfg(feature = "vmudl_stress_test")]
     _target.push(Box::new(super::rsp::stresstests::VMUDL {}));
     #[cfg(feature = "vmudh_stress_test")]
@@ -17,6 +19,8 @@ fn append_stress_tests(_target: &mut Vec<Box<dyn Test>>) {
     _target.push(Box::new(super::rsp::stresstests::VMUDN {}));
     #[cfg(feature = "vmacf_stress_test")]
     _target.push(Box::new(super::rsp::stresstests::VMACF {}));
+    #[cfg(feature = "vmacu_stress_test")]
+    _target.push(Box::new(super::rsp::stresstests::VMACU {}));
     #[cfg(feature = "vmadl_stress_test")]
     _target.push(Box::new(super::rsp::stresstests::VMADL {}));
     #[cfg(feature = "vmadh_stress_test")]
@@ -252,6 +256,10 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::rsp::op_vmacf::VMACFH0 {}),
         Box::new(super::rsp::op_vmacf::VMACF5 {}),
         Box::new(super::rsp::op_vmacf::VMACFAccumulatorOverflowed {}),
+        Box::new(super::rsp::op_vmacu::VMACUAll {}),
+        Box::new(super::rsp::op_vmacu::VMACUH0 {}),
+        Box::new(super::rsp::op_vmacu::VMACU0 {}),
+        Box::new(super::rsp::op_vmacu::VMACUAccumulatorOverflowed {}),
         Box::new(super::rsp::op_vmadl::VMADLAll {}),
         Box::new(super::rsp::op_vmadl::VMADL4 {}),
         Box::new(super::rsp::op_vmadl::VMADLAccumulatorOverflowed {}),
@@ -285,6 +293,8 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::rsp::op_vmulf::VMULFAll1 {}),
         Box::new(super::rsp::op_vmulf::VMULFH0 {}),
         Box::new(super::rsp::op_vmulf::VMULFH1 {}),
+        Box::new(super::rsp::op_vmulu::VMULUAll {}),
+        Box::new(super::rsp::op_vmulu::VMULUH1 {}),
 
         Box::new(super::rsp::registers::SetClearInterrupt {}),
         Box::new(super::rsp::registers::SetClearHalt {}),
