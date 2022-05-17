@@ -296,6 +296,16 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::rsp::op_vmulu::VMULUAll {}),
         Box::new(super::rsp::op_vmulu::VMULUH1 {}),
 
+        Box::new(super::rsp::op_vrndp::VRNDPWithEvenVS {}),
+        Box::new(super::rsp::op_vrndp::VRNDPWithOddVS {}),
+        Box::new(super::rsp::op_vrndp::VRNDPOverwriteItselfWithElement {}),
+        Box::new(super::rsp::op_vrndp::VRNDPAccumulatorOverflowed {}),
+
+        Box::new(super::rsp::op_vrndn::VRNDNWithEvenVS {}),
+        Box::new(super::rsp::op_vrndn::VRNDNWithOddVS {}),
+        Box::new(super::rsp::op_vrndn::VRNDNOverwriteItselfWithElement {}),
+        Box::new(super::rsp::op_vrndn::VRNDNAccumulatorOverflowed {}),
+
         Box::new(super::rsp::registers::SetClearInterrupt {}),
         Box::new(super::rsp::registers::SetClearHalt {}),
         Box::new(super::rsp::registers::SetClearSignal {}),

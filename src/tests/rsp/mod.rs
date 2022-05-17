@@ -53,6 +53,8 @@ pub mod op_vmudm;
 pub mod op_vmudn;
 pub mod op_vmulf;
 pub mod op_vmulu;
+pub mod op_vrndn;
+pub mod op_vrndp;
 pub mod op_vsar;
 pub mod op_xor;
 pub mod op_xori;
