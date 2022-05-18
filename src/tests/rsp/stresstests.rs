@@ -318,6 +318,45 @@ impl Test for VMUDN {
     }
 }
 
+pub struct VMULQ {}
+
+impl Test for VMULQ {
+    fn name(&self) -> &str { "RSP VMULQ (Stress test)" }
+
+    fn level(&self) -> Level { Level::StressTest }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        run_stress_test("VMULQ", |assembler| {
+            assembler.write_vmulq(VR::V3, VR::V1, VR::V0, Element::All);
+        }, |a, b, _accum| {
+            let product_shifted = ((a as i16 as i64) * (b as i16 as i64)) << 16;
+            let adjusted = product_shifted + (if product_shifted < 0 { 0x1F0000 } else { 0 });
+
+            let clamped =
+                if adjusted < 0 {
+                    if (!adjusted >> 32) != 0 {
+                        0x8000u16
+                    } else {
+                        (adjusted >> 17) as u16
+                    }
+                } else {
+                    if (adjusted >> 32) != 0 {
+                        0x7fffu16
+                    } else {
+                        (adjusted >> 17) as u16
+                    }
+                };
+
+            let result = clamped & 0xFFF0;
+
+            (result, zero_extend_accum48(adjusted))
+        })?;
+        Ok(())
+    }
+}
+
 pub struct VMACF {}
 
 impl Test for VMACF {

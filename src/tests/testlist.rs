@@ -9,6 +9,8 @@ fn append_stress_tests(_target: &mut Vec<Box<dyn Test>>) {
     _target.push(Box::new(super::rsp::stresstests::VMULF {}));
     #[cfg(feature = "vmulu_stress_test")]
     _target.push(Box::new(super::rsp::stresstests::VMULU {}));
+    #[cfg(feature = "vmulq_stress_test")]
+    _target.push(Box::new(super::rsp::stresstests::VMULQ {}));
     #[cfg(feature = "vmudl_stress_test")]
     _target.push(Box::new(super::rsp::stresstests::VMUDL {}));
     #[cfg(feature = "vmudh_stress_test")]
@@ -295,6 +297,8 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::rsp::op_vmulf::VMULFH1 {}),
         Box::new(super::rsp::op_vmulu::VMULUAll {}),
         Box::new(super::rsp::op_vmulu::VMULUH1 {}),
+        Box::new(super::rsp::op_vmulq::VMULQAll {}),
+        Box::new(super::rsp::op_vmulq::VMULQH1 {}),
 
         Box::new(super::rsp::op_vrndp::VRNDPWithEvenVS {}),
         Box::new(super::rsp::op_vrndp::VRNDPWithOddVS {}),
