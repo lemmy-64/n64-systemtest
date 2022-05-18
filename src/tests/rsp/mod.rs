@@ -42,6 +42,7 @@ pub mod op_sw;
 pub mod op_vector_loads;
 pub mod op_vector_arithmetic;
 pub mod op_vmacf;
+pub mod op_vmacq;
 pub mod op_vmacu;
 pub mod op_vmadh;
 pub mod op_vmadl;

@@ -913,6 +913,92 @@ impl Test for VNULL {
     }
 }
 
+pub struct V30 {}
+
+impl Test for V30 {
+    fn name(&self) -> &str { "RSP V30" }
+
+    fn level(&self) -> Level { Level::RarelyUsed }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        run_vzero(&|assembler, target, source1, source2, e| {
+            // Use fewer than 3 NOPs here and the test will fail on hardware - it seems that one
+            // of the previous multiplications will still be able to write to the accumulator.
+            // See test below
+            assembler.write_nop();
+            assembler.write_nop();
+            assembler.write_nop();
+            assembler.write_v30(target, source1, source2, e);
+        })
+    }
+}
+
+pub struct V31 {}
+
+impl Test for V31 {
+    fn name(&self) -> &str { "RSP V31" }
+
+    fn level(&self) -> Level { Level::RarelyUsed }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        run_vzero(&|assembler, target, source1, source2, e| {
+            // Use fewer than 3 NOPs here and the test will fail on hardware - it seems that one
+            // of the previous multiplications will still be able to write to the accumulator.
+            // See test below
+            assembler.write_nop();
+            assembler.write_nop();
+            assembler.write_nop();
+            assembler.write_v31(target, source1, source2, e);
+        })
+    }
+}
+
+pub struct V46 {}
+
+impl Test for V46 {
+    fn name(&self) -> &str { "RSP V46" }
+
+    fn level(&self) -> Level { Level::RarelyUsed }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        run_vzero(&|assembler, target, source1, source2, e| { assembler.write_v46(target, source1, source2, e); })
+    }
+}
+
+pub struct V47 {}
+
+impl Test for V47 {
+    fn name(&self) -> &str { "RSP V47" }
+
+    fn level(&self) -> Level { Level::RarelyUsed }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        run_vzero(&|assembler, target, source1, source2, e| { assembler.write_v47(target, source1, source2, e); })
+    }
+}
+
+pub struct V59 {}
+
+impl Test for V59 {
+    fn name(&self) -> &str { "RSP V59" }
+
+    fn level(&self) -> Level { Level::RarelyUsed }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        run_vzero(&|assembler, target, source1, source2, e| { assembler.write_v59(target, source1, source2, e); })
+    }
+}
+
 pub struct VCL {}
 
 impl Test for VCL {
