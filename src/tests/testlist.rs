@@ -215,6 +215,8 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::rsp::op_vector_loads::LWV {}),
         Box::new(super::rsp::op_vector_loads::LTV {}),
 
+        Box::new(super::rsp::op_vmov::VMOV {}),
+
         Box::new(super::rsp::op_vector_arithmetic::VADD {}),
         Box::new(super::rsp::op_vector_arithmetic::VSUB {}),
         Box::new(super::rsp::op_vector_arithmetic::VSUT {}),

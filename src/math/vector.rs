@@ -1,4 +1,5 @@
 use core::fmt::{Debug, Formatter};
+use crate::rsp::rsp_assembler::Element;
 
 /// Vector allows flexible access via u8,u16,u32,u64, while exposing a big-endian mapping of those
 /// data types. It currently assumes a big endian host system, as it will only ever run on the N64
@@ -45,6 +46,18 @@ impl Vector {
         let v16 = self.get16(index) as u32;
         let v32 = (v16 << 16) | v16;
         Self::new_with_u32_elements(v32, v32, v32, v32)
+    }
+
+    pub fn copy_with_element_specifier_applied(&self, e: Element) -> Vector {
+        if e == Element::All || e == Element::All1 {
+            *self
+        } else {
+            let mut v = [0u16; 8];
+            for i in 0..8 {
+                v[i] = self.get16(e.get_effective_element_index(i));
+            }
+            Vector::from_u16(v)
+        }
     }
 
     pub fn get32(&self, index: usize) -> u32 { unsafe { self.as_u32[index] } }

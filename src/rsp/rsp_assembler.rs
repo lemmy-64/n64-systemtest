@@ -1,5 +1,6 @@
 use core::iter::Step;
 use core::mem::transmute;
+use core::ops::RangeInclusive;
 
 use crate::rsp::dmem_writer::DMEMWriter;
 
@@ -100,6 +101,7 @@ pub enum Element {
 // @formatter:on
 
 impl Element {
+    pub fn range() -> RangeInclusive<Element> { Self::All..=Self::_7 }
     pub const fn from_index(index: usize) -> Option<Self> {
         if index <= 15 {
             Some(unsafe { transmute(index as u8) })
@@ -820,6 +822,10 @@ impl RSPAssembler {
 
     pub fn write_vmrg(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
         self.write_vector(VectorOp::VMRG, vd, vt, vs, e);
+    }
+
+    pub fn write_vmov(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
+        self.write_vector(VectorOp::VMOV, vd, vt, vs, e);
     }
 
     pub fn write_vmudh(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {

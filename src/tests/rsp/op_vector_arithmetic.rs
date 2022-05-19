@@ -203,7 +203,7 @@ fn run_test_with_emulation_all_flags_and_elements<FEmitter: Fn(&mut RSPAssembler
     emitter: &FEmitter,
     vector1: Vector, vector2: Vector,
     emulate: FEmulation) -> Result<(), String> {
-    for e in Element::All..=Element::_7 {
+    for e in Element::range() {
         // There are five flags: VCO.low, VCO.high, VCC.low, VCC.high, VCE. We can set the bits in a way that four tests are enough to get through all combinations
         // For VCC and VCE, the first bitmask is the one that should test all combinations for a given vector. Throw in two extras to also have some other cases
         for vco in [0x0000, 0x00FF, 0xFF00, 0xFFFF] {
