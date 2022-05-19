@@ -247,7 +247,7 @@ fn run_test_with_emulation_all_flags_and_elements_vector2_variations<FEmitter: F
     vector1: Vector, vector2: Vector,
     emulate: FEmulation) -> Result<(), String> {
     run_test_with_emulation_all_flags_and_elements(emitter, vector1, vector2, |elements| { emulate(elements) })?;
-    run_test_with_emulation_all_flags_and_elements(emitter, vector1, vector2.new_with_broadcast_16(0), |elements| { emulate(elements) })?;
+    run_test_with_emulation_all_flags_and_elements(emitter, vector1, vector2.copy_with_broadcast_16(0), |elements| { emulate(elements) })?;
 
     Ok(())
 }

@@ -264,6 +264,7 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::rsp::op_vmacf::VMACFH0 {}),
         Box::new(super::rsp::op_vmacf::VMACF5 {}),
         Box::new(super::rsp::op_vmacf::VMACFAccumulatorOverflowed {}),
+        Box::new(super::rsp::op_vmacq::VMACQ {}),
         Box::new(super::rsp::op_vmacu::VMACUAll {}),
         Box::new(super::rsp::op_vmacu::VMACUH0 {}),
         Box::new(super::rsp::op_vmacu::VMACU0 {}),

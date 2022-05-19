@@ -17,6 +17,12 @@ impl Vector {
         }
     }
 
+    pub const fn new_with_broadcast_16(value: u16) -> Self {
+        Self {
+            as_u16: [value; 8],
+        }
+    }
+
     pub const fn new_with_u32_elements(data0: u32, data1: u32, data2: u32, data3: u32) -> Self {
         Self {
             as_u32: [data0, data1, data2, data3],
@@ -35,7 +41,7 @@ impl Vector {
         }
     }
 
-    pub fn new_with_broadcast_16(&self, index: usize) -> Vector {
+    pub fn copy_with_broadcast_16(&self, index: usize) -> Vector {
         let v16 = self.get16(index) as u32;
         let v32 = (v16 << 16) | v16;
         Self::new_with_u32_elements(v32, v32, v32, v32)
