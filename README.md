@@ -19,10 +19,11 @@ n64-systemtest tests common but also some of the more exotic features of the N64
 
 # How to build
 n64-systemtest can be built on Windows, mac or Linux (including within WSL). The steps are pretty much the same.
-1. Get Rust: https://www.rust-lang.org/tools/install
-2. Get the source, e.g. through **git clone https://github.com/lemmy-64/n64-systemtest.git**
-3. If this is your only rust-on-n64 project, simply run **make install-dependencies** (If you need cargo-n64 for other projects, install manually as needed. Notice that cargo-n64 official is on an older Rust unstable than n64-systemtest).
-4. Run **make n64** to build the test rom.
+1. (On Linux, WSL2 or macOS, skip this step). On Windows, install gnu make from here: https://sourceforge.net/projects/gnuwin32/files/make/3.81/make-3.81.exe/download
+2. Get Rust: https://www.rust-lang.org/tools/install
+3. Get the source, e.g. through **git clone https://github.com/lemmy-64/n64-systemtest.git**
+4. If this is your only rust-on-n64 project, simply run **make install-dependencies** (If you need cargo-n64 for other projects, install manually as needed. Notice that cargo-n64 official is on an older Rust unstable than n64-systemtest).
+5. Run **make n64** to build the test rom.
 
 Please note: N64 roms require a bootcode called IPL3. This bootcode is expected to setup hardware and copy the rom into memory. n64-systemtest comes with its own IPL3, which will **NOT** run on hardware. Once there is a community built open-source IPL3, we'll switch to that. If you'd like to use your own IPL3, please update the path in the Makefile at the very top.
 
