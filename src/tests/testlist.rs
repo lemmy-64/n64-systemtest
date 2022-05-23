@@ -31,6 +31,12 @@ fn append_stress_tests(_target: &mut Vec<Box<dyn Test>>) {
     _target.push(Box::new(super::rsp::stresstests::VMADM {}));
     #[cfg(feature = "vmadn_stress_test")]
     _target.push(Box::new(super::rsp::stresstests::VMADN {}));
+    #[cfg(feature = "vrcp32_stress_test")]
+    _target.push(Box::new(super::rsp::stresstests_div::VRCP32 {}));
+    #[cfg(feature = "vrsq32_stress_test")]
+    _target.push(Box::new(super::rsp::stresstests_div::VRSQ32 {}));
+    #[cfg(feature = "rcp_rsq_dump")]
+    _target.push(Box::new(super::rsp::op_vmov_vrcp::GenerateDump {}));
 }
 
 #[cfg(feature = "default_tests")]
@@ -215,8 +221,6 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::rsp::op_vector_loads::LWV {}),
         Box::new(super::rsp::op_vector_loads::LTV {}),
 
-        Box::new(super::rsp::op_vmov::VMOV {}),
-
         Box::new(super::rsp::op_vector_arithmetic::VADD {}),
         Box::new(super::rsp::op_vector_arithmetic::VSUB {}),
         Box::new(super::rsp::op_vector_arithmetic::VSUT {}),
@@ -308,6 +312,25 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::rsp::op_vmulu::VMULUH1 {}),
         Box::new(super::rsp::op_vmulq::VMULQAll {}),
         Box::new(super::rsp::op_vmulq::VMULQH1 {}),
+
+        Box::new(super::rsp::op_vmov_vrcp::VMOV {}),
+        Box::new(super::rsp::op_vmov_vrcp::RCPTable {}),
+        Box::new(super::rsp::op_vmov_vrcp::RSQTable {}),
+        Box::new(super::rsp::op_vmov_vrcp::VRCPRegisterCombinations {}),
+        Box::new(super::rsp::op_vmov_vrcp::VRCPHRegisterCombinations {}),
+        Box::new(super::rsp::op_vmov_vrcp::VRCPLRegisterCombinations {}),
+        Box::new(super::rsp::op_vmov_vrcp::VRSQRegisterCombinations {}),
+        Box::new(super::rsp::op_vmov_vrcp::VRSQLRegisterCombinations {}),
+        Box::new(super::rsp::op_vmov_vrcp::VRCPValues {}),
+        Box::new(super::rsp::op_vmov_vrcp::VRSQValues {}),
+        Box::new(super::rsp::op_vmov_vrcp::VRCP32Bit {}),
+        Box::new(super::rsp::op_vmov_vrcp::VRSQ32Bit {}),
+        Box::new(super::rsp::op_vmov_vrcp::HighUsesOutputVRCPTest {}),
+        Box::new(super::rsp::op_vmov_vrcp::HighUsesOutputVRSQLTest {}),
+        Box::new(super::rsp::op_vmov_vrcp::HighUsesOutputVRSQTest {}),
+        Box::new(super::rsp::op_vmov_vrcp::HighUsesOutputVRSQLTest {}),
+        Box::new(super::rsp::op_vmov_vrcp::VRCPHSetsInputForVRCPL {}),
+        Box::new(super::rsp::op_vmov_vrcp::VRCPLHiddenRegisterFlagExists {}),
 
         Box::new(super::rsp::op_vrndp::VRNDPWithEvenVS {}),
         Box::new(super::rsp::op_vrndp::VRNDPWithOddVS {}),

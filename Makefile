@@ -28,12 +28,16 @@ n64-emu:
 	@echo Using n64 emulator: $(n64emulator)
 	@$(n64emulator) --rom $(n64_output_file)
 
-n64-run:
+n64-unfloader:
 	make n64
 	@UNFLoader -r $(n64_output_file)
 
+n64-usb64:
+	make n64
+	@usb64 -rom=$(n64_output_file) -start
+
 all_stress_tests:
-	@cargo n64 build --ipl3 $(ipl3).bin -- --features vmulf_stress_test,vmulu_stress_test,vmulq_stress_test,vmudl_stress_test,vmudh_stress_test,vmudm_stress_test,vmudn_stress_test,vmacf_stress_test,vmacu_stress_test,vmadl_stress_test,vmadh_stress_test,vmadm_stress_test,vmadn_stress_test -p n64-systemtest
+	@cargo n64 build --ipl3 $(ipl3).bin -- --features vmulf_stress_test,vmulu_stress_test,vmulq_stress_test,vmudl_stress_test,vmudh_stress_test,vmudm_stress_test,vmudn_stress_test,vmacf_stress_test,vmacu_stress_test,vmadl_stress_test,vmadh_stress_test,vmadm_stress_test,vmadn_stress_test,vrcp32_stress_test,vrsq32_stress_test -p n64-systemtest
 	@echo Rom file: $(n64_output_file)
 
 vmulf_stress_test:
@@ -86,4 +90,17 @@ vmadm_stress_test:
 
 vmadn_stress_test:
 	@cargo n64 build --ipl3 $(ipl3).bin -- --features vmadn_stress_test -p n64-systemtest
+	@echo Rom file: $(n64_output_file)
+
+vrcp32_stress_test:
+	@cargo n64 build --ipl3 $(ipl3).bin -- --features vrcp32_stress_test -p n64-systemtest
+	@echo Rom file: $(n64_output_file)
+
+vrsq32_stress_test:
+	@cargo n64 build --ipl3 $(ipl3).bin -- --features vrsq32_stress_test -p n64-systemtest
+	@echo Rom file: $(n64_output_file)
+
+# Use this to dump the 512xu16 tables that are used by VRCP/VRSQ and friends
+rcq_rsq_dump:
+	@cargo n64 build --ipl3 $(ipl3).bin -- --features rcp_rsq_dump -p n64-systemtest
 	@echo Rom file: $(n64_output_file)

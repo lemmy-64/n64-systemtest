@@ -884,6 +884,30 @@ impl RSPAssembler {
         self.write_vector(VectorOp::VOR, vd, vt, vs, e);
     }
 
+    pub fn write_vrcp(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
+        self.write_vector(VectorOp::VRCP, vd, vt, vs, e);
+    }
+
+    pub fn write_vrcph(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
+        self.write_vector(VectorOp::VRCPH, vd, vt, vs, e);
+    }
+
+    pub fn write_vrcpl(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
+        self.write_vector(VectorOp::VRCPL, vd, vt, vs, e);
+    }
+
+    pub fn write_vrsq(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
+        self.write_vector(VectorOp::VRSQ, vd, vt, vs, e);
+    }
+
+    pub fn write_vrsqh(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
+        self.write_vector(VectorOp::VRSQH, vd, vt, vs, e);
+    }
+
+    pub fn write_vrsql(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
+        self.write_vector(VectorOp::VRSQL, vd, vt, vs, e);
+    }
+
     pub fn write_vrndn(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
         self.write_vector(VectorOp::VRNDN, vd, vt, vs, e);
     }
