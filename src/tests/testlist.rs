@@ -193,7 +193,18 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::rsp::op_shifts::SRAV {}),
         Box::new(super::rsp::op_shifts::SRAVWithShiftAmountOverwrite {}),
 
-        // RSP Vector instructions
+        // RSP Vector Store instructions
+        Box::new(super::rsp::op_vector_stores::SBV {}),
+        Box::new(super::rsp::op_vector_stores::SSV {}),
+        Box::new(super::rsp::op_vector_stores::SLV {}),
+        Box::new(super::rsp::op_vector_stores::SDV {}),
+        Box::new(super::rsp::op_vector_stores::SQV {}),
+        Box::new(super::rsp::op_vector_stores::SRV {}),
+        Box::new(super::rsp::op_vector_stores::SPV {}),
+        Box::new(super::rsp::op_vector_stores::SUV {}),
+        Box::new(super::rsp::op_vector_stores::SHV {}),
+
+        // RSP Vector Load instructions
         Box::new(super::rsp::op_cfc2_ctc2::CTC2CFC2 {}),
         Box::new(super::rsp::op_cfc2_ctc2::CFC2WeirdIndexes {}),
         Box::new(super::rsp::op_cfc2_ctc2::CTC2WeirdIndexes {}),
@@ -221,6 +232,7 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::rsp::op_vector_loads::LWV {}),
         Box::new(super::rsp::op_vector_loads::LTV {}),
 
+        // Other vector instructions
         Box::new(super::rsp::op_vector_arithmetic::VADD {}),
         Box::new(super::rsp::op_vector_arithmetic::VSUB {}),
         Box::new(super::rsp::op_vector_arithmetic::VSUT {}),

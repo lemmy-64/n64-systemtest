@@ -252,7 +252,7 @@ pub enum CP0Register {
 #[allow(dead_code)]
 #[repr(u8)]
 enum WC2OP {
-    BV = 0, SV = 1, LV = 2, DV = 3, QV = 4, RV = 5, PV = 6, UV = 7, HV = 8, FV = 9, WV = 10, TV = 11,
+    B = 0, S = 1, L = 2, D = 3, Q = 4, R = 5, P = 6, U = 7, H = 8, F = 9, W = 10, T = 11,
 }
 // @formatter:on
 
@@ -653,73 +653,112 @@ impl RSPAssembler {
         self.write_regimm(RegimmOP::BGEZAL, rs, offset_as_instruction_count as u16);
     }
 
-    // Vector load/store instructions
+    // Vector load instructions
     pub fn write_lbv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
-        self.write_wc2(OP::LWC2, WC2OP::BV, vt, element, offset, base);
+        self.write_wc2(OP::LWC2, WC2OP::B, vt, element, offset, base);
     }
 
     pub fn write_ldv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
         assert!((offset & 0b111) == 0);
-        self.write_wc2(OP::LWC2, WC2OP::DV, vt, element, offset >> 3, base);
+        self.write_wc2(OP::LWC2, WC2OP::D, vt, element, offset >> 3, base);
     }
 
     pub fn write_lfv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
         assert!((offset & 0b1111) == 0);
-        self.write_wc2(OP::LWC2, WC2OP::FV, vt, element, offset >> 4, base);
+        self.write_wc2(OP::LWC2, WC2OP::F, vt, element, offset >> 4, base);
     }
 
     pub fn write_lhv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
         assert!((offset & 0b1111) == 0);
-        self.write_wc2(OP::LWC2, WC2OP::HV, vt, element, offset >> 4, base);
+        self.write_wc2(OP::LWC2, WC2OP::H, vt, element, offset >> 4, base);
     }
 
     pub fn write_llv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
         assert!((offset & 0b11) == 0);
-        self.write_wc2(OP::LWC2, WC2OP::LV, vt, element, offset >> 2, base);
+        self.write_wc2(OP::LWC2, WC2OP::L, vt, element, offset >> 2, base);
     }
 
     pub fn write_lpv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
         assert!((offset & 0b111) == 0);
-        self.write_wc2(OP::LWC2, WC2OP::PV, vt, element, offset >> 3, base);
+        self.write_wc2(OP::LWC2, WC2OP::P, vt, element, offset >> 3, base);
     }
 
     pub fn write_lqv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
         assert!((offset & 0b1111) == 0);
-        self.write_wc2(OP::LWC2, WC2OP::QV, vt, element, offset >> 4, base);
+        self.write_wc2(OP::LWC2, WC2OP::Q, vt, element, offset >> 4, base);
     }
 
     pub fn write_lrv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
         assert!((offset & 0b1111) == 0);
-        self.write_wc2(OP::LWC2, WC2OP::RV, vt, element, offset >> 4, base);
+        self.write_wc2(OP::LWC2, WC2OP::R, vt, element, offset >> 4, base);
     }
 
     pub fn write_lsv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
         assert!((offset & 0b1) == 0);
-        self.write_wc2(OP::LWC2, WC2OP::SV, vt, element, offset >> 1, base);
+        self.write_wc2(OP::LWC2, WC2OP::S, vt, element, offset >> 1, base);
     }
 
     pub fn write_ltv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
         assert!((offset & 0b1111) == 0);
-        self.write_wc2(OP::LWC2, WC2OP::TV, vt, element, offset >> 4, base);
+        self.write_wc2(OP::LWC2, WC2OP::T, vt, element, offset >> 4, base);
     }
 
     pub fn write_luv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
         assert!((offset & 0b111) == 0);
-        self.write_wc2(OP::LWC2, WC2OP::UV, vt, element, offset >> 3, base);
+        self.write_wc2(OP::LWC2, WC2OP::U, vt, element, offset >> 3, base);
     }
 
     pub fn write_lwv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
         assert!((offset & 0b1111) == 0);
-        self.write_wc2(OP::LWC2, WC2OP::WV, vt, element, offset >> 4, base);
+        self.write_wc2(OP::LWC2, WC2OP::W, vt, element, offset >> 4, base);
+    }
+
+    // Vector store instructions
+    pub fn write_sbv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
+        self.write_wc2(OP::SWC2, WC2OP::B, vt, element, offset, base);
+    }
+
+    pub fn write_sdv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
+        assert!((offset & 0b111) == 0);
+        self.write_wc2(OP::SWC2, WC2OP::D, vt, element, offset >> 3, base);
+    }
+
+    pub fn write_shv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
+        assert!((offset & 0b1111) == 0);
+        self.write_wc2(OP::SWC2, WC2OP::H, vt, element, offset >> 4, base);
+    }
+
+    pub fn write_slv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
+        assert!((offset & 0b11) == 0);
+        self.write_wc2(OP::SWC2, WC2OP::L, vt, element, offset >> 2, base);
+    }
+
+    pub fn write_ssv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
+        assert!((offset & 0b1) == 0);
+        self.write_wc2(OP::SWC2, WC2OP::S, vt, element, offset >> 1, base);
+    }
+
+    pub fn write_spv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
+        assert!((offset & 0b111) == 0);
+        self.write_wc2(OP::SWC2, WC2OP::P, vt, element, offset >> 3, base);
     }
 
     pub fn write_sqv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
         assert!((offset & 0b1111) == 0);
-        self.write_wc2(OP::SWC2, WC2OP::QV, vt, element, offset >> 4, base);
+        self.write_wc2(OP::SWC2, WC2OP::Q, vt, element, offset >> 4, base);
+    }
+
+    pub fn write_srv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
+        assert!((offset & 0b1111) == 0);
+        self.write_wc2(OP::SWC2, WC2OP::R, vt, element, offset >> 4, base);
+    }
+
+    pub fn write_suv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
+        assert!((offset & 0b111) == 0);
+        self.write_wc2(OP::SWC2, WC2OP::U, vt, element, offset >> 3, base);
     }
 
     // Regular vector instructions
-
     pub fn write_vabs(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
         self.write_vector(VectorOp::VABS, vd, vt, vs, e);
     }

@@ -1,4 +1,5 @@
 use core::fmt::{Debug, Formatter};
+
 use crate::rsp::rsp_assembler::Element;
 
 /// Vector allows flexible access via u8,u16,u32,u64, while exposing a big-endian mapping of those
@@ -79,7 +80,7 @@ impl Debug for Vector {
 
 impl PartialEq for Vector {
     fn eq(&self, other: &Self) -> bool {
-        unsafe { (self.as_u64[0] == other.as_u64[0]) && (self.as_u64[1] == other.as_u64[1])}
+        unsafe { (self.as_u64[0] == other.as_u64[0]) && (self.as_u64[1] == other.as_u64[1]) }
     }
 }
 
