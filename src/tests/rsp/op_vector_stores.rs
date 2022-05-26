@@ -299,8 +299,8 @@ impl Test for SFV {
 
                  let a = (offset & 7) as usize;
                  let b = ((offset as usize) - a) as usize;
-                 // The starting element depends on E. The three next ones can be repeatedly doing:
-                 //   Add 1, but stay within the vector-half: (element_index & 4) | ((element_index + 1) & 3))
+                 // The starting element depends on E. The three next ones can be determined by adding 1,2,3, but staying within the vector half:
+                 //   (element_index & 4) | ((element_index + i) & 3))
                  // For readability, spelling them out here.
                  let maybe_source_element_offsets = match e {
                      E::_0 => Some([0, 1, 2, 3]),
