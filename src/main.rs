@@ -42,9 +42,8 @@ static VIDEO: Spinlock<Video> = Spinlock::new(graphics::vi::Video::new());
 unsafe extern "C" fn rust_entrypoint() -> ! {
     MemoryMap::init();
     allocator::init_allocator();
-    println!("Total memory: 0x{:x}", MemoryMap::memory_size());
-    println!();
-    main();
+    const VERSION: &str = env!("CARGO_PKG_VERSION");
+    println!("n64-systemtest Version {}", VERSION);    main();
 
     loop {}
 }

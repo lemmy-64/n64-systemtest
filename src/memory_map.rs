@@ -20,8 +20,8 @@ impl MemoryMap {
 
     /// Call very early (before setting up exception handlers) during boot to set memory size
     pub(super) fn init() {
+        assert_eq!(Self::memory_size(), 0);
         unsafe {
-            assert_eq!(MEMORY_SIZE, 0);
             let value = *(0x8000_0318 as *mut usize);
             MEMORY_SIZE = value;
         };
