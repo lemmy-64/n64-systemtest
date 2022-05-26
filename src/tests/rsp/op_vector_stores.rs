@@ -23,7 +23,9 @@ use crate::tests::soft_asserts::soft_assert_eq_vector;
 //     - SSV: 2 bytes
 //     - SBV: 1 byte
 // - SPV, SUV, SHV do packed storage, where a u16 of a register is stored into a u8 in memory (by shifting right 7/8 bits)
-// - SFV is pretty complicated - depending on the E it pulls different source elements (or even 0 for some E)
+// - SFV is little complicated - depending on the E it pulls different source elements (or even 0 for some E)
+// - SWF is quite simple: The full 128 bit of a register are written to the target location. There is overflow,
+//   with the base being a half-vector, which essentially rotates the vector if the target is unaligned.
 
 fn test<FEmit: Fn(&mut RSPAssembler, VR, i32, GPR, E), FSimulate: Fn(&Vector, &[Vector; 4], u32, E) -> [Vector; 4]>(base_offset: usize, emit: FEmit, simulate: FSimulate) -> Result<(), String> {
     // Alignment and element specifiers to test. If we pass these, we'll probably pass everything
@@ -328,6 +330,34 @@ impl Test for SFV {
                      let target_element_index = addr & 0xF;
 
                      result[result_vector_index].set8(target_element_index, data);
+                 }
+                 result
+             })
+    }
+}
+
+pub struct SWV {}
+
+impl Test for SWV {
+    fn name(&self) -> &str { "RSP SWV" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        test(0x1000,
+             |assembler, vt, offset, base, e| assembler.write_swv(vt, e, offset, base),
+             |source, previous_data, offset, e| {
+                 let mut result = *previous_data;
+                 let misalignment = offset & 0x7;
+                 let target_vector_start = offset & !7;
+                 for i in 0..16 {
+                     let addr = target_vector_start + ((misalignment + i) & 0xF);
+                     let result_vector_index = (addr >> 4) as usize;
+                     let target_element_index = (addr as usize) & 0xF;
+                     let source_element_index = ((e as usize) + (i as usize)) & 0xF;
+                     result[result_vector_index].set8(target_element_index, source.get8(source_element_index));
                  }
                  result
              })

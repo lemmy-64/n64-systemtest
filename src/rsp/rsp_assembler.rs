@@ -763,6 +763,11 @@ impl RSPAssembler {
         self.write_wc2(OP::SWC2, WC2OP::U, vt, element, offset >> 3, base);
     }
 
+    pub fn write_swv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
+        assert!((offset & 0b1111) == 0);
+        self.write_wc2(OP::SWC2, WC2OP::W, vt, element, offset >> 4, base);
+    }
+
     // Regular vector instructions
     pub fn write_vabs(&mut self, vd: VR, vt: VR, vs: VR, e: Element) {
         self.write_vector(VectorOp::VABS, vd, vt, vs, e);
