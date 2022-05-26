@@ -203,6 +203,7 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::rsp::op_vector_stores::SPV {}),
         Box::new(super::rsp::op_vector_stores::SUV {}),
         Box::new(super::rsp::op_vector_stores::SHV {}),
+        Box::new(super::rsp::op_vector_stores::SFV {}),
 
         // RSP Vector Load instructions
         Box::new(super::rsp::op_cfc2_ctc2::CTC2CFC2 {}),

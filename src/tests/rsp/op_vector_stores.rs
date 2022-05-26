@@ -23,6 +23,7 @@ use crate::tests::soft_asserts::soft_assert_eq_vector;
 //     - SSV: 2 bytes
 //     - SBV: 1 byte
 // - SPV, SUV, SHV do packed storage, where a u16 of a register is stored into a u8 in memory (by shifting right 7/8 bits)
+// - SFV is pretty complicated - depending on the E it pulls different source elements (or even 0 for some E)
 
 fn test<FEmit: Fn(&mut RSPAssembler, VR, i32, GPR, E), FSimulate: Fn(&Vector, &[Vector; 4], u32, E) -> [Vector; 4]>(base_offset: usize, emit: FEmit, simulate: FSimulate) -> Result<(), String> {
     // Alignment and element specifiers to test. If we pass these, we'll probably pass everything
@@ -271,6 +272,58 @@ impl Test for SHV {
                      let data = (data16 >> 7) as u8;
 
                      let addr = b + ((a + (i << 1)) & 0xF);
+                     let result_vector_index = addr >> 4;
+                     let target_element_index = addr & 0xF;
+
+                     result[result_vector_index].set8(target_element_index, data);
+                 }
+                 result
+             })
+    }
+}
+
+pub struct SFV {}
+
+impl Test for SFV {
+    fn name(&self) -> &str { "RSP SFV" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        test(0x1000,
+             |assembler, vt, offset, base, e| assembler.write_sfv(vt, e, offset, base),
+             |source, previous_data, offset, e| {
+                 let mut result = *previous_data;
+
+                 let a = (offset & 7) as usize;
+                 let b = ((offset as usize) - a) as usize;
+                 // The starting element depends on E. The three next ones can be repeatedly doing:
+                 //   Add 1, but stay within the vector-half: (element_index & 4) | ((element_index + 1) & 3))
+                 // For readability, spelling them out here.
+                 let maybe_source_element_offsets = match e {
+                     E::_0 => Some([0, 1, 2, 3]),
+                     E::_1 => Some([6, 7, 4, 5]),
+                     E::_4 => Some([1, 2, 3, 0]),
+                     E::_5 => Some([7, 4, 5, 6]),
+                     E::_8 => Some([4, 5, 6, 7]),
+                     E::_11 => Some([3, 0, 1, 2]),
+                     E::_12 => Some([5, 6, 7, 4]),
+                     E::_15 => Some([0, 1, 2, 3]),
+                     _ => None
+                 };
+
+                 for i in 0..4 {
+                     let data = if let Some(source_element_offsets) = maybe_source_element_offsets {
+                         let element_index = source_element_offsets[i];
+                         let data16 = source.get16(element_index);
+                         (data16 >> 7) as u8
+                     } else {
+                         0
+                     };
+
+                     let addr = b + ((a + (i << 2)) & 0xF);
                      let result_vector_index = addr >> 4;
                      let target_element_index = addr & 0xF;
 
