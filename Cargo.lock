@@ -34,7 +34,7 @@ dependencies = [
 
 [[package]]
 name = "n64-systemtest"
-version = "1.0.4"
+version = "1.0.5"
 dependencies = [
  "arrayref",
  "linked_list_allocator",

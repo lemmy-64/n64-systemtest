@@ -90,6 +90,11 @@ impl Test for WiredOutOfBoundsRandom {
                 let mut max = 0;
                 let mut counter = 0;
                 loop {
+                    // Horrible hack:
+                    // On some locations (e.g. 0x800BC3A0), RANDOM won't hit values larger than 22. Maybe RANDOM
+                    // is derived from COUNT and PC? Unsure, but this phenomenon is incredibly rare
+                    // and adding/removing NOP when it happens fixes it.
+                    unsafe { asm!("NOP ") };
                     let random = cop0::random();
                     if random < min {
                         min = random;
