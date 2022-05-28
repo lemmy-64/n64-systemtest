@@ -29,6 +29,24 @@ impl Test for ContextMasking {
     }
 }
 
+pub struct WiredMasking;
+
+/// Tests if read/write masking is correct for the COP0 Wired register.
+impl Test for WiredMasking {
+    fn name(&self) -> &str { "Wired (masking)" }
+
+    fn level(&self) -> Level { Level::Weird }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        unsafe { cop0::set_wired(0xFFFFFFFF); }
+        soft_assert_eq(cop0::wired(), 63, "Wired was written as 0xFFFFFFFF")?;
+        
+        Ok(())
+    }
+}
+
 pub struct ContextMixedBitWriting {}
 
 impl Test for ContextMixedBitWriting {

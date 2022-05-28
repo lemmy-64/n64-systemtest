@@ -71,6 +71,7 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::cart_memory::write::Write64AndReadback32 {}),
         Box::new(super::cart_memory::write::WriteAndCheckPIFlag {}),
         Box::new(super::cop0::ContextMasking {}),
+        Box::new(super::cop0::WiredMasking),
         Box::new(super::cop0::ContextMixedBitWriting {}),
         Box::new(super::cop0::XContextMasking {}),
         Box::new(super::cop0::XContextMaskingMixed {}),
