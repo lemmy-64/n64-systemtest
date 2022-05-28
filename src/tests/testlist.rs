@@ -70,6 +70,8 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::cart_memory::write::Write16AndReadback32 {}),
         Box::new(super::cart_memory::write::Write64AndReadback32 {}),
         Box::new(super::cart_memory::write::WriteAndCheckPIFlag {}),
+        Box::new(super::cop0::RandomDecrement),
+        Box::new(super::cop0::RandomMasking), // Ideally performed after RandomDecrement
         Box::new(super::cop0::ContextMasking {}),
         Box::new(super::cop0::WiredMasking),
         Box::new(super::cop0::ContextMixedBitWriting {}),
