@@ -436,6 +436,7 @@ fn default_tests() -> Vec<Box<dyn Test>> {
     vec! {}
 }
 
+/// Returns a list of tests to be performed.
 pub fn tests() -> Vec<Box<dyn Test>> {
     let mut result = default_tests();
     append_stress_tests(&mut result);

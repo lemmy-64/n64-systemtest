@@ -26,34 +26,46 @@ mod testlist;
 mod tlb;
 mod traps;
 
+/// The importance level of a [test](Test).
 #[derive(Eq, PartialEq)]
 pub enum Level {
-    // Very basic functionality - if this is broken, expect things to go bad
+    /// Very basic functionality. If this is broken, expect things to go bad.
     BasicFunctionality,
 
-    // Basic functionality that is rarely used
+    /// Rarely used basic functionality.
     RarelyUsed,
 
-    // Some weird hardware quirk - this probably won't matter too much
+    /// A weird hardware quirk. This probably won't matter too much.
     Weird,
 
-    // Some hardware quirk that is so weird that the test won't be run by default
+    /// A hardware quirk that is so weird that the test won't be run by default.
     TooWeird,
 
-    // Basic functionality, but extremely slow so not run by default
+    /// Slow test of basic functionality. Only enabled when compiled with stresstest feature flags.
     StressTest,
 }
 
+/// Trait for a test or group of tests that are performed together.
 pub trait Test {
+    /// Human-readable name for the test.
     fn name(&self) -> &str;
 
+    /// Returns the [level](Level) of the test.
+    /// 
+    /// Some levels may be filtered out of the compiled test rom by default.
     fn level(&self) -> Level;
 
-    /// Returns a set of values to run the test with.
-    /// Tests that don't support multiple values can return an empty Vec and will still
-    /// get called once, in which case the value argument should be ignored
+    /// Returns a list of values to run the test with.
+    /// 
+    /// If the list is empty, the test will only be run once, using a dummy value. Otherwise, the
+    /// test will be run once for every value in the list.
     fn values(&self) -> Vec<Box<dyn Any>>;
 
+    /// Run the test with a provide value.
+    /// 
+    /// Value may be a dummy, if [`Self::values()`] returned an empty list.
+    /// 
+    /// If the test fails, return a human-readable description of the issue.
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String>;
 }
 
