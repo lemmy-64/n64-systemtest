@@ -1,5 +1,5 @@
 use alloc::boxed::Box;
-use alloc::format;
+use alloc::{format, vec};
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::any::Any;
@@ -222,24 +222,6 @@ impl Test for ContextMasking {
     }
 }
 
-pub struct WiredMasking;
-
-/// Tests if read/write masking is correct for the COP0 Wired register.
-impl Test for WiredMasking {
-    fn name(&self) -> &str { "Wired (masking)" }
-
-    fn level(&self) -> Level { Level::Weird }
-
-    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
-
-    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
-        unsafe { cop0::set_wired(0xFFFFFFFF); }
-        soft_assert_eq(cop0::wired(), 63, "Wired was written as 0xFFFFFFFF")?;
-        
-        Ok(())
-    }
-}
-
 pub struct ContextMixedBitWriting {}
 
 impl Test for ContextMixedBitWriting {
@@ -264,6 +246,24 @@ impl Test for ContextMixedBitWriting {
         let expected3 = 0x7B000000 | (previous & 0x7FFFFF);
         soft_assert_eq(cop0::context_64(), expected3, format!("Writing Context (32 bit) should sign extend").as_str())?;
 
+        Ok(())
+    }
+}
+
+/// Tests if read/write masking is correct for the COP0 Wired register.
+pub struct WiredMasking;
+
+impl Test for WiredMasking {
+    fn name(&self) -> &str { "Wired (masking)" }
+
+    fn level(&self) -> Level { Level::Weird }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        unsafe { cop0::set_wired(0xFFFFFFFF); }
+        soft_assert_eq(cop0::wired(), 63, "Wired was written as 0xFFFFFFFF")?;
+        
         Ok(())
     }
 }
@@ -415,6 +415,86 @@ impl Test for StatusIs32Bit {
             let readback = cop0::status_64();
             soft_assert_eq(readback, expected, format!("Status was written as 0x{:x}. It's upper 32 bit should be constant", write_value).as_str())?;
         }
+        Ok(())
+    }
+}
+
+/// Tests masking for all unused COP0 registers.
+/// 
+/// Unused registers include number 7, 21, 22, 23, 24, 25, and 31. These registers should be 
+/// fully writable and readable.
+pub struct UnusedMasking;
+
+impl Test for UnusedMasking {
+    fn name(&self) -> &str { "Unused COP0 Registers (masking)" }
+
+    fn level(&self) -> Level { Level::Weird }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { 
+        vec![
+            Box::new(0x11111111u32),
+            Box::new(0x00000000u32),
+            Box::new(0x33333333u32),
+            Box::new(0x22222222u32),
+            Box::new(0x88888888u32),
+            Box::new(0xAAAAAAAAu32),
+            Box::new(0x55555555u32),
+            Box::new(0xFFFFFFFFu32),
+            Box::new(0x01234567u32),
+            Box::new(0xFEDCBA98u32),
+        ]
+    }
+
+    fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
+        let value = *(*value).downcast_ref::<u32>().unwrap();
+        
+        #[inline]
+        fn write_read_cop0<const INDEX: u32>(value: u32) -> u32 {
+            let readback: u32;
+            unsafe {
+                asm!("
+                    mtc0 {gpr_write}, ${cop0_reg}
+                    nop
+                    nop
+                ",
+                gpr_write = in(reg) value,
+                cop0_reg = const INDEX,
+                );
+                
+                // Waiting doesn't seem to be necessary, but historically some people have suspected
+                // the registers may only hold data temporarily.
+                for _ in 0..1024 { // Ideally should replace this with a proper counter instead of inserting nops
+                    asm!("nop;");
+                }
+                
+                asm!("
+                    mfc0 {gpr_read}, ${cop0_reg}
+                    nop
+                    nop
+                ",
+                cop0_reg = const INDEX,
+                gpr_read = out(reg) readback,
+                );
+            }
+            
+            readback
+        }
+        
+        macro_rules! perform_test {
+            ($reg:expr, $value:expr) => {
+                let readback = write_read_cop0::<$reg>($value);
+                soft_assert_eq(readback, value, &format!("Unused COP0 Reg{} written with {:#010X}", $reg, $value))?;
+            }
+        }
+        
+        perform_test!(7, value);
+        perform_test!(21, value);
+        perform_test!(22, value);
+        perform_test!(23, value);
+        perform_test!(24, value);
+        perform_test!(25, value);
+        perform_test!(31, value);
+        
         Ok(())
     }
 }

@@ -83,6 +83,7 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::cop0::ErrorEPCNoMasking {}),
         Box::new(super::cop0::LLAddrIs32Bit {}),
         Box::new(super::cop0::StatusIs32Bit {}),
+        Box::new(super::cop0::UnusedMasking),
         Box::new(super::exception_instructions::Break {}),
         Box::new(super::exception_instructions::BreakDelay {}),
         Box::new(super::exception_instructions::Syscall {}),
