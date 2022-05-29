@@ -90,7 +90,7 @@ impl Test for RandomDecrement {
 /// Random is supposed to contain after attempting a write. This requires writing to Wired, and the
 /// use of assembly code to ensure instruction-timing accuracy.
 /// 
-/// This test should ideally be performed after [RandomDecrement], as it relies on that tested behavior.
+/// This test relies on similar behavior as [RandomDecrement], so if decrement fails, this likely will too.
 pub struct RandomMasking;
 
 impl Test for RandomMasking {
@@ -117,6 +117,85 @@ impl Test for RandomMasking {
             gpr_readback = out(reg) readback,
         )}
         soft_assert_eq(readback, 27, "Random was written as 0xFFFFFFFF, Wired written as 0, expecting Random write to be ignored")?;
+        
+        Ok(())
+    }
+}
+
+/// Tests mfc0 behavior in relation to Random being set by hardware when Wired is written to.
+/// 
+/// Due to CPU hazards, when the mfc0 instruction is used after mtc0, there is supposed to be two
+/// instructions inbetween them. However, it is technically possible to use mtc0 earlier than
+/// recommended. Compilers and assemblers typically will deal with this automatically but not always.
+/// 
+/// If a read from Random occurs immediately after a write to Wired, the read value will be as if
+/// the write to Wired was replaced with any other instruction (e.g. nop).
+/// 
+/// If the read from Random occurs 1 instruction later, then the value will be 31.
+pub struct RandomReadEarly;
+
+impl Test for RandomReadEarly {
+    fn name(&self) -> &str { "Random (read early)" }
+
+    fn level(&self) -> Level { Level::Weird }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        // test immediate readback
+        let start: u32;
+        let readback: u32;
+        unsafe {
+            asm!("
+                mtc0 {gpr_init_wired}, $6
+                nop;
+                nop; nop; nop; nop; nop;
+                nop; nop; nop; nop; nop;
+                
+                mfc0 {gpr_start}, $1
+                nop
+                nop
+                mtc0 {gpr_wired}, $6
+                mfc0 {gpr_readback}, $1
+                nop
+                nop
+            ",
+            gpr_init_wired = in(reg) 20u32,
+            gpr_start = out(reg) start,
+            gpr_wired = in(reg) 5u32, // value here shouldn't matter
+            gpr_readback = out(reg) readback,
+        )}
+        
+        soft_assert_eq(start, 21, "Wired set to 20, Random decremented 10 times")?;
+        soft_assert_eq(readback, 29, "Random expected to wrap at previously set Wired bound")?;
+        
+        // test delayed readback by 1 instruction cycle
+        let start: u32;
+        let readback: u32;
+        unsafe {
+            asm!("
+                mtc0 {gpr_init_wired}, $6
+                nop;
+                nop; nop; nop; nop; nop;
+                nop; nop; nop; nop; nop;
+                
+                mfc0 {gpr_start}, $1
+                nop
+                nop
+                mtc0 {gpr_wired}, $6
+                nop
+                mfc0 {gpr_readback}, $1
+                nop
+                nop
+            ",
+            gpr_init_wired = in(reg) 20u32,
+            gpr_start = out(reg) start,
+            gpr_wired = in(reg) 5u32, // value here shouldn't matter
+            gpr_readback = out(reg) readback,
+        )}
+        
+        soft_assert_eq(start, 21, "Wired set to 20, Random decremented 10 times")?;
+        soft_assert_eq(readback, 31, "Random expected to reset")?;
         
         Ok(())
     }
