@@ -463,7 +463,7 @@ impl Test for UnusedRegistersExtraMtc0 {
         macro_rules! perform_test {
             ($reg:expr, $value:expr, $junk:expr) => {
                 let readback = write_read_cop0::<$reg>($value, $junk);
-                soft_assert_eq(readback, $junk, &format!("Unused COP0 Reg{} written with {:#010X}, then any other COP0 register written with {:#010X}", $reg, $value, $junk))?;
+                soft_assert_eq(readback, $junk, &format!("Unused COP0 Reg{} written with {:#010X}, then any other COP0 register written with {:#010X} before readback", $reg, $value, $junk))?;
             }
         }
         
@@ -478,6 +478,136 @@ impl Test for UnusedRegistersExtraMtc0 {
                 perform_test!(25, write, junk);
                 perform_test!(31, write, junk);
             }
+        }
+        
+        Ok(())
+    }
+}
+
+/// Tests write/read behavior for all unused COP0 registers, using an extra unrelated instructions.
+/// 
+/// Unused registers include number 7, 21, 22, 23, 24, 25, and 31. Writes to these registers exhibit
+/// odd behavior. Reads after writes, will always return the same value. But if another write occurs
+/// to another COP0 register, the readback from the first register, will be whatever was written to
+/// the second.
+/// 
+/// This test uses extra instructions between the write and readback, that simulate other typical
+/// CPU operations. These do not affect the latched state from the COP0 write, thus the readback
+/// should be the same value as what was written.
+pub struct UnusedRegistersExtraUnrelated;
+
+impl Test for UnusedRegistersExtraUnrelated {
+    fn name(&self) -> &str { "Unused COP0 Registers (with extra unrelated instructions)" }
+
+    fn level(&self) -> Level { Level::Weird }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        #[inline]
+        fn write_read_cop0<const INDEX: u32>(value: u32) -> u32 {
+            let readback: u32;
+            unsafe {
+                asm!("
+                    .set noat
+                    mtc0 {gpr_write}, ${cop0_reg}
+                    nop
+                    nop
+                    addiu $0, $0, 0xABCD
+                    xor $0, $5, $9
+                    mult $0, $0
+                    nop
+                    nop
+                    mfc0 {gpr_read}, ${cop0_reg}
+                    nop
+                    nop
+                ",
+                gpr_write = in(reg) value,
+                cop0_reg = const INDEX,
+                gpr_read = out(reg) readback,
+                );
+            }
+            
+            readback
+        }
+        
+        macro_rules! perform_test {
+            ($reg:expr, $value:expr) => {
+                let readback = write_read_cop0::<$reg>($value);
+                soft_assert_eq(readback, $value, &format!("Unused COP0 Reg{} written with {:#010X}, then various unrelated CPU instructions (ADDIU, XOR, MULT) before readback. Expecting same value back.", $reg, $value))?;
+            }
+        }
+        
+        // Test with different write and junk values to make sure emulator isn't cheating
+        for write in [0x13171A1Eu32, 0xAAAAAAAA, 0xFEDCBA98, 0x12345678, 0xFFFFFFFF] {
+            perform_test!(7, write);
+            perform_test!(21, write);
+            perform_test!(22, write);
+            perform_test!(23, write);
+            perform_test!(24, write);
+            perform_test!(25, write);
+            perform_test!(31, write);
+        }
+        
+        Ok(())
+    }
+}
+
+/// Tests write/read behavior for all unused COP0 registers, by reading back shortly after writing.
+/// 
+/// Unused registers include number 7, 21, 22, 23, 24, 25, and 31. Writes to these registers exhibit
+/// odd behavior. Reads after writes, will always return the same value. But if another write occurs
+/// to another COP0 register, the readback from the first register, will be whatever was written to
+/// the second.
+/// 
+/// This test doesn't write to any other register before reading back.
+pub struct UnusedRegistersWriteRead;
+
+impl Test for UnusedRegistersWriteRead {
+    fn name(&self) -> &str { "Unused COP0 Registers (write/read)" }
+
+    fn level(&self) -> Level { Level::Weird }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        #[inline]
+        fn write_read_cop0<const INDEX: u32>(value: u32) -> u32 {
+            let readback: u32;
+            unsafe {
+                asm!("
+                    mtc0 {gpr_write}, ${cop0_reg}
+                    nop
+                    nop
+                    mfc0 {gpr_read}, ${cop0_reg}
+                    nop
+                    nop
+                ",
+                gpr_write = in(reg) value,
+                cop0_reg = const INDEX,
+                gpr_read = out(reg) readback,
+                );
+            }
+            
+            readback
+        }
+        
+        macro_rules! perform_test {
+            ($reg:expr, $value:expr) => {
+                let readback = write_read_cop0::<$reg>($value);
+                soft_assert_eq(readback, $value, &format!("Unused COP0 Reg{} written with {:#010X}, expecting same value back", $reg, $value))?;
+            }
+        }
+        
+        // Test with different write values to make sure emulator isn't cheating
+        for write in [0x13171A1Eu32, 0xAAAAAAAA, 0xFEDCBA98, 0x12345678, 0xFFFFFFFF] {
+            perform_test!(7, write);
+            perform_test!(21, write);
+            perform_test!(22, write);
+            perform_test!(23, write);
+            perform_test!(24, write);
+            perform_test!(25, write);
+            perform_test!(31, write);
         }
         
         Ok(())

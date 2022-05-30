@@ -84,6 +84,8 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::cop0::LLAddrIs32Bit {}),
         Box::new(super::cop0::StatusIs32Bit {}),
         Box::new(super::cop0::UnusedRegistersExtraMtc0),
+        Box::new(super::cop0::UnusedRegistersExtraUnrelated),
+        Box::new(super::cop0::UnusedRegistersWriteRead),
         Box::new(super::cop0::ParityErrorMasking),
         Box::new(super::cop0::CacheErrorMasking),
         Box::new(super::exception_instructions::Break {}),
