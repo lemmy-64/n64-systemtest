@@ -1,5 +1,5 @@
 use alloc::boxed::Box;
-use alloc::{format, vec};
+use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::any::Any;
@@ -419,60 +419,40 @@ impl Test for StatusIs32Bit {
     }
 }
 
-/// Tests masking for all unused COP0 registers.
+/// Tests write/read behavior for all unused COP0 registers, using an extra COP0 write.
 /// 
-/// Unused registers include number 7, 21, 22, 23, 24, 25, and 31. These registers should be 
-/// fully writable and readable.
-pub struct UnusedMasking;
+/// Unused registers include number 7, 21, 22, 23, 24, 25, and 31. Writes to these registers exhibit
+/// odd behavior. Reads after writes, will always return the same value. But if another write occurs
+/// to another COP0 register, the readback from the first register, will be whatever was written to
+/// the second.
+pub struct UnusedRegistersExtraMtc0;
 
-impl Test for UnusedMasking {
-    fn name(&self) -> &str { "Unused COP0 Registers (masking)" }
+impl Test for UnusedRegistersExtraMtc0 {
+    fn name(&self) -> &str { "Unused COP0 Registers (with extra mtc0)" }
 
     fn level(&self) -> Level { Level::Weird }
 
-    fn values(&self) -> Vec<Box<dyn Any>> { 
-        vec![
-            Box::new(0x11111111u32),
-            Box::new(0x00000000u32),
-            Box::new(0x33333333u32),
-            Box::new(0x22222222u32),
-            Box::new(0x88888888u32),
-            Box::new(0xAAAAAAAAu32),
-            Box::new(0x55555555u32),
-            Box::new(0xFFFFFFFFu32),
-            Box::new(0x01234567u32),
-            Box::new(0xFEDCBA98u32),
-        ]
-    }
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 
-    fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
-        let value = *(*value).downcast_ref::<u32>().unwrap();
-        
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
         #[inline]
-        fn write_read_cop0<const INDEX: u32>(value: u32) -> u32 {
+        fn write_read_cop0<const INDEX: u32>(value: u32, junk: u32) -> u32 {
             let readback: u32;
             unsafe {
                 asm!("
                     mtc0 {gpr_write}, ${cop0_reg}
                     nop
                     nop
-                ",
-                gpr_write = in(reg) value,
-                cop0_reg = const INDEX,
-                );
-                
-                // Waiting doesn't seem to be necessary, but historically some people have suspected
-                // the registers may only hold data temporarily.
-                for _ in 0..1024 { // Ideally should replace this with a proper counter instead of inserting nops
-                    asm!("nop;");
-                }
-                
-                asm!("
+                    mtc0 {junk}, $11
+                    nop
+                    nop
                     mfc0 {gpr_read}, ${cop0_reg}
                     nop
                     nop
                 ",
+                gpr_write = in(reg) value,
                 cop0_reg = const INDEX,
+                junk = in(reg) junk,
                 gpr_read = out(reg) readback,
                 );
             }
@@ -481,19 +461,92 @@ impl Test for UnusedMasking {
         }
         
         macro_rules! perform_test {
-            ($reg:expr, $value:expr) => {
-                let readback = write_read_cop0::<$reg>($value);
-                soft_assert_eq(readback, value, &format!("Unused COP0 Reg{} written with {:#010X}", $reg, $value))?;
+            ($reg:expr, $value:expr, $junk:expr) => {
+                let readback = write_read_cop0::<$reg>($value, $junk);
+                soft_assert_eq(readback, $junk, &format!("Unused COP0 Reg{} written with {:#010X}, then any other COP0 register written with {:#010X}", $reg, $value, $junk))?;
             }
         }
         
-        perform_test!(7, value);
-        perform_test!(21, value);
-        perform_test!(22, value);
-        perform_test!(23, value);
-        perform_test!(24, value);
-        perform_test!(25, value);
-        perform_test!(31, value);
+        // Test with different write and junk values to make sure emulator isn't cheating
+        for write in [0x13171A1Eu32, 0xAAAAAAAA, 0xFEDCBA98, 0x12345678, 0xFFFFFFFF] {
+            for junk in [0x8BADF00Du32, 0xDEADBEEF, 0xBADDCAFE] {
+                perform_test!(7, write, junk);
+                perform_test!(21, write, junk);
+                perform_test!(22, write, junk);
+                perform_test!(23, write, junk);
+                perform_test!(24, write, junk);
+                perform_test!(25, write, junk);
+                perform_test!(31, write, junk);
+            }
+        }
+        
+        Ok(())
+    }
+}
+
+/// Tests if read/write masking is correct for the COP0 ParityError register.
+pub struct ParityErrorMasking;
+
+impl Test for ParityErrorMasking {
+    fn name(&self) -> &str { "ParityError (masking)" }
+
+    fn level(&self) -> Level { Level::Weird }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+    
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        let readback: u32;
+        unsafe {
+            asm!("
+                mtc0 {gpr_test}, $26
+                nop
+                nop
+                mtc0 {junk}, $11
+                nop
+                nop
+                mfc0 {gpr_readback}, $26
+                nop
+                nop
+            ",
+            gpr_test = in(reg) 0xFFFFFFFFu32,
+            junk = in(reg) 0xAA55AA55u32,
+            gpr_readback = out(reg) readback,
+        )}
+        soft_assert_eq(readback, 0xFF, "ParityError (26) was written as 0xFFFFFFFF")?;
+        
+        Ok(())
+    }
+}
+
+/// Tests if read/write masking is correct for the COP0 CacheError register.
+pub struct CacheErrorMasking;
+
+impl Test for CacheErrorMasking {
+    fn name(&self) -> &str { "CacheError (masking)" }
+
+    fn level(&self) -> Level { Level::Weird }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+    
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        let readback: u32;
+        unsafe {
+            asm!("
+                mtc0 {gpr_test}, $27
+                nop
+                nop
+                mtc0 {junk}, $11
+                nop
+                nop
+                mfc0 {gpr_readback}, $27
+                nop
+                nop
+            ",
+            gpr_test = in(reg) 0xFFFFFFFFu32,
+            junk = in(reg) 0xAA55AA55u32,
+            gpr_readback = out(reg) readback,
+        )}
+        soft_assert_eq(readback, 0, "CacheError (27) was written as 0xFFFFFFFF")?;
         
         Ok(())
     }
