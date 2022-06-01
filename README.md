@@ -15,7 +15,7 @@ n64-systemtest tests common but also some of the more exotic features of the N64
 - Exceptions: Overflow (ADD, DADD etc), unaligned memory access (e.g. LW), TRAP instructions, BREAK, SYSCALL
 - TLB
 - Access (8, 16, 32, 64 bit) to RAM, ROM, SPMEM, PIF
-- RSP (going very deep but little coverage so far)
+- RSP
 
 # How to build
 n64-systemtest can be built on Windows, mac or Linux (including within WSL). The steps are pretty much the same.
