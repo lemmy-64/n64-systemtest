@@ -11,11 +11,19 @@ use crate::tests::soft_asserts::soft_assert_eq;
 
 /// Tests the behavior of the COP0 Random register after writing to Wired and executing any other instructions.
 /// 
-/// When writing any value from 0-31 (inclusive) to Wired, the Random register is automatically set to 31.
-/// For each instruction after, the Random register is decremented by 1, and will wrap back to 31 after
-/// decrementing past the value stored in Wired.
+/// When writing any value from 0-63 (inclusive) to Wired, the Random register is automatically set to 31.
+/// For each instruction after, the Random register is decremented by 1, and follows the following
+/// behavior (pscudo-code):
 /// 
-/// TODO: Expand test for Index values >= 32
+/// ```
+/// instruction_cycle() {
+///     if random == wired {
+///         random = 31;
+///     } else {
+///         random = (random - 1) & 63;
+///     }
+/// }
+/// ```
 pub struct RandomDecrement;
 
 impl Test for RandomDecrement {
@@ -26,22 +34,27 @@ impl Test for RandomDecrement {
     fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
-        /// Credit to calc83maniac and StrikerX3 from emudev Discord for this equation.
-        /// 
-        /// N64 crashes if wired = 32, and test fails if wired > 32. A different equation is needed for wired >= 32.
-        #[inline(always)]
-        fn expected_after(n_instructions: u32, wired: u32) -> u32 {
-            const INITIAL: u32 = 31;
-            31 - (n_instructions % ((INITIAL + 1) - wired))
+        
+        fn simulate(cycles: u32, wired: u32) -> u32 {
+            let mut random = 31;
+            for _ in 0..cycles {
+                if random == wired {
+                    random = 31;
+                } else {
+                    random = (random - 1) & 63;
+                }
+            }
+            
+            random
         }
         
         // Note that when mfc0 is used after mtc0, extra cycles are required. That combined with
         // the nature of the test, assembly is used to ensure timing accuracy.
         fn perform(wired: u32) -> Result<(), String> {
             let after1: u32;
-            let after6: u32;
+            let after16: u32;
             let after31: u32;
-            let after36: u32;
+            let after100: u32;
             
             unsafe {
                 asm!("
@@ -50,33 +63,40 @@ impl Test for RandomDecrement {
                     nop
                     mfc0 {gpr_after1}, $1
                     
-                    nop; nop; nop; nop;
-                    mfc0 {gpr_after6}, $1
-                    
                     nop; nop; nop; nop; nop; nop; nop; nop; nop; nop;
+                    nop; nop; nop; nop;
+                    mfc0 {gpr_after16}, $1
+                    
                     nop; nop; nop; nop; nop; nop; nop; nop; nop; nop;
                     nop; nop; nop; nop;
                     mfc0 {gpr_after31}, $1
                     
-                    nop; nop; nop; nop;
-                    mfc0 {gpr_after36}, $1
+                    nop; nop; nop; nop; nop; nop; nop; nop; nop; nop;
+                    nop; nop; nop; nop; nop; nop; nop; nop; nop; nop;
+                    nop; nop; nop; nop; nop; nop; nop; nop; nop; nop;
+                    nop; nop; nop; nop; nop; nop; nop; nop; nop; nop;
+                    nop; nop; nop; nop; nop; nop; nop; nop; nop; nop;
+                    nop; nop; nop; nop; nop; nop; nop; nop; nop; nop;
+                    nop; nop; nop; nop; nop;
+                    nop; nop; nop;
+                    mfc0 {gpr_after100}, $1
                 ",
                 gpr_in = in(reg) wired,
                 gpr_after1 = out(reg) after1,
-                gpr_after6 = out(reg) after6,
+                gpr_after16 = out(reg) after16,
                 gpr_after31 = out(reg) after31,
-                gpr_after36 = out(reg) after36,
+                gpr_after100 = out(reg) after100,
             )}
             
-            soft_assert_eq(after1, expected_after(1, wired), &format!("Random, 1 instruction after setting Wired = {}", wired))?;
-            soft_assert_eq(after6, expected_after(6, wired), &format!("Random, 6 instructions after setting Wired = {}", wired))?;
-            soft_assert_eq(after31, expected_after(31, wired), &format!("Random, 31 instructions after setting Wired = {}", wired))?;
-            soft_assert_eq(after36, expected_after(36, wired), &format!("Random, 36 instructions after setting Wired = {}", wired))?;
+            soft_assert_eq(after1, simulate(1, wired), &format!("Random, 1 instruction after setting Wired = {}", wired))?;
+            soft_assert_eq(after16, simulate(16, wired), &format!("Random, 16 instructions after setting Wired = {}", wired))?;
+            soft_assert_eq(after31, simulate(31, wired), &format!("Random, 31 instructions after setting Wired = {}", wired))?;
+            soft_assert_eq(after100, simulate(100, wired), &format!("Random, 100 instructions after setting Wired = {}", wired))?;
             
             Ok(())
         }
         
-        for i in 0..=31 {
+        for i in 0..=63 {
             perform(i)?;
         }
         
