@@ -13,7 +13,7 @@ use crate::tests::soft_asserts::soft_assert_eq;
 /// 
 /// When writing any value from 0-63 (inclusive) to Wired, the Random register is automatically set to 31.
 /// For each instruction after, the Random register is decremented by 1, and follows the following
-/// behavior (pscudo-code):
+/// behavior (pseudo-code):
 /// 
 /// ```
 /// instruction_cycle() {
