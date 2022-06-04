@@ -11,9 +11,9 @@ use crate::tests::soft_asserts::soft_assert_eq;
 
 /// Tests the behavior of the COP0 Random register after writing to Wired and executing any other instructions.
 /// 
-/// When writing any value from 0-63 (inclusive) to Wired, the Random register is automatically set to 31.
-/// For each instruction after, the Random register is decremented by 1, and follows the following
-/// behavior (pseudo-code):
+/// When writing any value to Wired (which hardware will mask to a value of 0-63 inclusive), the
+/// Random register is automatically set to 31. For each instruction after, the Random register is
+/// decremented by 1, and follows the following behavior (pseudo-code):
 /// 
 /// ```
 /// instruction_cycle() {
@@ -96,6 +96,8 @@ impl Test for RandomDecrement {
             Ok(())
         }
         
+        // Values above 63 are technically valid, but hardware will ignore any numbers larger than 63.
+        // There is separate test for register masking.
         for i in 0..=63 {
             perform(i)?;
         }
@@ -435,6 +437,48 @@ impl Test for StatusIs32Bit {
             let readback = cop0::status_64();
             soft_assert_eq(readback, expected, format!("Status was written as 0x{:x}. It's upper 32 bit should be constant", write_value).as_str())?;
         }
+        Ok(())
+    }
+}
+
+/// Tests if read/write masking is correct for the COP0 Status register.
+pub struct StatusMasking;
+
+impl Test for StatusMasking {
+    fn name(&self) -> &str { "Status (masking)" }
+
+    fn level(&self) -> Level { Level::Weird }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        let previous = cop0::status();
+        unsafe { cop0::set_status(previous | 0x00080000) }
+        let readback = cop0::status();
+        
+        soft_assert_eq(readback, previous & 0xFFF7FFFF, "Status bit-19 set. Expected readback bit-19 to be clear")?;
+        
+        Ok(())
+    }
+}
+
+/// Tests if read/write masking is correct for the COP0 Config register.
+pub struct ConfigMasking;
+
+impl Test for ConfigMasking {
+    fn name(&self) -> &str { "Config (masking)" }
+
+    fn level(&self) -> Level { Level::Weird }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        let previous = cop0::config();
+        unsafe { cop0::set_config((previous & 0x7F00800F) | 0x80F91B90) }
+        let readback = cop0::config();
+        
+        soft_assert_eq(readback, (previous & 0x7F00800F) | 0x00066460, "Config written with {:#010X}")?;
+        
         Ok(())
     }
 }
