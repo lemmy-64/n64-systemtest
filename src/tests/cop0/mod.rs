@@ -484,6 +484,12 @@ impl Test for ConfigMasking {
 }
 
 /// Tests COP0 ProcessorRevisionId register for expected values and read-only behavior.
+/// 
+/// Sample testing of consoles from the n64 homebrew community, shows that the majority of systems
+/// report the value 0x00000B22 when reading this register. However, one sample reported the
+/// value 0x00000B10.
+/// 
+/// More info: https://github.com/lemmy-64/n64-systemtest/pull/25#issuecomment-1146854023
 pub struct ProcessorRevisionIdMasking;
 
 impl Test for ProcessorRevisionIdMasking {
@@ -497,7 +503,10 @@ impl Test for ProcessorRevisionIdMasking {
         unsafe { cop0::set_previd(0xFFFFFFFF); }
         let readback = cop0::previd();
         
-        soft_assert_eq(readback, 0x00000B22, "PRId written with 0xFFFFFFFF. Expected constant readback of 0xB22")?;
+        match soft_assert_eq(readback, 0x00000B22, "PRId written with 0xFFFFFFFF. Expected constant readback of 0xB22 or 0xB10") {
+            Ok(()) => return Ok(()),
+            Err(_) => soft_assert_eq(readback, 0x00000B10, "PRId written with 0xFFFFFFFF. Expected constant readback of 0xB22 or 0xB10")?
+        }
         
         Ok(())
     }
