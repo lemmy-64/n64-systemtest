@@ -61,7 +61,7 @@ pub trait Test {
     /// test will be run once for every value in the list.
     fn values(&self) -> Vec<Box<dyn Any>>;
 
-    /// Run the test with a provide value.
+    /// Run the test with a provided value.
     /// 
     /// Value may be a dummy, if [`Self::values()`] returned an empty list.
     /// 
