@@ -259,9 +259,14 @@ pub unsafe fn set_exceptpc(value: u64) {
     unsafe { write_cop0_64::<INDEX>(value) }
 }
 
-pub fn previd() -> u64 {
+pub fn previd() -> u32 {
     const INDEX: u32 = RegisterIndex::PRevID as u32;
-    unsafe { read_cop0_64::<INDEX>() }
+    unsafe { read_cop0::<INDEX>() }
+}
+
+pub unsafe fn set_previd(value: u32) {
+    const INDEX: u32 = RegisterIndex::PRevID as u32;
+    unsafe { write_cop0::<INDEX>(value) }
 }
 
 pub fn config() -> u32 {

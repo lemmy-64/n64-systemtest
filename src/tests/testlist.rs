@@ -85,6 +85,7 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::cop0::StatusIs32Bit {}),
         Box::new(super::cop0::StatusMasking),
         Box::new(super::cop0::ConfigMasking),
+        Box::new(super::cop0::ProcessorRevisionIdMasking),
         Box::new(super::cop0::UnusedRegistersExtraMtc0),
         Box::new(super::cop0::UnusedRegistersExtraUnrelated),
         Box::new(super::cop0::UnusedRegistersWriteRead),

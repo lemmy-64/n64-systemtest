@@ -483,6 +483,26 @@ impl Test for ConfigMasking {
     }
 }
 
+/// Tests COP0 ProcessorRevisionId register for expected values and read-only behavior.
+pub struct ProcessorRevisionIdMasking;
+
+impl Test for ProcessorRevisionIdMasking {
+    fn name(&self) -> &str { "ProcessorRevisionID (masking)" }
+
+    fn level(&self) -> Level { Level::Weird }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        unsafe { cop0::set_previd(0xFFFFFFFF); }
+        let readback = cop0::previd();
+        
+        soft_assert_eq(readback, 0x00000B22, "PRId written with 0xFFFFFFFF. Expected constant readback of 0xB22")?;
+        
+        Ok(())
+    }
+}
+
 /// Tests write/read behavior for all unused COP0 registers, using an extra COP0 write.
 /// 
 /// Unused registers include number 7, 21, 22, 23, 24, 25, and 31. Writes to these registers exhibit
