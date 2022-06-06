@@ -36,6 +36,16 @@ Run the rom in your emulator of choice. Expect one of three things:
 # Troubleshooting
 n64-systemtest runs A LOT of tests. If things are very broken, it can be hard to figure out how make any progress. There are two ways to make progress in such a situation:
 
+## Missing instructions
+(If you emulator supports LL, SC, DMFC0, DMTC0, feel free to skip this part)
+n64-systemtest uses some unusual instructions. If your emulator doesn't support those, there's a good chance the test suite won't run until the end. To avoid those crashes, it can be helpful to implement the following instructions:
+- Make LL work like LW
+- Make SC work like SW
+- Make DMFC0 work like MFC0
+- Make DMTC0 work like MTC0
+
+Just to be clear: The things above are wrong. But they are good enough approximations to allow the testsuite to reach the end. It will show plenty of errors that require correct implementations of the instructions above.
+
 ## ISViewer
 All output that is printed on screen is also printed to memory mapped registers. For debugging, it is very valuable to hook this up and e.g. print to the console. To do that, simply provide the following two things:
 - 0xB3FF0020 until 0xB3FF0220: A buffer that can be written to using SB
