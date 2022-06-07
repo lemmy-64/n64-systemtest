@@ -15,7 +15,7 @@ n64-systemtest tests common but also some of the more exotic features of the N64
 - Exceptions: Overflow (ADD, DADD etc), unaligned memory access (e.g. LW), TRAP instructions, BREAK, SYSCALL
 - TLB
 - Access (8, 16, 32, 64 bit) to RAM, ROM, SPMEM, PIF
-- RSP (going very deep but little coverage so far)
+- RSP
 
 # How to build
 n64-systemtest can be built on Windows, mac or Linux (including within WSL). The steps are pretty much the same.
@@ -34,7 +34,18 @@ Run the rom in your emulator of choice. Expect one of three things:
 3. An empty screen: The emulator didn't make it to the end. See _troubleshooting_.
 
 # Troubleshooting
-n64-systemtest runs A LOT of tests. If things are very broken, it can be hard to figure out how make any progress. There are two ways to make progress in such a situation:
+n64-systemtest runs A LOT of tests. If things are very broken, it can be hard to figure out how make any progress. Some tips on how to make progress:
+
+## Missing instructions
+(If you emulator supports LL, SC, DMFC0, DMTC0, feel free to skip this part)
+
+n64-systemtest uses some unusual instructions. If your emulator doesn't support those, there's a good chance the test suite won't run until the end. To avoid those crashes, it can be helpful to implement the following instructions:
+- Make LL work like LW
+- Make SC work like SW
+- Make DMFC0 work like MFC0
+- Make DMTC0 work like MTC0
+
+Just to be clear: The things above are wrong. But they are good enough approximations to allow the testsuite to reach the end. It will show plenty of errors that require correct implementations of the instructions above.
 
 ## ISViewer
 All output that is printed on screen is also printed to memory mapped registers. For debugging, it is very valuable to hook this up and e.g. print to the console. To do that, simply provide the following two things:

@@ -1,3 +1,7 @@
+//! Testsuite for a wide variety of N64 features and behaviors.
+//! 
+//! All tests included in this suite are found in the [`tests`] module.
+
 #![no_std]
 #![feature(alloc_error_handler)]
 #![feature(asm_const)]
@@ -7,6 +11,7 @@
 #![feature(type_name_of_val)]
 #![feature(step_trait)]
 #![deny(unsafe_op_in_unsafe_fn)]
+#![allow(rustdoc::private_intra_doc_links)]
 #![no_main]
 
 extern crate alloc;

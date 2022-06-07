@@ -758,6 +758,11 @@ impl RSPAssembler {
         self.write_wc2(OP::SWC2, WC2OP::R, vt, element, offset >> 4, base);
     }
 
+    pub fn write_stv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
+        assert!((offset & 0b1111) == 0);
+        self.write_wc2(OP::SWC2, WC2OP::T, vt, element, offset >> 4, base);
+    }
+
     pub fn write_suv(&mut self, vt: VR, element: E, offset: i32, base: GPR) {
         assert!((offset & 0b111) == 0);
         self.write_wc2(OP::SWC2, WC2OP::U, vt, element, offset >> 3, base);

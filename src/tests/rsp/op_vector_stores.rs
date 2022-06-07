@@ -23,9 +23,11 @@ use crate::tests::soft_asserts::soft_assert_eq_vector;
 //     - SSV: 2 bytes
 //     - SBV: 1 byte
 // - SPV, SUV, SHV do packed storage, where a u16 of a register is stored into a u8 in memory (by shifting right 7/8 bits)
-// - SFV is little complicated - depending on the E it pulls different source elements (or even 0 for some E)
+// - SFV is a little complicated - depending on the E it pulls different source elements (or even 0 for some E)
 // - SWF is quite simple: The full 128 bit of a register are written to the target location. There is overflow,
 //   with the base being a half-vector, which essentially rotates the vector if the target is unaligned.
+// - STV: Write the first 16 bits from a register, then the next 16 bits from the next register...8 times
+//   This is the only one of the stores that reads from multiple registers (0..8, 8..16, 16..24 or 24..32)
 
 fn test<FEmit: Fn(&mut RSPAssembler, VR, i32, GPR, E), FSimulate: Fn(&Vector, &[Vector; 4], u32, E) -> [Vector; 4]>(base_offset: usize, emit: FEmit, simulate: FSimulate) -> Result<(), String> {
     // Alignment and element specifiers to test. If we pass these, we'll probably pass everything
@@ -361,5 +363,84 @@ impl Test for SWV {
                  }
                  result
              })
+    }
+}
+
+pub struct STV {}
+
+impl Test for STV {
+    fn name(&self) -> &str { "RSP STV" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        // Cut down the overall number of combinations somewhat. If these values work,
+        // all should work
+        const TEST_ELEMENT: [E; 8] = [E::_0, E::_1, E::_2, E::_7, E::_8, E::_9, E::_14, E::_15];
+        const TEST_OFFSETS: [u32; 10] = [0, 1, 2, 3, 7, 8, 14, 15, 16, 23];
+        const TEST_VT: [VR; 9] = [VR::V0, VR::V1, VR::V2, VR::V7, VR::V8, VR::V9, VR::V18, VR::V25, VR::V31];
+
+        // Test data to load into all vectors into 0x500 to 0x700
+        let mut registers: [Vector; 32] = Default::default();
+        for i in 0..32 {
+            for j in 0..16 {
+                registers[i].set8(j, (i * 16 + j) as u8);
+            }
+        }
+        for i in 0..32 {
+            SPMEM::write_vector_into_dmem(0x500 + i * 0x10, &registers[i]);
+        }
+
+        for offset in TEST_OFFSETS {
+            for vt in TEST_VT {
+                for e in TEST_ELEMENT {
+                    // Prefill target location
+                    const PREVIOUS_00: Vector = Vector::from_u16([0xFFEE, 0xEEDD, 0xDDCC, 0xCCBB, 0xBBCC, 0xCCDD, 0xDDEE, 0xEEFF]);
+                    const PREVIOUS_10: Vector = Vector::from_u16([0xBBAA, 0xAA99, 0x9988, 0x8877, 0x7788, 0x8899, 0x99AA, 0xAABB]);
+
+                    SPMEM::write_vector_into_dmem(0x000, &PREVIOUS_00);
+                    SPMEM::write_vector_into_dmem(0x010, &PREVIOUS_10);
+
+                    let mut assembler = RSPAssembler::new(0);
+
+                    // Preload all registers with 0, 1, 2, 3, 4, 5, 6, 7, 8
+                    assembler.write_li(GPR::A0, 0x500);
+                    for vr in VR::V0..=VR::V31 {
+                        assembler.write_lqv(vr, E::_0, (vr.index() * 0x10) as i32, GPR::A0);
+                    }
+
+                    // Do the actual write that's being tested
+                    assembler.write_li(GPR::A0, offset - 0x10);
+                    assembler.write_stv(vt, e, 0x10, GPR::A0);
+
+                    assembler.write_break();
+
+                    RSP::start_running(0);
+
+                    // Simulate on the CPU
+                    let mut expected00 = PREVIOUS_00;
+                    let mut expected10 = PREVIOUS_10;
+
+                    let base_vt_index = vt.index() & !7;
+                    for i in 0..16 {
+                        let source_register_index = base_vt_index + (((i >> 1) - (((offset & !0x7) as usize) >> 1) + (e.index() >> 1)) & 0x7);
+                        let source_element_index = i + ((offset & !0x7) as usize);
+
+                        let address = ((offset & !0x7) as usize) + ((offset as usize + i) & 15);
+                        let v = if address < 16 { &mut expected00 } else { &mut expected10 };
+                        v.set8(address & 15, registers[source_register_index].get8(source_element_index & 15));
+                    }
+
+                    RSP::wait_until_rsp_is_halted();
+
+                    // Verify result
+                    soft_assert_eq_vector(SPMEM::read_vector_from_dmem(0x00), expected00, || format!("DMEM[0x000] after STV {:?}[{:?}] to 0x{:x}", vt, e, offset))?;
+                    soft_assert_eq_vector(SPMEM::read_vector_from_dmem(0x10), expected10, || format!("DMEM[0x010] after STV {:?}[{:?}] to 0x{:x}", vt, e, offset))?;
+                }
+            }
+        }
+        Ok(())
     }
 }
