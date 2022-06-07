@@ -159,7 +159,7 @@ pub struct RandomReadEarly;
 impl Test for RandomReadEarly {
     fn name(&self) -> &str { "Random (read early)" }
 
-    fn level(&self) -> Level { Level::Weird }
+    fn level(&self) -> Level { Level::TooWeird }
 
     fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 

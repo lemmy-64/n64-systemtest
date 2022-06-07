@@ -3,117 +3,16 @@ use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::any::Any;
-use core::arch::asm;
-use core::cmp::min;
 
 use crate::cop0;
 use crate::cop0::{make_entry_hi, make_entry_lo};
 use crate::memory_map::MemoryMap;
 use crate::tests::{Level, Test};
-use crate::tests::soft_asserts::{soft_assert_eq, soft_assert_greater_or_equal, soft_assert_less};
+use crate::tests::soft_asserts::{soft_assert_eq, soft_assert_less};
 
 pub mod exceptions;
 
 // TODO: TLBWR and TLBP
-
-// Tests wired and Random registers.
-// Lessons learned: WIRED has 6 bits; upper bits are zeroed on write
-// - Values between 0 and 31 are a lower (inclusive) bound for RANDOM
-// - Values between 32 and 63 cause RANDOM to take any value in the range 0..63
-
-pub struct WiredRandom {}
-
-impl Test for WiredRandom {
-    fn name(&self) -> &str { "Wired/Random" }
-
-    fn level(&self) -> Level { Level::BasicFunctionality }
-
-    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
-
-    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
-        for wired in 0..32 {
-            unsafe { cop0::set_wired(wired); }
-            soft_assert_eq(cop0::wired(), wired, "WIRED after setting")?;
-
-            // Keep getting random values. Ensure we hit a couple of different values
-            // and ensure we're never out of bounds
-            let mut value_seen = [false; 32];
-            let mut count_values_seen = 0;
-            let mut counter = 0;
-            let expected_unique_value_count = min(10, 32 - wired as usize);
-            while count_values_seen < expected_unique_value_count {
-                let random = cop0::random();
-                // Ensure it is within the expected range
-                soft_assert_greater_or_equal(random, wired, "RANDOM must be >= WIRED")?;
-                soft_assert_less(random, 32, "RANDOM must be < 32")?;
-
-                // Count unique values
-                if !value_seen[random as usize] {
-                    value_seen[random as usize] = true;
-                    count_values_seen += 1;
-                }
-
-                // Prevent infinite loop on broken implementations
-                counter += 1;
-                if counter == 1_000_000 {
-                    return Err(format!("RANDOM (with WIRED={}) was expected to return at least {} unique values, but we timed out", wired, expected_unique_value_count).into());
-                }
-
-                // Sometimes, certain random values aren't hit. Unclear why, but maybe the fixed
-                // number of clock cycles badly affects the Random distribution. To workaround,
-                // introduce some noise
-                for _ in 0..(counter & 1023) | random {
-                    unsafe { asm!("NOP") };
-                }
-            }
-        }
-        Ok(())
-    }
-}
-
-pub struct WiredOutOfBoundsRandom {}
-
-impl Test for WiredOutOfBoundsRandom {
-    fn name(&self) -> &str { "Wired OOB/Random" }
-
-    fn level(&self) -> Level { Level::Weird }
-
-    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
-
-    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
-        for wired in [32, 60, 61, 62, 63, 64, 65, 93, 94, 95, 96, 97] {
-            unsafe { cop0::set_wired(wired); }
-            soft_assert_eq(cop0::wired(), wired & 63, "WIRED preserves only lower bits")?;
-
-            if (wired & 63) >= 32 {
-                let mut min = 100;
-                let mut max = 0;
-                let mut counter = 0;
-                loop {
-                    let random = cop0::random();
-                    if random < min {
-                        min = random;
-                    }
-                    if random > max {
-                        max = random;
-                    }
-
-                    // We expect to hit this pretty soon
-                    if min < 10 && max > 54 {
-                        break;
-                    }
-
-                    // Prevent infinite loop on broken implementations
-                    counter += 1;
-                    if counter == 1_000_000 {
-                        return Err(format!("If WIRED>31, RANDOM can be [0..63]. Expected to see most of the range (at least 10..54), but saw [{}..{}]", min, max));
-                    }
-                }
-            }
-        }
-        Ok(())
-    }
-}
 
 pub struct WriteRandomExpectIgnored {}
 
