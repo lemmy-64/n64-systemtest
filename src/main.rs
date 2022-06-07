@@ -36,8 +36,10 @@ mod mi;
 mod panic;
 mod pi;
 mod print;
+mod rdp;
 mod rsp;
 mod tests;
+mod uncached_memory;
 
 global_asm!(include_str!("boot.s"));
 

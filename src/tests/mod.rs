@@ -18,6 +18,7 @@ mod exception_instructions;
 mod jumps;
 mod overflow_exception;
 mod pif_memory;
+mod rdp;
 mod rsp;
 mod startup;
 mod soft_asserts;
@@ -44,9 +45,17 @@ pub enum Level {
     /// Slow test of basic functionality. Only enabled when compiled with stresstest feature flags.
     StressTest,
 
-    /// A test which documents a behavior of the hardware which makes sense in the context of cycle-exact emulation
-    /// (not deemed practical for current software emulators)
+    /// A test that requires cycle-accurate emulation in the emulator. In general, this is poorly understood
+    /// (and test coverage is quite spotty), so this is off by default.
     CycleExact,
+
+    /// Basic RDP functionality (e.g. triangle drawing). Tests in this category can
+    /// be mapped to a hardware renderer (Direct3D, OpenGL, Vulkan)
+    RDPBasic,
+
+    /// RDP coverage emulation, which is thought to not be runnable on dedicated 3D hardware
+    /// (unless doing GPU compute). Off by default
+    RDPPrecise,
 }
 
 /// Trait for a test or group of tests that are performed together.

@@ -138,6 +138,26 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::pif_memory::SB {}),
         Box::new(super::pif_memory::LB {}),
         Box::new(super::pif_memory::LH {}),
+
+        Box::new(super::rdp::StartAndEndMasking {}),
+        Box::new(super::rdp::StartIsValidFlag {}),
+        Box::new(super::rdp::StatusFlagsDuringRun {}),
+        Box::new(super::rdp::RunFromDMEM {}),
+
+        // The following are disabled for the time being as they are not stable on hardware yet
+        // Box::new(super::rdp::filled_triangle::FilledTriangle1CycleDegenerateRect {}),
+        // Box::new(super::rdp::filled_triangle::FilledTriangle1CycleRightMajorFlatTop {}),
+        // Box::new(super::rdp::filled_triangle::FilledTriangle1CycleRightMajor {}),
+        // Box::new(super::rdp::filled_triangle::FilledTriangle1CycleScissorLeft {}),
+        // Box::new(super::rdp::filled_triangle::FilledTriangle1CycleScissorTop {}),
+        // Box::new(super::rdp::filled_triangle::FilledTriangle1CycleScissorRight {}),
+        // Box::new(super::rdp::filled_triangle::FilledTriangle1CycleScissorRightSubPixelPrecision {}),
+        // Box::new(super::rdp::filled_triangle::FilledTriangle1CycleScissorBottom {}),
+        // Box::new(super::rdp::filled_triangle::FilledTriangle1CycleScissorBottomSubPixelPrecision {}),
+        // Box::new(super::rdp::filled_triangle::FilledTriangle1CycleNegativeYH {}),
+        // Box::new(super::rdp::filled_triangle::FilledTriangle1CycleNegativeXL {}),
+        // Box::new(super::rdp::filled_triangle::FilledTriangle1CycleRandomized {}),
+
         // This should be RSP test #1
         Box::new(super::rsp::PCRegMasking {}),
         // This should be RSP test #2
@@ -146,7 +166,6 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::rsp::op_break::BREAKWithinDelay2 {}),
         // This should be RSP test #3
         Box::new(super::rsp::wrap_around::WrapAround {}),
-
         Box::new(super::rsp::ParallelRunning {}),
         // Non-vector instructions
         Box::new(super::rsp::op_add_addu::ADD {}),
@@ -185,7 +204,6 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::rsp::op_jr_jalr::JALRWithRegisterChangeInDelaySlot {}),
         Box::new(super::rsp::op_jr_jalr::JALRWithReturnAddressChangeInDelaySlot {}),
         Box::new(super::rsp::op_jr_jalr::JALRWithReturnAddressEqualToTargetAddress {}),
-
         Box::new(super::rsp::op_branches::BEQ {}),
         Box::new(super::rsp::op_branches::BNE {}),
         Box::new(super::rsp::op_branches::BLEZ {}),
@@ -196,7 +214,6 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::rsp::op_branches::BLTZALTestRA {}),
         Box::new(super::rsp::op_branches::BGEZAL {}),
         Box::new(super::rsp::op_branches::BGEZALTestRA {}),
-
         Box::new(super::rsp::op_shifts::SLL {}),
         Box::new(super::rsp::op_shifts::SRL {}),
         Box::new(super::rsp::op_shifts::SRA {}),
@@ -282,17 +299,14 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::rsp::op_vector_arithmetic::VINSQ {}),
         Box::new(super::rsp::op_vector_arithmetic::VINSN {}),
         Box::new(super::rsp::op_vector_arithmetic::VNULL {}),
-
         Box::new(super::rsp::op_vector_arithmetic::V30 {}),
         Box::new(super::rsp::op_vector_arithmetic::V31 {}),
         Box::new(super::rsp::op_vector_arithmetic::V46 {}),
         Box::new(super::rsp::op_vector_arithmetic::V47 {}),
         Box::new(super::rsp::op_vector_arithmetic::V59 {}),
-
         Box::new(super::rsp::op_vector_arithmetic::VCL {}),
         Box::new(super::rsp::op_vector_arithmetic::VCH {}),
         Box::new(super::rsp::op_vector_arithmetic::VCR {}),
-
         Box::new(super::rsp::op_vsar::VSAR {}),
         Box::new(super::rsp::op_vmacf::VMACFAll {}),
         Box::new(super::rsp::op_vmacf::VMACFH0 {}),
@@ -340,7 +354,6 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::rsp::op_vmulu::VMULUH1 {}),
         Box::new(super::rsp::op_vmulq::VMULQAll {}),
         Box::new(super::rsp::op_vmulq::VMULQH1 {}),
-
         Box::new(super::rsp::op_vmov_vrcp::VMOV {}),
         Box::new(super::rsp::op_vmov_vrcp::RCPTable {}),
         Box::new(super::rsp::op_vmov_vrcp::RSQTable {}),
@@ -359,17 +372,14 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::rsp::op_vmov_vrcp::HighUsesOutputVRSQLTest {}),
         Box::new(super::rsp::op_vmov_vrcp::VRCPHSetsInputForVRCPL {}),
         Box::new(super::rsp::op_vmov_vrcp::VRCPLHiddenRegisterFlagExists {}),
-
         Box::new(super::rsp::op_vrndp::VRNDPWithEvenVS {}),
         Box::new(super::rsp::op_vrndp::VRNDPWithOddVS {}),
         Box::new(super::rsp::op_vrndp::VRNDPOverwriteItselfWithElement {}),
         Box::new(super::rsp::op_vrndp::VRNDPAccumulatorOverflowed {}),
-
         Box::new(super::rsp::op_vrndn::VRNDNWithEvenVS {}),
         Box::new(super::rsp::op_vrndn::VRNDNWithOddVS {}),
         Box::new(super::rsp::op_vrndn::VRNDNOverwriteItselfWithElement {}),
         Box::new(super::rsp::op_vrndn::VRNDNAccumulatorOverflowed {}),
-
         Box::new(super::rsp::registers::SetClearInterrupt {}),
         Box::new(super::rsp::registers::SetClearHalt {}),
         Box::new(super::rsp::registers::SetClearSignal {}),
@@ -379,7 +389,6 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::rsp::registers::SemaphoreRegisterRSPOnly {}),
         Box::new(super::rsp::registers::SemaphoreRegisterMixed {}),
         Box::new(super::rsp::registers::RSPHaltItselfWithoutBreak {}),
-
         Box::new(super::sp_memory::SW {}),
         Box::new(super::sp_memory::SWOutOfBounds {}),
         Box::new(super::sp_memory::SH {}),

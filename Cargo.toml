@@ -1,6 +1,6 @@
 [package]
 name = "n64-systemtest"
-version = "1.0.9"
+version = "1.0.10"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -31,3 +31,4 @@ spinning_top = "0.2.4"
 num-traits = { version = "0.2", default-features = false }
 num-derive = { version = "0.3", default-features = false }
 arrayref = "0.3.6"
+oorandom = { version = "11.1.3", default-features = false }
