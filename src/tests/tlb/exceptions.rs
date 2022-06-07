@@ -33,7 +33,7 @@ pub fn setup_tlb_page(pagemask: u32, valid: bool, dirty: bool) -> u32 {
     virtual_page_base
 }
 
-pub fn test_miss_exception<F>(pagemask: u32, offset: u32, valid: bool, dirty: bool, skip_instructions: u64, code: CauseException, check_entry_hi: bool, f: F) -> Result<(), String>
+pub fn test_miss_exception<F>(pagemask: u32, offset: u32, valid: bool, dirty: bool, skip_instructions: u64, code: CauseException, check_entry_hi: bool, delay: bool, f: F) -> Result<(), String>
     where F: FnOnce(u32) -> Result<(), String> {
 
     let virtual_page_base = setup_tlb_page(pagemask, valid, dirty);
@@ -53,7 +53,7 @@ pub fn test_miss_exception<F>(pagemask: u32, offset: u32, valid: bool, dirty: bo
     // Testing for the exact ExceptPC is difficult as we can't easily find out the PC of the LW above. Test ballpark and sign-extension at least
     soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC during TLB exception")?;
     soft_assert_eq(exception_context.badvaddr, (virtual_page_base + offset) as u64, "BadVAddr during TLB exception")?;
-    soft_assert_eq(exception_context.cause, (code as u32) << 2, "Cause during TLB exception")?;
+    soft_assert_eq(exception_context.cause, (if delay { 0x80000000 } else { 0 }) | (code as u32) << 2, "Cause during TLB exception")?;
     soft_assert_eq(exception_context.status, 0x24000002, "Status during TLB exception")?;
     soft_assert_eq(exception_context.context, expected_context, "Context during TLB exception")?;
     soft_assert_eq(exception_context.xcontext, expected_context, "XContext during TLB exception")?;
@@ -88,7 +88,7 @@ impl Test for ReadMiss4k {
         let pagemask = 0; // 4k
         let f = |address| { unsafe { (address as *mut u32).read_volatile() }; Ok(()) };
         test_nomiss_exception(pagemask, 4092, true, true, f)?;
-        test_miss_exception(pagemask, 4096, true, true, 1, CauseException::TLBL, false, f)?;
+        test_miss_exception(pagemask, 4096, true, true, 1, CauseException::TLBL, false, false, f)?;
         Ok(())
     }
 }
@@ -106,7 +106,7 @@ impl Test for ReadMiss16k {
         let pagemask = 0b11 << 13; // 16k
         let f = |address| { unsafe { (address as *mut u32).read_volatile() }; Ok(()) };
         test_nomiss_exception(pagemask, 16380, true, true, f)?;
-        test_miss_exception(pagemask, 16384, true, true, 1, CauseException::TLBL, false, f)?;
+        test_miss_exception(pagemask, 16384, true, true, 1, CauseException::TLBL, false, false, f)?;
         Ok(())
     }
 }
@@ -124,7 +124,7 @@ impl Test for ReadMiss64k {
         let pagemask = 0b1111 << 13; // 64k
         let f = |address| { unsafe { (address as *mut u32).read_volatile() }; Ok(()) };
         test_nomiss_exception(pagemask, 65532, true, true, f)?;
-        test_miss_exception(pagemask, 65536, true, true, 1, CauseException::TLBL, false, f)?;
+        test_miss_exception(pagemask, 65536, true, true, 1, CauseException::TLBL, false, false, f)?;
         Ok(())
     }
 }
@@ -142,7 +142,7 @@ impl Test for ReadMiss256k {
         let pagemask = 0b111111 << 13; // 256k
         let f = |address| { unsafe { (address as *mut u32).read_volatile() }; Ok(()) };
         test_nomiss_exception(pagemask, 262140, true, true, f)?;
-        test_miss_exception(pagemask, 262144, true, true, 1, CauseException::TLBL, false, f)?;
+        test_miss_exception(pagemask, 262144, true, true, 1, CauseException::TLBL, false, false, f)?;
         Ok(())
     }
 }
@@ -160,7 +160,7 @@ impl Test for ReadMiss1M {
         let pagemask = 0b11111111 << 13; // 1M
         let f = |address| { unsafe { (address as *mut u32).read_volatile() }; Ok(()) };
         test_nomiss_exception(pagemask, 1048572, true, true, f)?;
-        test_miss_exception(pagemask, 1048576, true, true, 1, CauseException::TLBL, false, f)?;
+        test_miss_exception(pagemask, 1048576, true, true, 1, CauseException::TLBL, false, false, f)?;
         Ok(())
     }
 }
@@ -179,7 +179,7 @@ impl Test for ReadMiss4M {
         let f = |address| { unsafe { (address as *mut u32).read_volatile() }; Ok(()) };
         // This will exceed RDRAM (unless there's an expansion pack), but that doesn't cause an error
         test_nomiss_exception(pagemask, 4194300, true, true, f)?;
-        test_miss_exception(pagemask, 4194304, true, true, 1, CauseException::TLBL, false, f)?;
+        test_miss_exception(pagemask, 4194304, true, true, 1, CauseException::TLBL, false, false, f)?;
         Ok(())
     }
 }
@@ -198,7 +198,7 @@ impl Test for ReadMiss16M {
         let f = |address| { unsafe { (address as *mut u32).read_volatile() }; Ok(()) };
         // This will exceed RDRAM, but that doesn't cause an error
         test_nomiss_exception(pagemask, 16777212, true, true, f)?;
-        test_miss_exception(pagemask, 16777216, true, true, 1, CauseException::TLBL, false, f)?;
+        test_miss_exception(pagemask, 16777216, true, true, 1, CauseException::TLBL, false, false, f)?;
         Ok(())
     }
 }
@@ -216,7 +216,7 @@ impl Test for StoreMiss4k {
         let pagemask = 0; // 4k
         let f = |address| { unsafe { (address as *mut u32).write_volatile(0) }; Ok(()) };
         test_nomiss_exception(pagemask, 4092, true, true, f)?;
-        test_miss_exception(pagemask, 4096, true, true, 1, CauseException::TLBS, false, f)?;
+        test_miss_exception(pagemask, 4096, true, true, 1, CauseException::TLBS, false, false, f)?;
         Ok(())
     }
 }
@@ -350,7 +350,6 @@ impl Test for ExecuteTLBMappedMissInDelay {
                 let mut result: u32;
                 let mut fault_jalr_ra: u32;
                 asm!("
-                    TNE $0, $0
                     LI $2, 0
                     LI $6, 0
                     JALR $4, $3
@@ -390,7 +389,41 @@ impl Test for ReadNonValid4k {
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
         let pagemask = 0; // 4k
         let f = |address| { unsafe { (address as *mut u32).read_volatile() }; Ok(()) };
-        test_miss_exception(pagemask, 4092, false, true, 1, CauseException::TLBL, true, f)?;
+        test_miss_exception(pagemask, 4092, false, true, 1, CauseException::TLBL, true, false, f)?;
+        Ok(())
+    }
+}
+
+pub struct ReadNonValid4kInDelay {}
+
+impl Test for ReadNonValid4kInDelay {
+    fn name(&self) -> &str { "TLB: Read inside 4k page which isn't valid from a delay slot, expect TLBL" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        let pagemask = 0; // 4k
+        test_miss_exception(pagemask, 4092, false, true, 3, CauseException::TLBL, true, true, |address| {
+            let mut result: u32;
+            let mut unchanged: u32 = 0x12345678;
+            unsafe {
+                asm!("
+                    .set noreorder
+                    LI $2, 0
+                    BEQ $0, $0, 4
+                    LWC1 $4, 0($3)
+                    ADDIU $2, $2, 1  // BEQ target (but doesn't matter due to exception)
+                    ADDIU $2, $2, 2  // Target after exception handler due to skip_instructions
+                ", out("$2") result, in("$3") address, inout("$4") unchanged);
+            }
+
+            soft_assert_eq(result, 2, "Exception handler didn't return at the right location. Most likely the ExceptPC was wrong")?;
+            soft_assert_eq(unchanged, 0x12345678, "LWC1 shouldn't overwrite target register as it should tlb fault")?;
+
+            Ok(())
+        })?;
         Ok(())
     }
 }
@@ -407,7 +440,7 @@ impl Test for StoreNonValid4k {
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
         let pagemask = 0; // 4k
         let f = |address| { unsafe { (address as *mut u32).write_volatile(0) }; Ok(()) };
-        test_miss_exception(pagemask, 4092, false, true, 1, CauseException::TLBS, true, f)?;
+        test_miss_exception(pagemask, 4092, false, true, 1, CauseException::TLBS, true, false, f)?;
         Ok(())
     }
 }
@@ -424,7 +457,7 @@ impl Test for StoreNonDirty4k {
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
         let pagemask = 0; // 4k
         let f = |address| { unsafe { (address as *mut u32).write_volatile(0) }; Ok(()) };
-        test_miss_exception(pagemask, 4092, true, false, 1, CauseException::Mod, true, f)?;
+        test_miss_exception(pagemask, 4092, true, false, 1, CauseException::Mod, true, false, f)?;
         Ok(())
     }
 }
@@ -441,7 +474,7 @@ impl Test for StoreNonDirtyAndNonValid4k {
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
         let pagemask = 0; // 4k
         let f = |address| { unsafe { (address as *mut u32).write_volatile(0) }; Ok(()) };
-        test_miss_exception(pagemask, 4092, false, false, 1, CauseException::TLBS, true, f)?;
+        test_miss_exception(pagemask, 4092, false, false, 1, CauseException::TLBS, true, false, f)?;
         Ok(())
     }
 }
