@@ -21,6 +21,7 @@ pub mod filled_triangle;
 //  - For freeze test perfection: CURRENT should advance up to START+240 as the commands are
 //    dma'ed even if the RDP is frozen
 //  - It is possible to DMA two command lists to the RDP. Do a test for double-buffering
+//  - Similar to RSP side, it is possible to set and clear bits at the same time. Write a test to see what happens
 
 fn wait_for_status(goal: u32) -> Result<(), String> {
     for _ in 0..10_000 {
