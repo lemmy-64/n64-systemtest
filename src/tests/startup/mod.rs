@@ -30,8 +30,6 @@ impl Test for StartupTest {
         // XContext can be anything at startup - don't test it
         // soft_assert_eq(crate::cop0::xcontext_64(), 0x0000_0001_FFFF_FFF0, "Initial COP0 XContext")?;
 
-        soft_assert_eq(crate::cop0::previd(), 0xB22, "COP0 PrevID")?;
-
         // BadVAddr is not reset during a reset, but it has a known value after turning on
         //soft_assert_eq(crate::cop0::badvaddr(), 0xFFFFFFFF_FFFFFFFF, "COP0 BadVAddr")?;
 
