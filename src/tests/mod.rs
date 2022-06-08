@@ -43,6 +43,10 @@ pub enum Level {
 
     /// Slow test of basic functionality. Only enabled when compiled with stresstest feature flags.
     StressTest,
+
+    /// A test which documents a behavior of the hardware which makes sense in the context of cycle-exact emulation
+    /// (not deemed practical for current software emulators)
+    CycleExact,
 }
 
 /// Trait for a test or group of tests that are performed together.
@@ -124,7 +128,7 @@ pub fn run() {
             return " with unknown arguments".to_string();
         }
 
-        if test.level() == Level::TooWeird {
+        if test.level() == Level::TooWeird || test.level() == Level::CycleExact {
             *skipped += 1
         } else {
             // Kernel mode, erl/exl off. 32 bit addressing mode. Tests that want to test something else
