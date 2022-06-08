@@ -122,19 +122,31 @@ impl RSP {
         Self::wait_until_rsp_is_halted();
     }
 
-    pub fn set_signal(i: u32) {
+    pub const fn get_set_signal_bit(i: u32) -> u32 {
         assert!(i < 8);
-        Self::set_status(1 << (10 + i * 2));
+        1 << (10 + i * 2)
+    }
+
+    pub const fn get_clear_signal_bit(i: u32) -> u32 {
+        assert!(i < 8);
+        1 << (9 + i * 2)
+    }
+
+    pub const fn get_is_signal_bit(i: u32) -> u32 {
+        assert!(i < 8);
+        1 << (7 + i)
+    }
+
+    pub fn set_signal(i: u32) {
+        Self::set_status(Self::get_set_signal_bit(i));
     }
 
     pub fn clear_signal(i: u32) {
-        assert!(i < 8);
-        Self::set_status(1 << (9 + i * 2));
+        Self::set_status(Self::get_clear_signal_bit(i));
     }
 
     pub fn is_signal(i: u32) -> bool {
-        assert!(i < 8);
-        (Self::status() & (1 << (7 + i))) != 0
+        (Self::status() & Self::get_is_signal_bit(i)) != 0
     }
 
     pub fn set_interrupt() {

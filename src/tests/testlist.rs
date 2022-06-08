@@ -146,6 +146,8 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::rsp::op_break::BREAKWithinDelay2 {}),
         // This should be RSP test #3
         Box::new(super::rsp::wrap_around::WrapAround {}),
+
+        Box::new(super::rsp::ParallelRunning {}),
         // Non-vector instructions
         Box::new(super::rsp::op_add_addu::ADD {}),
         Box::new(super::rsp::op_add_addu::ADDU {}),
