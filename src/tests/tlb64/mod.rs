@@ -191,7 +191,7 @@ impl Test for AllLoads32BitAddress {
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
         // Enable 64 bit kernel addressing mode
-        unsafe { crate::cop0::set_status(0x240000E0); }
+        unsafe { cop0::set_status(0x240000E0); }
 
         let all_loads_regular = do_all_loads((&TEST_DATA[0]) as *const u64 as isize as u64);
 
@@ -212,7 +212,7 @@ impl Test for AllLoads32BitAddressUncached {
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
         // Enable 64 bit kernel addressing mode
-        unsafe { crate::cop0::set_status(0x240000E0); }
+        unsafe { cop0::set_status(0x240000E0); }
 
         let all_loads_regular = do_all_loads(MemoryMap::uncached(&TEST_DATA[0]) as *const u64 as isize as u64);
 
@@ -233,7 +233,7 @@ impl Test for AllLoads0x90 {
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
         // Enable 64 bit kernel addressing mode
-        unsafe { crate::cop0::set_status(0x240000E0); }
+        unsafe { cop0::set_status(0x240000E0); }
 
         let address = ((&TEST_DATA[0] as *const u64 as usize as u64) & Bitmasks64::M29) | 0x90000000_00000000;
         let all_loads_regular = do_all_loads(address);
@@ -255,7 +255,7 @@ impl Test for AllLoads0x98 {
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
         // Enable 64 bit kernel addressing mode
-        unsafe { crate::cop0::set_status(0x240000E0); }
+        unsafe { cop0::set_status(0x240000E0); }
 
         let address = (&TEST_DATA[0] as *const u64 as usize as u64) & Bitmasks64::M29 | 0x98000000_00000000;
         let all_loads_regular = do_all_loads(address);
@@ -268,7 +268,7 @@ impl Test for AllLoads0x98 {
 
 fn test_limits(largest_valid_address: u64, expected_lladdr: u64, smallest_exception_address: u64) -> Result<(), String> {
     // Enable 64 bit kernel addressing mode
-    unsafe { crate::cop0::set_status(0x240000E0); }
+    unsafe { cop0::set_status(0x240000E0); }
 
     // Load should be without exception
     unsafe {
