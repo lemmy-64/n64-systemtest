@@ -25,6 +25,7 @@ mod soft_asserts;
 mod sp_memory;
 mod testlist;
 mod tlb;
+mod tlb64;
 mod traps;
 
 /// The importance level of a [test](Test).
