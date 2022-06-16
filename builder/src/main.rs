@@ -19,10 +19,8 @@ fn main() {
     let ipl3_path = matches.value_of("ipl3").unwrap_or("../../mini-ipl3/mini-ipl3.bin");
     let ipl3 = std::fs::read(ipl3_path).unwrap_or_default();
     
-    let mut features = matches.values_of_lossy("features").unwrap_or_default();
-    if !features.is_empty() {
-        features.insert(0, "--features".to_owned());
-    }
+    let mut features = matches.values_of_lossy("features").unwrap_or(vec!["default_tests".to_owned()]);
+    features.insert(0, "--features".to_owned());
     let features = &features.iter().map(|s| s.as_str()).collect::<Vec<&str>>();
     
     let elf = nust64::elf::Elf::build(&PathBuf::from("n64-systemtest"), Some(&features)).unwrap();
