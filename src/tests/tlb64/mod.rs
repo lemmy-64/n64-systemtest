@@ -1,16 +1,17 @@
+use alloc::{format, vec};
 use alloc::boxed::Box;
-use alloc::format;
-use alloc::string::String;
+use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::any::Any;
 use core::arch::asm;
-use crate::cop0::CauseException;
+
+use crate::{cop0, MemoryMap};
+use crate::cop0::{CauseException, make_entry_hi, make_entry_lo};
 use crate::exception_handler::expect_exception;
 use crate::math::bits::Bitmasks64;
-use crate::{cop0, MemoryMap};
-
 use crate::tests::{Level, Test};
 use crate::tests::soft_asserts::{soft_assert_eq, soft_assert_eq2};
+use crate::uncached_memory::UncachedHeapMemory;
 
 pub mod exceptions;
 
@@ -307,5 +308,93 @@ impl Test for LimitsOf0x90 {
         // You'd think that reading from 0x9000_0000_8000_0000u64 (address above plus 1) would give an address
         // error, but the console dies. One bit higher works as expected
         test_limits(0x9000_0000_7FFF_FFF8u64, 0x7FF_FFFF, 0x9000_0001_0000_0000u64)
+    }
+}
+
+fn test(tlb_address: u64, vpn: u32, r: u8) -> Result<(), String> {
+    // Enable 64 bit kernel addressing mode
+    unsafe { cop0::set_status(0x240000E0); }
+
+    let mut data = UncachedHeapMemory::<u32>::new_with_align((16 * 1024) >> 2, 16 * 1024);
+
+    // Create a test_value to write and expect back. Derive it from the address but NOT it so that it doesn't look like an address
+    let test_value_begin = ((!tlb_address) ^ (tlb_address >> 32)) as u32;
+    let test_value_end = test_value_begin + 1234567;
+
+    const END_OF_PAGE_OFFSET: usize = 16 * 1024 - 4;
+    assert!(data.count() * 4 - 4 == END_OF_PAGE_OFFSET);
+
+    unsafe {
+        cop0::clear_tlb();
+        cop0::write_tlb(
+            10,
+            0b11 << 13,
+            make_entry_lo(true, true, false, 0, (data.start_phyiscal() >> 12) as u32),
+            make_entry_lo(true, false, false, 0, 0),
+            make_entry_hi(0, vpn, r));
+
+        cop0::cache64::<1, 0>(tlb_address);
+        cop0::cache64::<1, 0>(tlb_address + END_OF_PAGE_OFFSET as u64);
+
+        // Write some value without TLB
+        data.write(0, test_value_begin);
+        data.write(END_OF_PAGE_OFFSET >> 2, test_value_end);
+    }
+
+    // Read it back using the TLB. Have to use asm as Rust doesn't handle 64-bit pointers
+    let mut value_begin: u32;
+    let mut value_end: u32;
+    unsafe {
+        asm!("
+            .set noat
+            TNE $0, $0
+            LD $2, 0 ($3)
+
+            LW $4, 0 ($2)
+            DADDIU $2, $2, {OFFSET}
+            LW $5, 0 ($2)
+        ", OFFSET = const END_OF_PAGE_OFFSET, in("$3") &tlb_address, out("$2") _, out("$4") value_begin, out("$5") value_end)
+    }
+
+    soft_assert_eq(value_begin, test_value_begin, "Value read back through TLB mapped memory (begin)")?;
+    soft_assert_eq(value_end, test_value_end, "Value read back through TLB mapped memory (end)")?;
+
+    Ok(())
+}
+
+pub struct TLB64Read {}
+
+impl Test for TLB64Read {
+    fn name(&self) -> &str { "TLB: Use TLB for reading (64 bit addressing mode)" }
+
+    fn level(&self) -> Level { Level::Weird }
+
+    fn values(&self) -> Vec<Box<dyn Any>> {
+        vec! {
+            Box::new((0x00000000_0DEA0000u64, 0x0000_DEA0u32 >> 1, 0u8)),
+            Box::new((0x00000000_DEA00000u64, 0x000D_EA00u32 >> 1, 0u8)),
+            Box::new((0x00000003_F0000000u64, 0x003F_0000u32 >> 1, 0u8)),
+            Box::new((0x00000003_F0000000u64, 0x003F_0000u32 >> 1, 0u8)),
+            Box::new((0x00000007_F0000000u64, 0x007F_0000u32 >> 1, 0u8)),
+            Box::new((0x0000003F_F0000000u64, 0x03FF_0000u32 >> 1, 0u8)),
+            Box::new((0x000000FF_F0000000u64, 0x0FFF_0000u32 >> 1, 0u8)),
+
+            Box::new((0x400000FF_10000000u64, 0x0FF1_0000u32 >> 1, 1u8)),
+            Box::new((0x400000FF_FF200000u64, 0x0FFF_F200u32 >> 1, 1u8)),
+
+            Box::new((0xC0000000_00000000u64, 0x0000_0000u32 >> 1, 3u8)),
+            Box::new((0xC00000FF_20000000u64, 0x0FF2_0000u32 >> 1, 3u8)),
+            Box::new((0xC00000FF_40000000u64, 0x0FF4_0000u32 >> 1, 3u8)),
+            Box::new((0xC00000FF_70000000u64, 0x0FF7_0000u32 >> 1, 3u8)),
+        }
+    }
+
+    fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
+        match (*value).downcast_ref::<(u64, u32, u8)>() {
+            Some((address, vpn, r)) => {
+                test(*address, *vpn, *r)
+            }
+            _ => Err("Value is not valid".to_string())
+        }
     }
 }

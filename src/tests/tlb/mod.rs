@@ -428,7 +428,7 @@ impl Test for TLBUseTestRead0 {
                 0b11 << 13,
                 make_entry_lo(true, true, false, 0, (MemoryMap::HEAP_END >> 12) as u32),
                 make_entry_lo(true, false, false, 0, 0),
-                make_entry_hi(1, 0xDEA0 >> 1))
+                make_entry_hi(1, 0xDEA0 >> 1, 0))
         }
 
         // Set a different ASID to make sure it doesn't match
@@ -468,7 +468,7 @@ impl Test for TLBUseTestRead1 {
                 0b11 << 13,
                 make_entry_lo(true, false, false, 0, 0),
                 make_entry_lo(true, true, false, 0, (MemoryMap::HEAP_END >> 12) as u32),
-                make_entry_hi(1, 0xDEA0 >> 1))
+                make_entry_hi(1, 0xDEA0 >> 1, 0))
         }
 
         // Set a different ASID to make sure it doesn't match
@@ -508,7 +508,7 @@ impl Test for TLBUseTestReadMatchViaASID {
                 0b11 << 13,
                 make_entry_lo(false, true, false, 0, (MemoryMap::HEAP_END >> 12) as u32),
                 make_entry_lo(false, false, false, 0, 0),
-                make_entry_hi(1, 0xDEA0 >> 1))
+                make_entry_hi(1, 0xDEA0 >> 1, 0))
         }
 
         // Set a matching ASID - this will make the CPU ignore the global bit

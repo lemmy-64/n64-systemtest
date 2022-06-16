@@ -2,6 +2,7 @@ use core::arch::asm;
 
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
+use crate::math::bits::Bitmasks32;
 
 #[allow(dead_code)]
 pub enum RegisterIndex {
@@ -347,8 +348,17 @@ pub unsafe fn write_tlb(index: u32, pagemask: u32, entry_lo0: u32, entry_lo1: u3
 }
 
 pub unsafe fn clear_tlb() {
-    for i in 0..32 {
-        unsafe { write_tlb(i, 0, 0, 0, 0); }
+    // use entry_hi.asid=1 to ensure nothing matches
+    unsafe {
+        set_entry_lo0(0);
+        set_entry_lo1(0);
+        set_entry_hi(make_entry_hi(1, 0, 0));
+        set_pagemask(0);
+        for i in 0..32 {
+            set_index(i);
+            tlbwi();
+        }
+        set_entry_hi(0);
     }
 }
 
@@ -362,10 +372,12 @@ pub fn make_entry_lo(global: bool, valid: bool, dirty: bool, coherency: u8, pfn:
         (pfn << 6)
 }
 
-pub fn make_entry_hi(asid: u8, vpn: u32) -> u64 {
-    assert!(vpn <= 0x1FFFFF);
+pub fn make_entry_hi(asid: u8, vpn: u32, r: u8) -> u64 {
+    assert!(vpn <= Bitmasks32::M27);
+    assert!(r <= 3);
     (asid as u64) |
-        ((vpn as u64) << 13)
+        ((vpn as u64) << 13) |
+        ((r as u64) << 62)
 }
 
 #[inline(always)]
@@ -376,5 +388,20 @@ pub unsafe fn cache<const OP: u8, const OFFSET: u16>(location: usize) {
         gpr = in(reg) location,
         offset = const OFFSET,
         op = const OP)
+    }
+}
+
+/// Like cache, but accepts a u64 address
+#[inline(always)]
+pub unsafe fn cache64<const OP: u8, const OFFSET: u16>(location: u64) {
+    unsafe {
+        asm!("
+            .set noat
+            ld {temp}, 0 ({location})
+            cache {op}, {offset} ({temp})",
+        location = in(reg) &location,
+        offset = const OFFSET,
+        op = const OP,
+        temp = out(reg) _)
     }
 }
