@@ -41,6 +41,7 @@ checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 name = "builder"
 version = "0.1.0"
 dependencies = [
+ "clap",
  "nust64",
 ]
 
@@ -252,6 +253,8 @@ dependencies = [
 [[package]]
 name = "nust64"
 version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c4ce747ed373725f1c6c2dc47585bbe9d3054edece2c757abc6ccf8a4ed4f7c5"
 dependencies = [
  "bytes",
  "cargo_metadata",

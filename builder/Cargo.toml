@@ -4,4 +4,5 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-nust64 = { path = "../../nust64" }
+nust64 = "0.1"
+clap = "3.2"
