@@ -438,8 +438,6 @@ impl Test for BEQWithinDelayOfJR {
             asm!("
                 .set noat
                 .set noreorder
-TNE $0, $0
-
                 DADDIU $25, $31, 0  // Stash RA in $25
                 LUI $3, 0x0000      // Clear result
 

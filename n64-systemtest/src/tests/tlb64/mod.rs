@@ -347,7 +347,6 @@ fn test(tlb_address: u64, vpn: u32, r: u8) -> Result<(), String> {
     unsafe {
         asm!("
             .set noat
-            TNE $0, $0
             LD $2, 0 ($3)
 
             LW $4, 0 ($2)
@@ -396,5 +395,84 @@ impl Test for TLB64Read {
             }
             _ => Err("Value is not valid".to_string())
         }
+    }
+}
+
+/// This verifies that code that lies within the TLB mapped area can be executed.
+/// For this test to succeed, PC needs to be 64 bit wide
+pub struct TLB64Execute {}
+
+impl Test for TLB64Execute {
+    fn name(&self) -> &str { "TLB: Execute code from a tlb mapped 64 bit location" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        // Enable 64 bit kernel addressing mode
+        unsafe { cop0::set_status(0x240000E0); }
+        let pagemask = 0b11 << 13; // 16k
+
+        let mut data64 = UncachedHeapMemory::<u32>::new_with_align((16 * 1024) >> 2, 16 * 1024);
+        let mut data32 = UncachedHeapMemory::<u32>::new_with_align((16 * 1024) >> 2, 16 * 1024);
+
+        unsafe { cop0::clear_tlb(); }
+        unsafe { cop0::set_context_64(0); }
+        unsafe { cop0::set_xcontext_64(0); }
+
+        let virtual_address = 0xFF_8000_0000u64 | (data32.start_phyiscal() as u32 as u64);
+
+        // Setup two pages:
+        // - A page using 64 bit addressing mode, which is the one that is supposed to be hit
+        // - A page fallback page that is hit by emulators that incorrectly think the PC is 32 bit
+        unsafe {
+            // The 64 bit mapping (the one we want to hit)
+            cop0::write_tlb(
+                4,
+                pagemask,
+                make_entry_lo(true, true, false, 0, (data64.start_phyiscal() >> 12) as u32),
+                make_entry_lo(true, true, false, 0, (data64.start_phyiscal() >> 12) as u32),
+                make_entry_hi(2, (virtual_address >> 13) as u32, 0));
+
+            // The 32 bit fallback mapping (so that we don't just die)
+            cop0::write_tlb(
+                5,
+                pagemask,
+                make_entry_lo(true, true, false, 0, (data32.start_phyiscal() >> 12) as u32),
+                make_entry_lo(true, true, false, 0, (data32.start_phyiscal() >> 12) as u32),
+                make_entry_hi(2, ((virtual_address & Bitmasks64::M32) >> 13) as u32, 0));
+        }
+
+        unsafe {
+            // Write a small function into the tlb mapped area, at the end. It sets V0 and returns to A0
+            data64.write(0, 0x24020040);  // ADDIU V0, R0, 64
+            data64.write(1, 0x00800008);  // JR A0
+            data64.write(2, 0x00000000);  // NOP (delay slot)
+
+            // Write a small function into the tlb mapped area, at the end. It sets V0 and returns to A0
+            data32.write(0, 0x24020020);  // ADDIU V0, R0, 32
+            data32.write(1, 0x00800008);  // JR A0
+            data32.write(2, 0x00000000);  // NOP (delay slot)
+
+            // Invalidate the code so that it can be executed
+            cop0::cache64::<1, 0>(virtual_address);
+            cop0::cache64::<0, 0>(virtual_address);
+
+            cop0::cache::<1, 0>(virtual_address as usize);
+            cop0::cache::<0, 0>(virtual_address as usize);
+
+            let mut result: u32;
+            asm!("
+                TNE $0, $0
+                LD $2, 0 ($3)
+                JALR $4, $2
+                NOP
+            ", in("$3") &virtual_address, out("$2") result, out("$4") _);
+
+            soft_assert_eq(result, 64, "Return value of function in TLB mapped space")?;
+        }
+
+        Ok(())
     }
 }

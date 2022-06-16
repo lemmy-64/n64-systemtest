@@ -238,9 +238,9 @@ fn test_tlb_miss(address: u64, vpn: u32, r: u8) -> Result<(), String> {
     Ok(())
 }
 
-pub struct TLB64MissDue64Bit {}
+pub struct TLB64MissDueToR64Bit {}
 
-impl Test for TLB64MissDue64Bit {
+impl Test for TLB64MissDueToR64Bit {
     fn name(&self) -> &str { "TLB: Expect TLB miss on R mismatch (64 bit addressing mode)" }
 
     fn level(&self) -> Level { Level::Weird }
