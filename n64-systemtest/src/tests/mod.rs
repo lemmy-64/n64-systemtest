@@ -100,7 +100,7 @@ pub fn run() {
                 None => {},
             }
             match (*value).downcast_ref::<u32>() {
-                Some(v) => return format!(" with '{:?}'", v),
+                Some(v) => return format!(" with '{:x?}'", v),
                 None => {},
             }
             match (*value).downcast_ref::<bool>() {
@@ -108,31 +108,39 @@ pub fn run() {
                 None => {},
             }
             match (*value).downcast_ref::<(bool, u32)>() {
-                Some(v) => return format!(" with '{:?}'", v),
+                Some(v) => return format!(" with '{:x?}'", v),
+                None => {},
+            }
+            match (*value).downcast_ref::<(bool, u64)>() {
+                Some(v) => return format!(" with '{:x?}'", v),
                 None => {},
             }
             match (*value).downcast_ref::<(bool, u32, u32)>() {
-                Some(v) => return format!(" with '{:?}'", v),
+                Some(v) => return format!(" with '{:x?}'", v),
                 None => {},
             }
             match (*value).downcast_ref::<(u32, u32, u32)>() {
-                Some(v) => return format!(" with '{:?}'", v),
+                Some(v) => return format!(" with '{:x?}'", v),
                 None => {},
             }
             match (*value).downcast_ref::<(u64, u32, u64)>() {
-                Some(v) => return format!(" with '{:?}'", v),
+                Some(v) => return format!(" with '{:x?}'", v),
+                None => {},
+            }
+            match (*value).downcast_ref::<(u64, u32, u8)>() {
+                Some(v) => return format!(" with '{:x?}'", v),
                 None => {},
             }
             match (*value).downcast_ref::<(bool, i64, i64)>() {
-                Some(v) => return format!(" with '{:?}'", v),
+                Some(v) => return format!(" with '{:x?}'", v),
                 None => {},
             }
             match (*value).downcast_ref::<(bool, u64, u64)>() {
-                Some(v) => return format!(" with '{:?}'", v),
+                Some(v) => return format!(" with '{:x?}'", v),
                 None => {}
             }
             match (*value).downcast_ref::<(bool, u64, Immediate)>() {
-                Some(v) => return format!(" with '{:?}'", v),
+                Some(v) => return format!(" with '{:x?}'", v),
                 None => {}
             }
             return " with unknown arguments".to_string();

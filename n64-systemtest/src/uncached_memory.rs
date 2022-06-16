@@ -1,5 +1,6 @@
 use alloc::alloc::{alloc, dealloc};
 use core::alloc::Layout;
+use core::cmp::max;
 use core::mem::size_of;
 use crate::MemoryMap;
 
@@ -16,9 +17,15 @@ impl<T: Copy + Clone> UncachedHeapMemory<T> {
     /// Allocates the memory with the given number of elements. The actual byte size will be count * size_of::<T>().
     /// The memory will be aligned to the size of T and uninitialized
     pub fn new(count: usize) -> Self {
+        Self::new_with_align(count, 0)
+    }
+
+    /// Allocates the memory with the given number of elements. The actual byte size will be count * size_of::<T>().
+    /// The memory will be aligned to the size of T or align (whichever is larger) and uninitialized
+    pub fn new_with_align(count: usize, align: usize) -> Self {
         let element_size = size_of::<T>();
         let byte_size = count * element_size;
-        let layout = Layout::from_size_align(byte_size, element_size).unwrap();
+        let layout = Layout::from_size_align(byte_size, max(align, element_size)).unwrap();
         let original_data = unsafe { alloc(layout) };
         let uncached_data = MemoryMap::uncached_mut(original_data) as *mut T;
 
@@ -42,6 +49,8 @@ impl<T: Copy + Clone> UncachedHeapMemory<T> {
         result
     }
 
+    pub const fn count(&self) -> usize { self.count }
+
     pub fn write(&mut self, index: usize, value: T) {
         assert!(index < self.count);
         unsafe {
@@ -57,7 +66,7 @@ impl<T: Copy + Clone> UncachedHeapMemory<T> {
     }
 
     /// Pointer to physical start of memory
-    pub fn start(&self) -> usize {
+    pub fn start_phyiscal(&self) -> usize {
         MemoryMap::uncached_to_physical_mut(self.uncached_data)
     }
 }
