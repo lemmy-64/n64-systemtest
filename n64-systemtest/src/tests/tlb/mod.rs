@@ -523,3 +523,101 @@ impl Test for TLBUseTestReadMatchViaASID {
         Ok(())
     }
 }
+
+pub struct TLBPMatch {}
+
+impl Test for TLBPMatch {
+    fn name(&self) -> &str { "TLB: Use and match via TLBP" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        unsafe { cop0::clear_tlb(); }
+        unsafe {
+            cop0::write_tlb(
+                4,
+                0b11 << 13,
+                make_entry_lo(false, false, false, 0, (MemoryMap::HEAP_END >> 12) as u32),
+                make_entry_lo(false, false, false, 0, (MemoryMap::HEAP_END >> 12) as u32),
+                make_entry_hi(1, 0xDEA3, 1));
+
+            cop0::write_tlb(
+                29,
+                0b1111 << 13,
+                make_entry_lo(true, false, false, 0, (MemoryMap::HEAP_END >> 12) as u32),
+                make_entry_lo(false, false, false, 0, (MemoryMap::HEAP_END >> 12) as u32),
+                make_entry_hi(1, 0x7FF_0000, 2));
+            cop0::write_tlb(
+                30,
+                0b1111 << 13,
+                make_entry_lo(false, false, false, 0, (MemoryMap::HEAP_END >> 12) as u32),
+                make_entry_lo(true, false, false, 0, (MemoryMap::HEAP_END >> 12) as u32),
+                make_entry_hi(2, 0x0001, 3));
+            cop0::write_tlb(
+                31,
+                0b1111 << 13,
+                make_entry_lo(true, false, false, 0, (MemoryMap::HEAP_END >> 12) as u32),
+                make_entry_lo(true, false, false, 0, (MemoryMap::HEAP_END >> 12) as u32),
+                make_entry_hi(3, 0x7FF_0002, 0));
+        }
+
+        // TLBP ignores entry_lo and pagemask. Set them all to 0 to prove
+        unsafe {
+            cop0::set_pagemask(0);
+            cop0::set_entry_lo0(0);
+            cop0::set_entry_lo1(0);
+        }
+
+        // An entry is a match if all three are true:
+        // - ASID matches OR both lo0 and lo1 are global
+        // - VPN (masked) matches
+        // - R matches
+
+        // Match via asid, but not global
+        unsafe { cop0::set_index(1); }
+        unsafe { cop0::set_entry_hi(make_entry_hi(1, 0xDEA3, 1)); }
+        cop0::tlbp();
+        soft_assert_eq(cop0::index(), 4, "TLBP result (match via ASID)")?;
+
+        // Use wrong R and observe that it no longer matches
+        unsafe { cop0::set_entry_hi(make_entry_hi(1, 0xDEA3, 0)); }
+        cop0::tlbp();
+        soft_assert_eq(cop0::index(), 0x80000000, "TLBP result (match via ASID, incorrect R)")?;
+
+        // Match both global, with asid incorrect
+        unsafe { cop0::set_entry_hi(make_entry_hi(1, 0x7FF_0002, 0)); }
+        cop0::tlbp();
+        soft_assert_eq(cop0::index(), 31, "TLBP result (ASID mismatch, but global is set)")?;
+
+        // Try to match with only one global on (with asid incorrect). This shouldn't match
+        unsafe { cop0::set_entry_hi(make_entry_hi(0, 0x0001, 3)); }
+        cop0::tlbp();
+        soft_assert_eq(cop0::index(), 0x80000000, "TLBP result (ASID mismatch, and only one of the global bits enabled)")?;
+
+        // Again, but this time the other global bit
+        unsafe { cop0::set_entry_hi(make_entry_hi(0, 0x7FF_0000, 2)); }
+        cop0::tlbp();
+        soft_assert_eq(cop0::index(), 0x80000000, "TLBP result (ASID mismatch, and only one of the global bits enabled)")?;
+
+        // Finally, actually check the masked VPN
+        unsafe { cop0::set_entry_hi(make_entry_hi(1, 0xDEA0, 1)); }
+        cop0::tlbp();
+        soft_assert_eq(cop0::index(), 4, "TLBP result (masked VPN 1)")?;
+
+        unsafe { cop0::set_entry_hi(make_entry_hi(1, 0xDEA1, 1)); }
+        cop0::tlbp();
+        soft_assert_eq(cop0::index(), 4, "TLBP result (masked VPN 1)")?;
+
+        unsafe { cop0::set_entry_hi(make_entry_hi(1, 0xDEA2, 1)); }
+        cop0::tlbp();
+        soft_assert_eq(cop0::index(), 4, "TLBP result (masked VPN 2)")?;
+
+        unsafe { cop0::set_entry_hi(make_entry_hi(1, 0xDEA4, 1)); }
+        cop0::tlbp();
+        soft_assert_eq(cop0::index(), 0x80000000, "TLBP result (masked VPN 3)")?;
+
+        Ok(())
+    }
+}

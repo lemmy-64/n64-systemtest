@@ -336,6 +336,12 @@ pub unsafe fn tlbr() {
     }
 }
 
+pub fn tlbp() {
+    unsafe {
+        asm!("nop; tlbp; nop;")
+    }
+}
+
 pub unsafe fn write_tlb(index: u32, pagemask: u32, entry_lo0: u32, entry_lo1: u32, entry_hi: u64) {
     unsafe {
         set_index(index);

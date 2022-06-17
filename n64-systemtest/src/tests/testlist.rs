@@ -423,6 +423,7 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::tlb::TLBUseTestRead0 {}),
         Box::new(super::tlb::TLBUseTestRead1 {}),
         Box::new(super::tlb::TLBUseTestReadMatchViaASID {}),
+        Box::new(super::tlb::TLBPMatch {}),
         Box::new(super::tlb::exceptions::ReadMiss4k {}),
         Box::new(super::tlb::exceptions::ReadMiss16k {}),
         Box::new(super::tlb::exceptions::ReadMiss64k {}),
