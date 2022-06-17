@@ -95,6 +95,8 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::exception_instructions::BreakDelay {}),
         Box::new(super::exception_instructions::Syscall {}),
         Box::new(super::exception_instructions::SyscallDelay {}),
+        Box::new(super::exception_instructions::Reserved31 {}),
+        Box::new(super::exception_instructions::Reserved31Delay {}),
         Box::new(super::jumps::conditionals::BEQWithinDelay {}),
         Box::new(super::jumps::conditionals::BEQNotTakenWithinDelay {}),
         Box::new(super::jumps::conditionals::BEQWithinDelayOfJR {}),

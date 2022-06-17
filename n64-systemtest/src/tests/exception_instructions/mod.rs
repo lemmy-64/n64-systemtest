@@ -142,3 +142,71 @@ impl Test for SyscallDelay {
         Ok(())
     }
 }
+
+/// Instruction 31 doesn't exist. If it is called (Linux calls it for example), we expect a Reserved-Instruction exception
+pub struct Reserved31 {}
+
+impl Test for Reserved31 {
+    fn name(&self) -> &str { "Reserved (31)" }
+
+    fn level(&self) -> Level { Level::Weird }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        let exception_context = expect_exception(CauseException::RI, 1, || {
+            unsafe {
+                asm!("
+                    .set noat
+                    .word 0x7C03E83B
+                ")
+            }
+
+            Ok(())
+        })?;
+
+        soft_assert_eq(exception_context.k0_exception_vector, 0xFFFFFFFF_80000180, "Exception Vector")?;
+        soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
+        soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32) }, 0x7C03E83B, "ExceptPC points to wrong instruction")?;
+        soft_assert_eq(exception_context.cause, 0x28, "Cause")?;
+        soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
+
+        Ok(())
+    }
+}
+
+pub struct Reserved31Delay {}
+
+impl Test for Reserved31Delay {
+    fn name(&self) -> &str { "Reserved (31) (delay slot)" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        let exception_context = expect_exception(CauseException::RI, 2, || {
+            unsafe {
+                asm!("
+                    .set noat
+                    .set noreorder
+                    BNE $0, $0, 2f
+                    .word 0x7C03E83B
+                    2:
+                    NOP
+                    NOP
+                ")
+            }
+
+            Ok(())
+        })?;
+
+        soft_assert_eq(exception_context.k0_exception_vector, 0xFFFFFFFF_80000180, "Exception Vector")?;
+        soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
+        soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32).add(1) }, 0x7C03E83B, "ExceptPC points to wrong instruction")?;
+        soft_assert_eq(exception_context.cause, 0x80000028, "Cause")?;
+        soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
+
+        Ok(())
+    }
+}
