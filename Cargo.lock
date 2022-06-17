@@ -258,9 +258,9 @@ dependencies = [
 
 [[package]]
 name = "nust64"
-version = "0.1.1"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d985093bf8c35ea4fcbe8dc10518068c6c1ba09ed55197a12022605c186413ed"
+checksum = "876a00cbf8c97cc838ef1b932291def78640bc08737d987ff1afc07853447d23"
 dependencies = [
  "bytes",
  "cargo_metadata",
