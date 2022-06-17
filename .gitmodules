@@ -1,3 +1,0 @@
-[submodule "external/cargo-n64"]
-	path = external/cargo-n64
-	url = https://github.com/lemmy-64/cargo-n64.git
