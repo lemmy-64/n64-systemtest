@@ -37,7 +37,11 @@ fn main() {
     let elf = nust64::elf::Elf::build(&PathBuf::from("n64-systemtest"), Some(&features)).unwrap();
     let rom = nust64::rom::Rom::new(&elf, ipl3.try_into().expect("Failed to cast into array. Is input not exactly 4032 bytes?"), Some(ROM_TITLE));
     
-    std::fs::write(FILE_NAME, rom.to_vec()).unwrap();
+    let outpath = PathBuf::from(FILE_NAME);
+    match std::fs::write(&outpath, rom.to_vec()) {
+        Ok(_) => println!("Rom successfully compiled: {}", outpath.canonicalize().unwrap_or(outpath).display()),
+        Err(err) => panic!("Unable to save rom file: {}", err)
+    }
     
     
     if matches.is_present("unfloader") {
