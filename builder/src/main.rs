@@ -1,8 +1,12 @@
 use std::path::PathBuf;
-use clap::{AppSettings, Arg, Command};
+use std::process::{Command, Stdio};
+use clap::{AppSettings, Arg};
+
+const ROM_TITLE: &'static str = "n64-systemtest";
+const FILE_NAME: &'static str = "n64-systemtest.n64";
 
 fn main() {
-    let matches = Command::new("n64-systemtest builder")
+    let matches = clap::Command::new("n64-systemtest builder")
         .arg(Arg::new("ipl3")
             .takes_value(true)
             .long("ipl3")
@@ -10,8 +14,15 @@ fn main() {
         .arg(Arg::new("features")
             .takes_value(true)
             .long("features")
+            .help("Specify list of feature flags which enable different tests. Multiple values allowed.")
             .multiple_values(true)
             .allow_invalid_utf8(true))
+        .arg(Arg::new("unfloader")
+            .long("unf")
+            .help("Will upload with UNFLoader using successfully built rom."))
+        .arg(Arg::new("usb64")
+            .long("usb64")
+            .help("Will upload with usb64 using successfully built rom."))
         .global_setting(AppSettings::DeriveDisplayOrder)
         .next_line_help(true)
         .get_matches();
@@ -24,7 +35,28 @@ fn main() {
     let features = &features.iter().map(|s| s.as_str()).collect::<Vec<&str>>();
     
     let elf = nust64::elf::Elf::build(&PathBuf::from("n64-systemtest"), Some(&features)).unwrap();
-    let rom = nust64::rom::Rom::new(&elf, ipl3.try_into().expect("Failed to cast into array. Is input not exactly 4032 bytes?"), None);
+    let rom = nust64::rom::Rom::new(&elf, ipl3.try_into().expect("Failed to cast into array. Is input not exactly 4032 bytes?"), Some(ROM_TITLE));
     
-    std::fs::write("n64-systemtest.n64", rom.to_vec()).unwrap();
+    let outpath = PathBuf::from(FILE_NAME);
+    match std::fs::write(&outpath, rom.to_vec()) {
+        Ok(_) => println!("Rom successfully compiled: {}", outpath.canonicalize().unwrap_or(outpath).display()),
+        Err(err) => panic!("Unable to save rom file: {}", err)
+    }
+    
+    
+    if matches.is_present("unfloader") {
+        Command::new("UNFLoader")
+            .args(["-r", FILE_NAME])
+            .stderr(Stdio::inherit())
+            .status()
+            .expect("Failed to execute UNFLoader");
+    }
+    
+    if matches.is_present("usb64") {
+        Command::new("usb64")
+            .args([&format!("-rom={}", FILE_NAME), "-start"])
+            .stderr(Stdio::inherit())
+            .status()
+            .expect("Failed to execute UNFLoader");
+    }
 }
