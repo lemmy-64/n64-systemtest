@@ -198,7 +198,7 @@ fn test_tlb_miss(address: u64, vpn: u32, r: u8) -> Result<(), String> {
     // Enable 64 bit kernel addressing mode
     unsafe { cop0::set_status(0x240000E0); }
 
-    let data = UncachedHeapMemory::<u32>::new_with_align((16 * 1024) >> 2, 16 * 1024);
+    let mut data = UncachedHeapMemory::<u32>::new_with_align((16 * 1024) >> 2, 16 * 1024);
 
     unsafe {
         cop0::clear_tlb();

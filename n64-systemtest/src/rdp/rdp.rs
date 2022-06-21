@@ -76,7 +76,7 @@ impl RDP {
     }
 
     /// Runs the RDP and waits until it is done.
-    pub fn run_and_wait(assembler: &RDPAssembler) {
+    pub fn run_and_wait(assembler: &mut RDPAssembler) {
         let end = assembler.end();
         unsafe { Self::start_running(assembler.start(), end); }
         Self::wait_until_finished(end);

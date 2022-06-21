@@ -141,7 +141,7 @@ fn render_on_rdp<T: Color + Copy + Clone, const WIDTH: usize, const HEIGHT: usiz
     assembler.sync_pipe();
     assembler.sync_full();
 
-    RDP::run_and_wait(&assembler);
+    RDP::run_and_wait(&mut assembler);
 
     // Copy into non-uncached array.
     let mut result: [[T; WIDTH]; HEIGHT] = [[T::BLACK; WIDTH]; HEIGHT];

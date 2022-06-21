@@ -464,7 +464,6 @@ impl Test for TLB64Execute {
 
             let mut result: u32;
             asm!("
-                TNE $0, $0
                 LD $2, 0 ($3)
                 JALR $4, $2
                 NOP

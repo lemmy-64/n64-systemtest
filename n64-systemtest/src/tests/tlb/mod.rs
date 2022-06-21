@@ -14,7 +14,7 @@ use crate::tests::soft_asserts::{soft_assert_eq, soft_assert_greater_or_equal, s
 
 pub mod exceptions;
 
-// TODO: TLBWR and TLBP
+// TODO: TLBWR
 
 pub struct WiredRandom {}
 
@@ -621,3 +621,4 @@ impl Test for TLBPMatch {
         Ok(())
     }
 }
+

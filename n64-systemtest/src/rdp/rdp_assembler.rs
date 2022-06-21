@@ -154,9 +154,9 @@ impl<'a> RDPAssembler {
         }
     }
 
-    pub fn start(&self) -> usize { self.data.start_phyiscal() }
+    pub fn start(&mut self) -> usize { self.data.start_phyiscal() }
 
-    pub fn end(&self) -> usize { self.data.start_phyiscal() + (self.index << 3) }
+    pub fn end(&mut self) -> usize { self.data.start_phyiscal() + (self.index << 3) }
 
     fn write(&mut self, value: u64) {
         self.data.write(self.index, value);
