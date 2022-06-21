@@ -90,6 +90,7 @@ unsafe fn write_cop0<const INDEX: u32>(value: u32) {
         asm!("
         .set noat
         mtc0 {gpr}, ${cop0reg}
+        nop
     ", gpr = in(reg) value, cop0reg = const INDEX)
     }
 }
@@ -105,6 +106,7 @@ unsafe fn write_cop0_64<const INDEX: u32>(value: u64) {
         dsrl32 {tmp2}, {tmp2}, 0
         or {tmp}, {tmp}, {tmp2}
         dmtc0 {tmp}, ${cop0reg}
+        nop
     ", gpr_lo = in(reg) (value as u32), gpr_hi = in(reg) ((value >> 32) as u32),
         tmp = out(reg) _, tmp2 = out(reg) _, cop0reg = const INDEX)
     }

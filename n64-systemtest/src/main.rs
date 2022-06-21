@@ -13,6 +13,7 @@
 #![deny(unsafe_op_in_unsafe_fn)]
 #![allow(rustdoc::private_intra_doc_links)]
 #![no_main]
+#![deny(unused_must_use)]
 
 extern crate alloc;
 
