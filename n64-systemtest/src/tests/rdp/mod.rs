@@ -1,6 +1,6 @@
 use alloc::boxed::Box;
-use alloc::format;
-use alloc::string::String;
+use alloc::{format, vec};
+use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::any::Any;
 
@@ -72,45 +72,68 @@ impl Test for StartIsValidFlag {
 
     fn level(&self) -> Level { Level::RDPBasic }
 
-    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+    fn values(&self) -> Vec<Box<dyn Any>> {
+        vec! {
+            Box::new(0x1238u32),
+            Box::new(0u32),
+        }
+    }
 
-    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
-        let current_before = RDP::current();
-        // Set freeze so that we can freely read/write registers without the RDP actually doing anything
-        unsafe { RDP::set_status(DP_SET_STATUS_SET_FREEZE); }
-        soft_assert_eq((RDP::status() & DP_STATUS_FREEZE) != 0, true, "RDP was told to freeze, but it didn't")?;
+    fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
+        match (*value).downcast_ref::<u32>() {
+            Some(start_value) => {
+                // Note: This test leaves the RDP in a weird state if it sets start but not end. There,
+                // do all asserts at the end
+                let current_before = RDP::current();
+                // Set freeze so that we can freely read/write registers without the RDP actually doing anything
+                unsafe { RDP::set_status(DP_SET_STATUS_SET_FREEZE); }
+                soft_assert_eq((RDP::status() & DP_STATUS_FREEZE) != 0, true, "RDP was told to freeze, but it didn't")?;
 
-        // Pre-req: Ensure START isn't currently valid
-        soft_assert_eq((RDP::status() & DP_STATUS_START_VALID) != 0, false, "start-valid should be false when entering the test")?;
-        soft_assert_eq((RDP::status() & DP_STATUS_END_VALID) != 0, false, "end-valid should be false when entering the test")?;
+                // Pre-req: Ensure START isn't currently valid
+                soft_assert_eq((RDP::status() & DP_STATUS_START_VALID) != 0, false, "start-valid should be false when entering the test")?;
+                soft_assert_eq((RDP::status() & DP_STATUS_END_VALID) != 0, false, "end-valid should be false when entering the test")?;
 
-        // Set any start address
-        RDP::set_start(0x3210);
-        soft_assert_eq((RDP::status() & DP_STATUS_START_VALID) != 0, true, "start-valid should be set after writing start-address")?;
-        soft_assert_eq((RDP::status() & DP_STATUS_END_VALID) != 0, false, "end-valid should be false after writing start-address")?;
-        soft_assert_eq(RDP::start(), 0x3210, "RDP start address after writing")?;
+                // 1: Set start
+                RDP::set_start(*start_value);
+                let status1 = RDP::status();
+                let start1 = RDP::start();
 
-        // While start is valid, further writes to start are ignored
-        //RDP::set_start(0x12_3450);
-        soft_assert_eq((RDP::status() & DP_STATUS_START_VALID) != 0, true, "start-valid should stay valid")?;
-        soft_assert_eq((RDP::status() & DP_STATUS_END_VALID) != 0, false, "end-valid should stay false")?;
-        soft_assert_eq(RDP::start(), 0x3210, "Writes to start address should be ignored while start-valid is set")?;
+                // 2: While start is valid, further writes to start are ignored
+                RDP::set_start(0x12_3450);
+                let status2 = RDP::status();
+                let start2 = RDP::start();
+                let current2 = RDP::current();
 
-        // Writing start shouldn't change current
-        soft_assert_eq(RDP::current(), current_before, "Writes to start should not affect current")?;
+                // 3: Write end. This should unset start-valid
+                RDP::set_end(*start_value);
+                let status3 = RDP::status();
+                let end3 = RDP::start();
+                let current3 = RDP::current();
 
-        // Write end. This should unset start-valid
-        RDP::set_end(0x3210);
-        soft_assert_eq((RDP::status() & DP_STATUS_START_VALID) != 0, false, "start-valid should stay valid")?;
-        soft_assert_eq((RDP::status() & DP_STATUS_END_VALID) != 0, false, "end-valid should still be false after writing")?;
-        soft_assert_eq(RDP::end(), 0x3210, "Reading back end address after write to it")?;
-        soft_assert_eq(RDP::current(), 0x3210, "Current should be equal to start (which is also equal to end)")?;
+                // Unfreeze. START=END, so nothing should happen
+                unsafe { RDP::set_status(DP_SET_STATUS_CLEAR_FREEZE); }
+                soft_assert_eq((RDP::status() & DP_STATUS_FREEZE) != 0, false, "RDP was told to stop being frozen but it's still frozen")?;
 
-        // Set freeze so that we can freely read/write registers without the RDP actually starting
-        unsafe { RDP::set_status(DP_SET_STATUS_CLEAR_FREEZE); }
-        soft_assert_eq((RDP::status() & DP_STATUS_FREEZE) != 0, false, "RDP was told to stop being frozen but it's still frozen")?;
+                // Now verify the states during the test
+                soft_assert_eq((status1 & DP_STATUS_START_VALID) != 0, true, "start-valid should be set after writing start-address")?;
+                soft_assert_eq((status1 & DP_STATUS_END_VALID) != 0, false, "end-valid should be false after writing start-address")?;
+                soft_assert_eq(start1, *start_value, "RDP start address after writing")?;
 
-        Ok(())
+                soft_assert_eq((status2 & DP_STATUS_START_VALID) != 0, true, "Writing start after start should keep start-valid true")?;
+                soft_assert_eq((status2 & DP_STATUS_END_VALID) != 0, false, "Writing start while start-valid should not set end-valid")?;
+                soft_assert_eq(start2, *start_value, "Writes to start address should be ignored while start-valid is set")?;
+                soft_assert_eq(current2, current_before, "Writes to start should not affect current")?;
+
+                soft_assert_eq((status3 & DP_STATUS_START_VALID) != 0, false, "After writing end, start-valid should be cleared")?;
+                soft_assert_eq((status3 & DP_STATUS_END_VALID) != 0, false, "After writing end, end-valid should not be set (at least not while frozen)")?;
+                soft_assert_eq(end3, *start_value, "Reading back end address after write to it (3)")?;
+                soft_assert_eq(current3, *start_value, "Current should be equal to start (which is also equal to end) (3)")?;
+
+
+                Ok(())
+            }
+            _ => Err("Value is not valid".to_string())
+        }
     }
 }
 
@@ -173,6 +196,50 @@ impl Test for StatusFlagsDuringRun {
     }
 }
 
+fn run_from_dmem_test<F: FnOnce(u32) -> (u32, u32)>(get_dmem_range: F) -> Result<(), String> {
+    const WIDTH: usize = 8;
+    const HEIGHT: usize = 8;
+    let mut framebuffer = UncachedHeapMemory::<RGBA1555>::new_with_init_value(WIDTH * HEIGHT, RGBA1555::BLACK);
+
+    // Assemble a simple RDP program that fills the framebuffer with RGBA1555::GREEN
+    let mut assembler = RDPAssembler::new();
+    let rect = RDPRectangle::new(U10_2::from_u32(0), U10_2::from_u32(0), U10_2::from_u32(WIDTH as u32 - 1), U10_2::from_u32(HEIGHT as u32 - 1));
+    assembler.set_framebuffer_image(Format::RGBA, PixelSize::Bits16, WIDTH - 1, &mut framebuffer);
+    assembler.set_scissor(&rect);
+    assembler.set_othermode(Othermode::new()
+        .with_cycle_type(CycleType::Fill));
+    assembler.set_fillcolor16(RGBA1555::GREEN, RGBA1555::GREEN);
+    assembler.filled_rectangle(&rect);
+    assembler.sync_pipe();
+    assembler.sync_full();
+
+    let length = (assembler.end() - assembler.start()) as u32;
+    let (dmem_start, dmem_end) = get_dmem_range(length);
+
+    soft_assert_eq((dmem_end - dmem_start) & 0xFFF, length, "(end-start) must be equal to length")?;
+
+    // DMA to DMEM
+    let length = (assembler.end() - assembler.start()) as u32;
+    RSP::start_dma_cpu_to_sp(assembler.start() as *const u8, dmem_start, length);
+    RSP::wait_until_dma_completed();
+
+    unsafe { RDP::set_status(DP_SET_STATUS_SET_XBUS); }
+
+    // Set start and end to beginning
+    RDP::set_start(dmem_start);
+    RDP::set_end(dmem_end);
+
+    wait_for_status(DP_STATUS_COMMAND_BUFFER_READY | DP_STATUS_XBUS)?;
+
+    unsafe { RDP::set_status(DP_SET_STATUS_CLEAR_XBUS); }
+
+    soft_assert_eq(RDP::current(), dmem_end, "RDP current should be equal to END after writing END (and waiting for the RDP to finish)")?;
+
+    soft_assert_eq(framebuffer.read(0), RGBA1555::GREEN, "Auxiliary framebuffer should be filled with GREEN")?;
+
+    Ok(())
+}
+
 pub struct RunFromDMEM {}
 
 impl Test for RunFromDMEM {
@@ -183,41 +250,36 @@ impl Test for RunFromDMEM {
     fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
-        const WIDTH: usize = 8;
-        const HEIGHT: usize = 8;
-        let mut framebuffer = UncachedHeapMemory::<RGBA1555>::new_with_init_value(WIDTH * HEIGHT, RGBA1555::BLACK);
+        run_from_dmem_test(|length| (0, length))
+    }
+}
 
-        // Assemble a simple RDP program that fills the framebuffer with RGBA1555::GREEN
-        let mut assembler = RDPAssembler::new();
-        let rect = RDPRectangle::new(U10_2::from_u32(0), U10_2::from_u32(0), U10_2::from_u32(WIDTH as u32 - 1), U10_2::from_u32(HEIGHT as u32 - 1));
-        assembler.set_framebuffer_image(Format::RGBA, PixelSize::Bits16, WIDTH - 1, &mut framebuffer);
-        assembler.set_scissor(&rect);
-        assembler.set_othermode(Othermode::new()
-            .with_cycle_type(CycleType::Fill));
-        assembler.set_fillcolor16(RGBA1555::GREEN, RGBA1555::GREEN);
-        assembler.filled_rectangle(&rect);
-        assembler.sync_pipe();
-        assembler.sync_full();
+pub struct RunFromDMEMEnd {}
 
-        // DMA to DMEM
-        let length = (assembler.end() - assembler.start()) as u32;
-        RSP::start_dma_cpu_to_sp(assembler.start() as *const u8, 0, length);
-        RSP::wait_until_dma_completed();
+impl Test for RunFromDMEMEnd {
+    fn name(&self) -> &str { "RDP STATUS: Run from DMEM (xbus) (end of dmem)" }
 
-        unsafe { RDP::set_status(DP_SET_STATUS_SET_XBUS); }
+    fn level(&self) -> Level { Level::RDPBasic }
 
-        // Set start and end to beginning
-        RDP::set_start(0);
-        RDP::set_end(length);
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 
-        wait_for_status(DP_STATUS_COMMAND_BUFFER_READY | DP_STATUS_XBUS)?;
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        run_from_dmem_test(|length| (0x1000 - length, 0x1000))
+    }
+}
 
-        unsafe { RDP::set_status(DP_SET_STATUS_CLEAR_XBUS); }
+/// Overflowing DMEM is possible, as long as END is not masked. It seems
+/// the RDP is doing an internal START < END check
+pub struct RunFromDMEMOverflow {}
 
-        soft_assert_eq(RDP::current(), length, "RDP current should be equal to START after writing END")?;
+impl Test for RunFromDMEMOverflow {
+    fn name(&self) -> &str { "RDP STATUS: Run from DMEM (xbus) (overflowing dmem)" }
 
-        soft_assert_eq(framebuffer.read(0), RGBA1555::GREEN, "Auxiliary framebuffer should be filled with GREEN")?;
+    fn level(&self) -> Level { Level::RDPBasic }
 
-        Ok(())
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        run_from_dmem_test(|length| (0xFF0, 0xFF0 + length))
     }
 }

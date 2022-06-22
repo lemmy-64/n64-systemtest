@@ -516,6 +516,8 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::rdp::StartIsValidFlag {}),
         Box::new(super::rdp::StatusFlagsDuringRun {}),
         Box::new(super::rdp::RunFromDMEM {}),
+        Box::new(super::rdp::RunFromDMEMEnd {}),
+        Box::new(super::rdp::RunFromDMEMOverflow {}),
 
         // The following are disabled for the time being as they are not stable on hardware yet
         // Box::new(super::rdp::filled_triangle::FilledTriangle1CycleDegenerateRect {}),
