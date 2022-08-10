@@ -16,7 +16,7 @@ pub mod write;
 // - LD: Crashes the console (unless the access is unaligned, in which case there's an AdEL)
 // - Addresses have to be uncached. Cached crashes the console
 
-const DATA: [u64; 2] = [0x0123456789ABCDEF, 0x2143658799BADCFE];
+const DATA: [u64; 3] = [0x01234567_89ABCDEF, 0x21436587_99BADCFE, 0xA9887766_55443322];
 
 pub struct LW {}
 
@@ -31,7 +31,7 @@ impl Test for LW {
         const EXPECTED: [u32; 4] = [0x01234567, 0x89ABCDEF, 0x21436587, 0x99BADCFE];
         let p_cart = MemoryMap::uncached_cart_address(&DATA[0] as *const u64 as *const u32);
 
-        for i in 0..4 {
+        for i in 0..EXPECTED.len() {
             let cart_value = unsafe { p_cart.add(i).read_volatile() };
             soft_assert_eq(cart_value, EXPECTED[i], "Reading 32 bit from cart")?;
         }
@@ -50,10 +50,10 @@ impl Test for LH {
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
         // Reading 16 bit value is broken: Every other word can not be reached
-        const EXPECTED: [u16; 8] = [0x0123, 0x89AB, 0x89AB, 0x2143, 0x2143, 0x99BA, 0x99BA, 0xDCFE];
+        const EXPECTED: [u16; 8] = [0x0123, 0x89AB, 0x89AB, 0x2143, 0x2143, 0x99BA, 0x99BA, 0xA988];
 
         let p_cart = MemoryMap::uncached_cart_address(&DATA[0] as *const u64 as *const u16);
-        for i in 0..4 {
+        for i in 0..EXPECTED.len() {
             let cart_value = unsafe { p_cart.add(i).read_volatile() };
             soft_assert_eq(cart_value, EXPECTED[i], format!("Reading 16 bit from cart[{}]", i).as_str())?;
         }
@@ -72,10 +72,10 @@ impl Test for LB {
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
         // Reading 8 bit value is broken: Every other 16 bit word can not be reached
-        const EXPECTED: [u8; 16] = [0x01, 0x23, 0x89, 0xAB, 0x89, 0xAB, 0x21, 0x43, 0x21, 0x43, 0x99, 0xBA, 0x99, 0xBA, 0xDC, 0xFE];
+        const EXPECTED: [u8; 16] = [0x01, 0x23, 0x89, 0xAB, 0x89, 0xAB, 0x21, 0x43, 0x21, 0x43, 0x99, 0xBA, 0x99, 0xBA, 0xA9, 0x88];
 
         let p_cart = MemoryMap::uncached_cart_address(&DATA[0] as *const u64 as *const u8);
-        for i in 0..4 {
+        for i in 0..EXPECTED.len() {
             let cart_value = unsafe { p_cart.add(i).read_volatile() };
             soft_assert_eq(cart_value, EXPECTED[i], format!("Reading 8 bit from cart[{}]", i).as_str())?;
         }
