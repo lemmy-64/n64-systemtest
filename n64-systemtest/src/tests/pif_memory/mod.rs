@@ -90,10 +90,38 @@ impl Test for SH2 {
     }
 }
 
-pub struct SB {}
+pub struct SB0 {}
 
-impl Test for SB {
-    fn name(&self) -> &str { "pifram: SB" }
+impl Test for SB0 {
+    fn name(&self) -> &str { "pifram: SB (offset 0)" }
+
+    fn level(&self) -> Level { Level::Weird }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        let pifram = MemoryMap::uncached_pifram_address::<u32>(0x0);
+
+        unsafe {
+            asm!("
+                .set noat
+                .set noreorder
+
+                LUI $3, 0x1234
+                ORI $3, $3, 0x5678
+                SB $3, 0($2)
+            ", in("$2") pifram, out("$3") _)
+        }
+
+        soft_assert_eq(unsafe { pifram.add(0).read_volatile() }, 0x78000000, "Reading 32 bit from PIFRAM[0]")?;
+        Ok(())
+    }
+}
+
+pub struct SB1 {}
+
+impl Test for SB1 {
+    fn name(&self) -> &str { "pifram: SB (offset 1)" }
 
     fn level(&self) -> Level { Level::Weird }
 
@@ -114,6 +142,62 @@ impl Test for SB {
         }
 
         soft_assert_eq(unsafe { pifram.add(0).read_volatile() }, 0x56780000, "Reading 32 bit from PIFRAM[0]")?;
+        Ok(())
+    }
+}
+
+pub struct SB2 {}
+
+impl Test for SB2 {
+    fn name(&self) -> &str { "pifram: SB (offset 2)" }
+
+    fn level(&self) -> Level { Level::Weird }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        let pifram = MemoryMap::uncached_pifram_address::<u32>(0x0);
+
+        unsafe {
+            asm!("
+                .set noat
+                .set noreorder
+
+                LUI $3, 0x1234
+                ORI $3, $3, 0x5678
+                SB $3, 2($2)
+            ", in("$2") pifram, out("$3") _)
+        }
+
+        soft_assert_eq(unsafe { pifram.add(0).read_volatile() }, 0x34567800, "Reading 32 bit from PIFRAM[0]")?;
+        Ok(())
+    }
+}
+
+pub struct SB3 {}
+
+impl Test for SB3 {
+    fn name(&self) -> &str { "pifram: SB (offset 3)" }
+
+    fn level(&self) -> Level { Level::Weird }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        let pifram = MemoryMap::uncached_pifram_address::<u32>(0x0);
+
+        unsafe {
+            asm!("
+                .set noat
+                .set noreorder
+
+                LUI $3, 0x1234
+                ORI $3, $3, 0x5678
+                SB $3, 3($2)
+            ", in("$2") pifram, out("$3") _)
+        }
+
+        soft_assert_eq(unsafe { pifram.add(0).read_volatile() }, 0x12345678, "Reading 32 bit from PIFRAM[0]")?;
         Ok(())
     }
 }
