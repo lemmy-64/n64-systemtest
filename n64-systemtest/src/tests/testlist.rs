@@ -508,7 +508,10 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::pif_memory::SW {}),
         Box::new(super::pif_memory::SH0 {}),
         Box::new(super::pif_memory::SH2 {}),
-        Box::new(super::pif_memory::SB {}),
+        Box::new(super::pif_memory::SB0 {}),
+        Box::new(super::pif_memory::SB1 {}),
+        Box::new(super::pif_memory::SB2 {}),
+        Box::new(super::pif_memory::SB3 {}),
         Box::new(super::pif_memory::LB {}),
         Box::new(super::pif_memory::LH {}),
 
