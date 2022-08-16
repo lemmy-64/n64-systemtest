@@ -3,8 +3,9 @@ use alloc::{format, vec};
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::any::Any;
+use arbitrary_int::u12;
 
-use crate::graphics::color::{Color, RGBA1555};
+use crate::graphics::color::{Color, RGBA5551};
 use crate::rdp::fixedpoint::U10_2;
 use crate::rdp::modes::{CycleType, Format, Othermode, PixelSize};
 use crate::rdp::rdp::{DP_SET_STATUS_CLEAR_FREEZE, DP_SET_STATUS_CLEAR_XBUS, DP_SET_STATUS_SET_FREEZE, DP_SET_STATUS_SET_XBUS, DP_STATUS_COMMAND_BUFFER_READY, DP_STATUS_END_VALID, DP_STATUS_FREEZE, DP_STATUS_PIPE_BUSY, DP_STATUS_START_GCLK, DP_STATUS_START_VALID, DP_STATUS_XBUS, RDP};
@@ -149,16 +150,16 @@ impl Test for StatusFlagsDuringRun {
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
         const WIDTH: usize = 8;
         const HEIGHT: usize = 8;
-        let mut framebuffer = UncachedHeapMemory::<RGBA1555>::new_with_init_value(WIDTH * HEIGHT, RGBA1555::BLACK);
+        let mut framebuffer = UncachedHeapMemory::<RGBA5551>::new_with_init_value(WIDTH * HEIGHT, RGBA5551::BLACK);
 
         // Assemble a simple RDP program that fulls the framebuffer with RGBA1555::BLUE
         let mut assembler = RDPAssembler::new();
         let rect = RDPRectangle::new(U10_2::from_u32(0), U10_2::from_u32(0), U10_2::from_u32(WIDTH as u32 - 1), U10_2::from_u32(HEIGHT as u32 - 1));
-        assembler.set_framebuffer_image(Format::RGBA, PixelSize::Bits16, WIDTH - 1, &mut framebuffer);
+        assembler.set_framebuffer_image(Format::RGBA, PixelSize::Bits16, u12::new((WIDTH - 1).try_into().unwrap()), &mut framebuffer);
         assembler.set_scissor(&rect);
         assembler.set_othermode(Othermode::new()
             .with_cycle_type(CycleType::Fill));
-        assembler.set_fillcolor16(RGBA1555::BLUE, RGBA1555::BLUE);
+        assembler.set_fillcolor16(RGBA5551::BLUE, RGBA5551::BLUE);
         assembler.filled_rectangle(&rect);
         assembler.sync_pipe();
         assembler.sync_full();
@@ -186,7 +187,7 @@ impl Test for StatusFlagsDuringRun {
         wait_for_status(DP_STATUS_COMMAND_BUFFER_READY)?;
 
         // Test a single pixel in the framebuffer to ensure the filled_rectangle actually happened. Other tests will test that specific command more in-depth
-        soft_assert_eq(framebuffer.read(0), RGBA1555::BLUE, "Auxiliary framebuffer should be filled with BLUE")?;
+        soft_assert_eq(framebuffer.read(0), RGBA5551::BLUE, "Auxiliary framebuffer should be filled with BLUE")?;
 
         // Advance until the second sync_full instruction
         RDP::set_end(assembler.end() as u32);
@@ -199,16 +200,16 @@ impl Test for StatusFlagsDuringRun {
 fn run_from_dmem_test<F: FnOnce(u32) -> (u32, u32)>(get_dmem_range: F) -> Result<(), String> {
     const WIDTH: usize = 8;
     const HEIGHT: usize = 8;
-    let mut framebuffer = UncachedHeapMemory::<RGBA1555>::new_with_init_value(WIDTH * HEIGHT, RGBA1555::BLACK);
+    let mut framebuffer = UncachedHeapMemory::<RGBA5551>::new_with_init_value(WIDTH * HEIGHT, RGBA5551::BLACK);
 
     // Assemble a simple RDP program that fills the framebuffer with RGBA1555::GREEN
     let mut assembler = RDPAssembler::new();
     let rect = RDPRectangle::new(U10_2::from_u32(0), U10_2::from_u32(0), U10_2::from_u32(WIDTH as u32 - 1), U10_2::from_u32(HEIGHT as u32 - 1));
-    assembler.set_framebuffer_image(Format::RGBA, PixelSize::Bits16, WIDTH - 1, &mut framebuffer);
+    assembler.set_framebuffer_image(Format::RGBA, PixelSize::Bits16, u12::new((WIDTH - 1).try_into().unwrap()), &mut framebuffer);
     assembler.set_scissor(&rect);
     assembler.set_othermode(Othermode::new()
         .with_cycle_type(CycleType::Fill));
-    assembler.set_fillcolor16(RGBA1555::GREEN, RGBA1555::GREEN);
+    assembler.set_fillcolor16(RGBA5551::GREEN, RGBA5551::GREEN);
     assembler.filled_rectangle(&rect);
     assembler.sync_pipe();
     assembler.sync_full();
@@ -235,7 +236,7 @@ fn run_from_dmem_test<F: FnOnce(u32) -> (u32, u32)>(get_dmem_range: F) -> Result
 
     soft_assert_eq(RDP::current(), dmem_end, "RDP current should be equal to END after writing END (and waiting for the RDP to finish)")?;
 
-    soft_assert_eq(framebuffer.read(0), RGBA1555::GREEN, "Auxiliary framebuffer should be filled with GREEN")?;
+    soft_assert_eq(framebuffer.read(0), RGBA5551::GREEN, "Auxiliary framebuffer should be filled with GREEN")?;
 
     Ok(())
 }

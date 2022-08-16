@@ -1,8 +1,8 @@
 use core::arch::asm;
+use arbitrary_int::{u2, u27};
 
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
-use crate::math::bits::Bitmasks32;
 
 #[allow(dead_code)]
 pub enum RegisterIndex {
@@ -360,7 +360,7 @@ pub unsafe fn clear_tlb() {
     unsafe {
         set_entry_lo0(0);
         set_entry_lo1(0);
-        set_entry_hi(make_entry_hi(1, 0, 0));
+        set_entry_hi(make_entry_hi(1, u27::new(0), u2::new(0)));
         set_pagemask(0);
         for i in 0..32 {
             set_index(i);
@@ -380,12 +380,10 @@ pub fn make_entry_lo(global: bool, valid: bool, dirty: bool, coherency: u8, pfn:
         (pfn << 6)
 }
 
-pub fn make_entry_hi(asid: u8, vpn: u32, r: u8) -> u64 {
-    assert!(vpn <= Bitmasks32::M27);
-    assert!(r <= 3);
+pub fn make_entry_hi(asid: u8, vpn: u27, r: u2) -> u64 {
     (asid as u64) |
-        ((vpn as u64) << 13) |
-        ((r as u64) << 62)
+        ((vpn.value() as u64) << 13) |
+        ((r.value() as u64) << 62)
 }
 
 #[inline(always)]

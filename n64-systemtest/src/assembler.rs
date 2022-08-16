@@ -1,3 +1,5 @@
+use arbitrary_int::u5;
+
 #[allow(dead_code)]
 pub enum Opcode {
     SPECIAL = 0,
@@ -131,36 +133,26 @@ pub enum RegimmOpcode {
 pub struct Assembler {}
 
 impl Assembler {
-    pub const fn make_loadstore(op: Opcode, rt: u32, offset: u16, base: u32) -> u32 {
-        assert!(base <= 0b11111);
-        assert!(rt <= 0b11111);
-
+    pub const fn make_loadstore(op: Opcode, rt: u5, offset: u16, base: u5) -> u32 {
         (offset as u32) |
-            (rt << 16) |
-            (base << 21) |
+            ((rt.value() as u32) << 16) |
+            ((base.value() as u32) << 21) |
             ((op as u32) << 26)
     }
 
-    pub const fn make_special(op: SpecialOpcode, sa: u32, rd: u32, rs: u32, rt: u32) -> u32 {
-        assert!(sa <= 0b11111);
-        assert!(rd <= 0b11111);
-        assert!(rs <= 0b11111);
-        assert!(rt <= 0b11111);
-
+    pub const fn make_special(op: SpecialOpcode, sa: u5, rd: u5, rs: u5, rt: u5) -> u32 {
         (op as u32) |
-            (sa << 6) |
-            (rd << 11) |
-            (rt << 16) |
-            (rs << 21) |
+            ((sa.value() as u32) << 6) |
+            ((rd.value() as u32) << 11) |
+            ((rt.value() as u32) << 16) |
+            ((rs.value() as u32) << 21) |
             ((Opcode::SPECIAL as u32) << 26)
     }
 
-    pub const fn make_regimm_trap(op: RegimmOpcode, rs: u32, imm: u16) -> u32 {
-        assert!(rs <= 0b11111);
-
+    pub const fn make_regimm_trap(op: RegimmOpcode, rs: u5, imm: u16) -> u32 {
         (imm as u32) |
             ((op as u32) << 16) |
-            (rs << 21) |
+            ((rs.value() as u32) << 21) |
             ((Opcode::REGIMM as u32) << 26)
     }
 }

@@ -1,6 +1,7 @@
 use core::fmt::{Debug, Formatter};
+use arbitrary_int::u12;
 
-use crate::graphics::color::{RGBA1555, RGBA8888};
+use crate::graphics::color::{RGBA5551, ARGB8888};
 use crate::math::bits::{Bitmasks32, Bitmasks64};
 use crate::rdp::fixedpoint::{I12_2, I16_16, U10_2};
 use crate::rdp::modes::{Format, Othermode, PixelSize};
@@ -19,7 +20,7 @@ enum RDPCommand {
 }
 // @formatter:on
 
-const INSTRUCTTION_STREAM_SIZE: usize = 128;
+const INSTRUCTION_STREAM_SIZE: usize = 128;
 
 #[derive(Debug)]
 pub struct RDPRectangle {
@@ -149,7 +150,7 @@ pub struct RDPAssembler {
 impl<'a> RDPAssembler {
     pub fn new() -> Self {
         Self {
-            data: UncachedHeapMemory::new(INSTRUCTTION_STREAM_SIZE),
+            data: UncachedHeapMemory::new(INSTRUCTION_STREAM_SIZE),
             index: 0,
         }
     }
@@ -186,19 +187,19 @@ impl<'a> RDPAssembler {
         self.write_command(RDPCommand::SyncPipe, 0);
     }
 
-    pub fn set_blendcolor(&mut self, color: RGBA8888) {
+    pub fn set_blendcolor(&mut self, color: ARGB8888) {
         self.write_command(
             RDPCommand::SetBlendColor,
             color.raw_value() as u64);
     }
 
-    pub fn set_fillcolor32(&mut self, color: RGBA8888) {
+    pub fn set_fillcolor32(&mut self, color: ARGB8888) {
         self.write_command(
             RDPCommand::SetFillColor,
             color.raw_value() as u64);
     }
 
-    pub fn set_fillcolor16(&mut self, color1: RGBA1555, color2: RGBA1555) {
+    pub fn set_fillcolor16(&mut self, color1: RGBA5551, color2: RGBA5551) {
         self.write_command(
             RDPCommand::SetFillColor,
             ((color1.raw_value() as u32) | ((color2.raw_value() as u32) << 16)) as u64);
@@ -210,10 +211,9 @@ impl<'a> RDPAssembler {
             othermode.raw_value());
     }
 
-    pub fn set_framebuffer_image<T: Copy + Clone>(&mut self, format: Format, pixel_size: PixelSize, width: usize, memory: &'a mut UncachedHeapMemory<T>) {
-        assert!(width as u32 <= Bitmasks32::M12);
+    pub fn set_framebuffer_image<T: Copy + Clone>(&mut self, format: Format, pixel_size: PixelSize, width: u12, memory: &'a mut UncachedHeapMemory<T>) {
         let value = ((memory.start_phyiscal() as u64) & Bitmasks64::M26) |
-            ((width as u64) << 32) |
+            ((width.value() as u64) << 32) |
             ((pixel_size as u64) << 51) |
             ((format as u64) << 53);
 

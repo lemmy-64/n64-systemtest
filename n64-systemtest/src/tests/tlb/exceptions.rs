@@ -3,6 +3,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::any::Any;
 use core::arch::asm;
+use arbitrary_int::{u2, u27};
 
 use crate::{cop0, MemoryMap, println};
 use crate::cop0::{CauseException, make_entry_hi, make_entry_lo};
@@ -24,10 +25,10 @@ pub fn setup_tlb_page(pagemask: u32, valid: bool, dirty: bool) -> u32 {
             pagemask,
             make_entry_lo(true, valid, dirty, 0, (MemoryMap::HEAP_END >> 12) as u32),
             make_entry_lo(true, false, false, 0, 0),
-            make_entry_hi(2, virtual_page_base >> 13, 0));
+            make_entry_hi(2, u27::extract_u64(virtual_page_base as u64, 13), u2::new(0)));
 
         // Change EntryHi to confirm it gets set for the exception handler
-        cop0::set_entry_hi(make_entry_hi(1, 0, 0));
+        cop0::set_entry_hi(make_entry_hi(1, u27::new(0), u2::new(0)));
     }
 
     virtual_page_base
@@ -59,7 +60,7 @@ pub fn test_miss_exception<F>(pagemask: u32, offset: u32, valid: bool, dirty: bo
     soft_assert_eq(exception_context.xcontext, expected_context, "XContext during TLB exception")?;
     if check_entry_hi {
         // The docs say that asid on exception is the asid of the TLB entry, but test don't confirm that. It seems to stay unchanged
-        soft_assert_eq(exception_context.entry_hi, make_entry_hi(1, virtual_page_base >> 13, 0), "EntryHi during TLB exception")?;
+        soft_assert_eq(exception_context.entry_hi, make_entry_hi(1, u27::extract_u64(virtual_page_base as u32 as u64, 13), u2::new(0)), "EntryHi during TLB exception")?;
     }
 
     Ok(())

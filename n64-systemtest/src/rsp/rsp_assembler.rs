@@ -1,6 +1,8 @@
 use core::iter::Step;
 use core::mem::transmute;
 use core::ops::RangeInclusive;
+use arbitrary_int::u5;
+use bitbybit::bitenum;
 
 use crate::rsp::dmem_writer::DMEMWriter;
 
@@ -45,9 +47,9 @@ impl Step for GPR {
 }
 
 // @formatter:off
+#[bitenum(u5, exhaustive: true)]
 #[allow(dead_code)]
-#[repr(u8)]
-#[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Eq)]
+#[derive(Debug, PartialOrd, PartialEq, Eq)]
 pub enum VR {
     V0 = 0, V1 = 1, V2 = 2, V3 = 3, V4 = 4, V5 = 5, V6 = 6, V7 = 7,
     V8 = 8, V9 = 9, V10 = 10, V11 = 11, V12 = 12, V13 = 13, V14 = 14, V15 = 15,
@@ -265,8 +267,7 @@ enum CP2OP {
 // @formatter:on
 
 // @formatter:off
-#[allow(dead_code)]
-#[repr(u8)]
+#[bitenum(u5, exhaustive: false)]
 pub enum CP2FlagsRegister {
     VCO = 0, VCC = 1, VCE = 2
 }
@@ -332,10 +333,9 @@ impl RSPAssembler {
         self.writer.write(instruction);
     }
 
-    fn write_special(&mut self, function: SpecialOP, sa: u32, rd: GPR, rs: GPR, rt: GPR) {
-        assert!(sa <= 0b11111);
+    fn write_special(&mut self, function: SpecialOP, sa: u5, rd: GPR, rs: GPR, rt: GPR) {
         self.writer.write((function as u32) |
-            (sa << 6) |
+            (((sa.value()) as u32) << 6) |
             ((rd as u32) << 11) |
             ((rt as u32) << 16) |
             ((rs as u32) << 21) |
@@ -370,11 +370,10 @@ impl RSPAssembler {
         self.writer.write(instruction);
     }
 
-    fn write_cop2(&mut self, cp2op: CP2OP, rd: u32, rt: GPR, e: E) {
-        assert!(rd < 32);
+    fn write_cop2(&mut self, cp2op: CP2OP, rd: u5, rt: GPR, e: E) {
         let instruction: u32 =
             ((e as u32) << 7) |
-                ((rd as u32) << 11) |
+                ((rd.value() as u32) << 11) |
                 ((rt as u32) << 16) |
                 ((cp2op as u32) << 21) |
                 ((OP::COP2 as u32) << 26);
@@ -530,110 +529,108 @@ impl RSPAssembler {
 
     // COP2
     pub fn write_ctc2(&mut self, flags_register: CP2FlagsRegister, rt: GPR) {
-        self.write_ctc2_any_index(flags_register as u32, rt);
+        self.write_ctc2_any_index(flags_register.raw_value(), rt);
     }
 
-    pub fn write_ctc2_any_index(&mut self, flags_register: u32, rt: GPR) {
-        assert!(flags_register < 32);
-        self.write_cop2(CP2OP::CTC2, flags_register as u32, rt, E::_0);
+    pub fn write_ctc2_any_index(&mut self, flags_register: u5, rt: GPR) {
+        self.write_cop2(CP2OP::CTC2, flags_register, rt, E::_0);
     }
 
     pub fn write_cfc2(&mut self, flags_register: CP2FlagsRegister, rt: GPR) {
-        self.write_cfc2_any_index(flags_register as u32, rt);
+        self.write_cfc2_any_index(flags_register.raw_value(), rt);
     }
 
-    pub fn write_cfc2_any_index(&mut self, flags_register: u32, rt: GPR) {
-        assert!(flags_register < 32);
-        self.write_cop2(CP2OP::CFC2, flags_register as u32, rt, E::_0);
+    pub fn write_cfc2_any_index(&mut self, flags_register: u5, rt: GPR) {
+        self.write_cop2(CP2OP::CFC2, flags_register, rt, E::_0);
     }
 
     pub fn write_mfc2(&mut self, vd: VR, rt: GPR, e: E) {
-        self.write_cop2(CP2OP::MFC2, vd as u32, rt, e);
+        self.write_cop2(CP2OP::MFC2, vd.raw_value(), rt, e);
     }
 
     pub fn write_mtc2(&mut self, vd: VR, rt: GPR, e: E) {
-        self.write_cop2(CP2OP::MTC2, vd as u32, rt, e);
+        self.write_cop2(CP2OP::MTC2, vd.raw_value(), rt, e);
     }
 
     // Special instructions
-    pub fn write_sll(&mut self, rd: GPR, rt: GPR, sa: u32) {
+    pub fn write_sll(&mut self, rd: GPR, rt: GPR, sa: u5) {
         self.write_special(SpecialOP::SLL, sa, rd, GPR::R0, rt);
     }
 
-    pub fn write_sra(&mut self, rd: GPR, rt: GPR, sa: u32) {
+    pub fn write_sra(&mut self, rd: GPR, rt: GPR, sa: u5) {
         self.write_special(SpecialOP::SRA, sa, rd, GPR::R0, rt);
     }
 
-    pub fn write_srl(&mut self, rd: GPR, rt: GPR, sa: u32) {
+    pub fn write_srl(&mut self, rd: GPR, rt: GPR, sa: u5) {
         self.write_special(SpecialOP::SRL, sa, rd, GPR::R0, rt);
     }
 
     pub fn write_sllv(&mut self, rd: GPR, rt: GPR, rs: GPR) {
-        self.write_special(SpecialOP::SLLV, 0, rd, rs, rt);
+        self.write_special(SpecialOP::SLLV, u5::new(0), rd, rs, rt);
     }
 
     pub fn write_srav(&mut self, rd: GPR, rt: GPR, rs: GPR) {
-        self.write_special(SpecialOP::SRAV, 0, rd, rs, rt);
+        self.write_special(SpecialOP::SRAV, u5::new(0), rd, rs, rt);
     }
 
     pub fn write_srlv(&mut self, rd: GPR, rt: GPR, rs: GPR) {
-        self.write_special(SpecialOP::SRLV, 0, rd, rs, rt);
+        self.write_special(SpecialOP::SRLV, u5::new(0), rd, rs, rt);
     }
 
     pub fn write_nop(&mut self) {
-        self.write_sll(GPR::R0, GPR::R0, 0);
+        self.write_sll(GPR::R0, GPR::R0, u5::new(0));
     }
 
     pub fn write_add(&mut self, rd: GPR, rt: GPR, rs: GPR) {
-        self.write_special(SpecialOP::ADD, 0, rd, rs, rt);
+        self.write_special(SpecialOP::ADD, u5::new(0), rd, rs, rt);
     }
 
     pub fn write_addu(&mut self, rd: GPR, rt: GPR, rs: GPR) {
-        self.write_special(SpecialOP::ADDU, 0, rd, rs, rt);
+        self.write_special(SpecialOP::ADDU, u5::new(0), rd, rs, rt);
     }
 
     pub fn write_sub(&mut self, rd: GPR, rt: GPR, rs: GPR) {
-        self.write_special(SpecialOP::SUB, 0, rd, rs, rt);
+        self.write_special(SpecialOP::SUB, u5::new(0), rd, rs, rt);
     }
 
     pub fn write_subu(&mut self, rd: GPR, rt: GPR, rs: GPR) {
-        self.write_special(SpecialOP::SUBU, 0, rd, rs, rt);
+        self.write_special(SpecialOP::SUBU, u5::new(0), rd, rs, rt);
     }
 
     pub fn write_and(&mut self, rd: GPR, rt: GPR, rs: GPR) {
-        self.write_special(SpecialOP::AND, 0, rd, rs, rt);
+        self.write_special(SpecialOP::AND, u5::new(0), rd, rs, rt);
     }
 
     pub fn write_break(&mut self) {
-        self.write_special(SpecialOP::BREAK, 0, GPR::R0, GPR::R0, GPR::R0);
+        self.write_special(SpecialOP::BREAK, u5::new(0), GPR::R0, GPR::R0, GPR::R0);
     }
 
     pub fn write_nor(&mut self, rd: GPR, rs: GPR, rt: GPR) {
-        self.write_special(SpecialOP::NOR, 0, rd, rs, rt);
+        self.write_special(SpecialOP::NOR, u5::new(0), rd, rs, rt);
     }
 
     pub fn write_or(&mut self, rd: GPR, rs: GPR, rt: GPR) {
-        self.write_special(SpecialOP::OR, 0, rd, rs, rt);
+        self.write_special(SpecialOP::OR, u5::new(0), rd, rs, rt);
     }
 
     pub fn write_xor(&mut self, rd: GPR, rs: GPR, rt: GPR) {
-        self.write_special(SpecialOP::XOR, 0, rd, rs, rt);
+        self.write_special(SpecialOP::XOR, u5::new(0), rd, rs, rt);
     }
 
     pub fn write_slt(&mut self, rd: GPR, rs: GPR, rt: GPR) {
-        self.write_special(SpecialOP::SLT, 0, rd, rs, rt);
+        self.write_special(SpecialOP::SLT, u5::new(0), rd, rs, rt);
     }
 
     pub fn write_sltu(&mut self, rd: GPR, rs: GPR, rt: GPR) {
-        self.write_special(SpecialOP::SLTU, 0, rd, rs, rt);
+        self.write_special(SpecialOP::SLTU, u5::new(0), rd, rs, rt);
     }
 
     pub fn write_jr(&mut self, rs: GPR) {
-        self.write_special(SpecialOP::JR, 0, GPR::R0, rs, GPR::R0);
+        self.write_special(SpecialOP::JR, u5::new(0), GPR::R0, rs, GPR::R0);
     }
 
     pub fn write_jalr(&mut self, ra: GPR, target: GPR) {
-        self.write_special(SpecialOP::JALR, 0, ra, target, GPR::R0);
+        self.write_special(SpecialOP::JALR, u5::new(0), ra, target, GPR::R0);
     }
 
     // Regimm instructions

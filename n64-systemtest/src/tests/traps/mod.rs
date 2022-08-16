@@ -6,6 +6,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 use core::any::Any;
 use core::arch::asm;
+use arbitrary_int::u5;
 use crate::assembler::{Assembler, RegimmOpcode, SpecialOpcode};
 use crate::cop0::CauseException;
 use crate::exception_handler::expect_exception;
@@ -171,7 +172,7 @@ impl Test for TLT {
     }
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
-        const INSTRUCTION: u32 = Assembler::make_special(SpecialOpcode::TLT, 0, 0, 2, 3);
+        const INSTRUCTION: u32 = Assembler::make_special(SpecialOpcode::TLT, u5::new(0), u5::new(0), u5::new(2), u5::new(3));
         execute_test_case_2_registers::<INSTRUCTION>(value)
     }
 }
@@ -206,7 +207,7 @@ impl Test for TLTU {
     }
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
-        const INSTRUCTION: u32 = Assembler::make_special(SpecialOpcode::TLTU, 0, 0, 2, 3);
+        const INSTRUCTION: u32 = Assembler::make_special(SpecialOpcode::TLTU, u5::new(0), u5::new(0), u5::new(2), u5::new(3));
         execute_test_case_2_registers::<INSTRUCTION>(value)
     }
 }
@@ -244,7 +245,7 @@ impl Test for TGE {
     }
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
-        const INSTRUCTION: u32 = Assembler::make_special(SpecialOpcode::TGE, 0, 0, 2, 3);
+        const INSTRUCTION: u32 = Assembler::make_special(SpecialOpcode::TGE, u5::new(0), u5::new(0), u5::new(2), u5::new(3));
         execute_test_case_2_registers::<INSTRUCTION>(value)
     }
 }
@@ -279,7 +280,7 @@ impl Test for TGEU {
     }
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
-        const INSTRUCTION: u32 = Assembler::make_special(SpecialOpcode::TGEU, 0, 0, 2, 3);
+        const INSTRUCTION: u32 = Assembler::make_special(SpecialOpcode::TGEU, u5::new(0), u5::new(0), u5::new(2), u5::new(3));
         execute_test_case_2_registers::<INSTRUCTION>(value)
     }
 }
@@ -310,7 +311,7 @@ impl Test for TEQ {
     }
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
-        const INSTRUCTION: u32 = Assembler::make_special(SpecialOpcode::TEQ, 0, 0, 2, 3);
+        const INSTRUCTION: u32 = Assembler::make_special(SpecialOpcode::TEQ, u5::new(0), u5::new(0), u5::new(2), u5::new(3));
         execute_test_case_2_registers::<INSTRUCTION>(value)
     }
 }
@@ -341,7 +342,7 @@ impl Test for TNE {
     }
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
-        const INSTRUCTION: u32 = Assembler::make_special(SpecialOpcode::TNE, 0, 0, 2, 3);
+        const INSTRUCTION: u32 = Assembler::make_special(SpecialOpcode::TNE, u5::new(0), u5::new(0), u5::new(2), u5::new(3));
         execute_test_case_2_registers::<INSTRUCTION>(value)
     }
 }
@@ -372,9 +373,9 @@ impl Test for TEQI {
     }
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
-        const I2: u32 = Assembler::make_regimm_trap(RegimmOpcode::TEQI, 2, 2);
-        const I0: u32 = Assembler::make_regimm_trap(RegimmOpcode::TEQI, 2, 0);
-        const INEG2: u32 = Assembler::make_regimm_trap(RegimmOpcode::TEQI, 2, 0xFFFE);
+        const I2: u32 = Assembler::make_regimm_trap(RegimmOpcode::TEQI, u5::new(2), 2);
+        const I0: u32 = Assembler::make_regimm_trap(RegimmOpcode::TEQI, u5::new(2), 0);
+        const INEG2: u32 = Assembler::make_regimm_trap(RegimmOpcode::TEQI, u5::new(2), 0xFFFE);
 
         execute_test_case_register_with_immediate::<INEG2, I0, I2>(value)
     }
@@ -406,9 +407,9 @@ impl Test for TNEI {
     }
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
-        const I2: u32 = Assembler::make_regimm_trap(RegimmOpcode::TNEI, 2, 2);
-        const I0: u32 = Assembler::make_regimm_trap(RegimmOpcode::TNEI, 2, 0);
-        const INEG2: u32 = Assembler::make_regimm_trap(RegimmOpcode::TNEI, 2, 0xFFFE);
+        const I2: u32 = Assembler::make_regimm_trap(RegimmOpcode::TNEI, u5::new(2), 2);
+        const I0: u32 = Assembler::make_regimm_trap(RegimmOpcode::TNEI, u5::new(2), 0);
+        const INEG2: u32 = Assembler::make_regimm_trap(RegimmOpcode::TNEI, u5::new(2), 0xFFFE);
 
         execute_test_case_register_with_immediate::<INEG2, I0, I2>(value)
     }
@@ -450,9 +451,9 @@ impl Test for TGEI {
     }
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
-        const I2: u32 = Assembler::make_regimm_trap(RegimmOpcode::TGEI, 2, 2);
-        const I0: u32 = Assembler::make_regimm_trap(RegimmOpcode::TGEI, 2, 0);
-        const INEG2: u32 = Assembler::make_regimm_trap(RegimmOpcode::TGEI, 2, 0xFFFE);
+        const I2: u32 = Assembler::make_regimm_trap(RegimmOpcode::TGEI, u5::new(2), 2);
+        const I0: u32 = Assembler::make_regimm_trap(RegimmOpcode::TGEI, u5::new(2), 0);
+        const INEG2: u32 = Assembler::make_regimm_trap(RegimmOpcode::TGEI, u5::new(2), 0xFFFE);
 
         execute_test_case_register_with_immediate::<INEG2, I0, I2>(value)
     }
@@ -492,9 +493,9 @@ impl Test for TGEIU {
     }
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
-        const I2: u32 = Assembler::make_regimm_trap(RegimmOpcode::TGEIU, 2, 2);
-        const I0: u32 = Assembler::make_regimm_trap(RegimmOpcode::TGEIU, 2, 0);
-        const INEG2: u32 = Assembler::make_regimm_trap(RegimmOpcode::TGEIU, 2, 0xFFFE);
+        const I2: u32 = Assembler::make_regimm_trap(RegimmOpcode::TGEIU, u5::new(2), 2);
+        const I0: u32 = Assembler::make_regimm_trap(RegimmOpcode::TGEIU, u5::new(2), 0);
+        const INEG2: u32 = Assembler::make_regimm_trap(RegimmOpcode::TGEIU, u5::new(2), 0xFFFE);
 
         execute_test_case_register_with_immediate::<INEG2, I0, I2>(value)
     }
@@ -536,9 +537,9 @@ impl Test for TLTI {
     }
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
-        const I2: u32 = Assembler::make_regimm_trap(RegimmOpcode::TLTI, 2, 2);
-        const I0: u32 = Assembler::make_regimm_trap(RegimmOpcode::TLTI, 2, 0);
-        const INEG2: u32 = Assembler::make_regimm_trap(RegimmOpcode::TLTI, 2, 0xFFFE);
+        const I2: u32 = Assembler::make_regimm_trap(RegimmOpcode::TLTI, u5::new(2), 2);
+        const I0: u32 = Assembler::make_regimm_trap(RegimmOpcode::TLTI, u5::new(2), 0);
+        const INEG2: u32 = Assembler::make_regimm_trap(RegimmOpcode::TLTI, u5::new(2), 0xFFFE);
 
         execute_test_case_register_with_immediate::<INEG2, I0, I2>(value)
     }
@@ -578,9 +579,9 @@ impl Test for TLTIU {
     }
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
-        const I2: u32 = Assembler::make_regimm_trap(RegimmOpcode::TLTIU, 2, 2);
-        const I0: u32 = Assembler::make_regimm_trap(RegimmOpcode::TLTIU, 2, 0);
-        const INEG2: u32 = Assembler::make_regimm_trap(RegimmOpcode::TLTIU, 2, 0xFFFE);
+        const I2: u32 = Assembler::make_regimm_trap(RegimmOpcode::TLTIU, u5::new(2), 2);
+        const I0: u32 = Assembler::make_regimm_trap(RegimmOpcode::TLTIU, u5::new(2), 0);
+        const INEG2: u32 = Assembler::make_regimm_trap(RegimmOpcode::TLTIU, u5::new(2), 0xFFFE);
 
         execute_test_case_register_with_immediate::<INEG2, I0, I2>(value)
     }

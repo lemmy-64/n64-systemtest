@@ -3,6 +3,7 @@ use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 use core::any::Any;
+use arbitrary_int::u5;
 
 use crate::rsp::rsp::RSP;
 use crate::rsp::rsp_assembler::{GPR, RSPAssembler};
@@ -56,15 +57,15 @@ impl Test for SLL {
     fn values(&self) -> Vec<Box<dyn Any>> {
         vec! {
             // source value, shift amount, expected value
-            Box::new((0u32, 5u32, 0u32)),
-            Box::new((0x01u32, 5u32, 0x20u32)),
-            Box::new((0xFFFFFFFFu32, 8u32, 0xFFFFFF00u32)),
-            Box::new((0xFFFF88FFu32, 0u32, 0xFFFF88FFu32)),
+            Box::new((0u32, u5::new(5), 0u32)),
+            Box::new((0x01u32, u5::new(5), 0x20u32)),
+            Box::new((0xFFFFFFFFu32, u5::new(8), 0xFFFFFF00u32)),
+            Box::new((0xFFFF88FFu32, u5::new(0), 0xFFFF88FFu32)),
         }
     }
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
-        match (*value).downcast_ref::<(u32, u32, u32)>() {
+        match (*value).downcast_ref::<(u32, u5, u32)>() {
             Some((source_value, shift_amount, expected_value)) => {
                 test(*source_value, *expected_value, |assembler, target_reg, source_reg| {
                     assembler.write_sll(target_reg, source_reg, *shift_amount)
@@ -141,16 +142,16 @@ impl Test for SRL {
     fn values(&self) -> Vec<Box<dyn Any>> {
         vec! {
             // source value, shift amount, expected value
-            Box::new((0u32, 5u32, 0u32)),
-            Box::new((0x20u32, 4u32, 0x2u32)),
-            Box::new((0xFFFFFFFFu32, 8u32, 0x00FFFFFFu32)),
-            Box::new((0x80000000u32, 31u32, 0x00000001u32)),
-            Box::new((0xFFFF88FFu32, 0u32, 0xFFFF88FFu32)),
+            Box::new((0u32, u5::new(5), 0u32)),
+            Box::new((0x20u32, u5::new(4), 0x2u32)),
+            Box::new((0xFFFFFFFFu32, u5::new(8), 0x00FFFFFFu32)),
+            Box::new((0x80000000u32, u5::new(31), 0x00000001u32)),
+            Box::new((0xFFFF88FFu32, u5::new(0), 0xFFFF88FFu32)),
         }
     }
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
-        match (*value).downcast_ref::<(u32, u32, u32)>() {
+        match (*value).downcast_ref::<(u32, u5, u32)>() {
             Some((source_value, shift_amount, expected_value)) => {
                 test(*source_value, *expected_value, |assembler, target_reg, source_reg| {
                     assembler.write_srl(target_reg, source_reg, *shift_amount)
@@ -227,16 +228,16 @@ impl Test for SRA {
     fn values(&self) -> Vec<Box<dyn Any>> {
         vec! {
             // source value, shift amount, expected value
-            Box::new((0u32, 5u32, 0u32)),
-            Box::new((0x20u32, 4u32, 0x2u32)),
-            Box::new((0xFFFFFFFFu32, 8u32, 0xFFFFFFFFu32)),
-            Box::new((0x80000000u32, 31u32, 0xFFFFFFFFu32)),
-            Box::new((0xFFFF88FFu32, 0u32, 0xFFFF88FFu32)),
+            Box::new((0u32, u5::new(5), 0u32)),
+            Box::new((0x20u32, u5::new(4), 0x2u32)),
+            Box::new((0xFFFFFFFFu32, u5::new(8), 0xFFFFFFFFu32)),
+            Box::new((0x80000000u32, u5::new(31), 0xFFFFFFFFu32)),
+            Box::new((0xFFFF88FFu32, u5::new(0), 0xFFFF88FFu32)),
         }
     }
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
-        match (*value).downcast_ref::<(u32, u32, u32)>() {
+        match (*value).downcast_ref::<(u32, u5, u32)>() {
             Some((source_value, shift_amount, expected_value)) => {
                 test(*source_value, *expected_value, |assembler, target_reg, source_reg| {
                     assembler.write_sra(target_reg, source_reg, *shift_amount)

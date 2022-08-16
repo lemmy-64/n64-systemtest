@@ -4,6 +4,7 @@ use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::any::Any;
 use core::arch::asm;
+use arbitrary_int::{u2, u27};
 
 use crate::{cop0, MemoryMap};
 use crate::cop0::{CauseException, make_entry_hi, make_entry_lo};
@@ -311,7 +312,7 @@ impl Test for LimitsOf0x90 {
     }
 }
 
-fn test(tlb_address: u64, vpn: u32, r: u8) -> Result<(), String> {
+fn test(tlb_address: u64, vpn: u27, r: u2) -> Result<(), String> {
     // Enable 64 bit kernel addressing mode
     unsafe { cop0::set_status(0x240000E0); }
 
@@ -370,26 +371,26 @@ impl Test for TLB64Read {
 
     fn values(&self) -> Vec<Box<dyn Any>> {
         vec! {
-            Box::new((0x00000000_0DEA0000u64, 0x0000_DEA0u32 >> 1, 0u8)),
-            Box::new((0x00000000_DEA00000u64, 0x000D_EA00u32 >> 1, 0u8)),
-            Box::new((0x00000003_F0000000u64, 0x003F_0000u32 >> 1, 0u8)),
-            Box::new((0x00000003_F0000000u64, 0x003F_0000u32 >> 1, 0u8)),
-            Box::new((0x00000007_F0000000u64, 0x007F_0000u32 >> 1, 0u8)),
-            Box::new((0x0000003F_F0000000u64, 0x03FF_0000u32 >> 1, 0u8)),
-            Box::new((0x000000FF_F0000000u64, 0x0FFF_0000u32 >> 1, 0u8)),
+            Box::new((0x00000000_0DEA0000u64, u27::new(0x0000_DEA0u32 >> 1), u2::new(0))),
+            Box::new((0x00000000_DEA00000u64, u27::new(0x000D_EA00u32 >> 1), u2::new(0))),
+            Box::new((0x00000003_F0000000u64, u27::new(0x003F_0000u32 >> 1), u2::new(0))),
+            Box::new((0x00000003_F0000000u64, u27::new(0x003F_0000u32 >> 1), u2::new(0))),
+            Box::new((0x00000007_F0000000u64, u27::new(0x007F_0000u32 >> 1), u2::new(0))),
+            Box::new((0x0000003F_F0000000u64, u27::new(0x03FF_0000u32 >> 1), u2::new(0))),
+            Box::new((0x000000FF_F0000000u64, u27::new(0x0FFF_0000u32 >> 1), u2::new(0))),
 
-            Box::new((0x400000FF_10000000u64, 0x0FF1_0000u32 >> 1, 1u8)),
-            Box::new((0x400000FF_FF200000u64, 0x0FFF_F200u32 >> 1, 1u8)),
+            Box::new((0x400000FF_10000000u64, u27::new(0x0FF1_0000u32 >> 1), u2::new(1))),
+            Box::new((0x400000FF_FF200000u64, u27::new(0x0FFF_F200u32 >> 1), u2::new(1))),
 
-            Box::new((0xC0000000_00000000u64, 0x0000_0000u32 >> 1, 3u8)),
-            Box::new((0xC00000FF_20000000u64, 0x0FF2_0000u32 >> 1, 3u8)),
-            Box::new((0xC00000FF_40000000u64, 0x0FF4_0000u32 >> 1, 3u8)),
-            Box::new((0xC00000FF_70000000u64, 0x0FF7_0000u32 >> 1, 3u8)),
+            Box::new((0xC0000000_00000000u64, u27::new(0x0000_0000u32 >> 1), u2::new(3))),
+            Box::new((0xC00000FF_20000000u64, u27::new(0x0FF2_0000u32 >> 1), u2::new(3))),
+            Box::new((0xC00000FF_40000000u64, u27::new(0x0FF4_0000u32 >> 1), u2::new(3))),
+            Box::new((0xC00000FF_70000000u64, u27::new(0x0FF7_0000u32 >> 1), u2::new(3))),
         }
     }
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
-        match (*value).downcast_ref::<(u64, u32, u8)>() {
+        match (*value).downcast_ref::<(u64, u27, u2)>() {
             Some((address, vpn, r)) => {
                 test(*address, *vpn, *r)
             }
@@ -433,7 +434,7 @@ impl Test for TLB64Execute {
                 pagemask,
                 make_entry_lo(true, true, false, 0, (data64.start_phyiscal() >> 12) as u32),
                 make_entry_lo(true, true, false, 0, (data64.start_phyiscal() >> 12) as u32),
-                make_entry_hi(2, (virtual_address >> 13) as u32, 0));
+                make_entry_hi(2, u27::extract_u64(virtual_address, 13), u2::new(0)));
 
             // The 32 bit fallback mapping (so that we don't just die)
             cop0::write_tlb(
@@ -441,7 +442,7 @@ impl Test for TLB64Execute {
                 pagemask,
                 make_entry_lo(true, true, false, 0, (data32.start_phyiscal() >> 12) as u32),
                 make_entry_lo(true, true, false, 0, (data32.start_phyiscal() >> 12) as u32),
-                make_entry_hi(2, ((virtual_address & Bitmasks64::M32) >> 13) as u32, 0));
+                make_entry_hi(2, u27::extract_u64(virtual_address as u32 as u64, 13), u2::new(0)));
         }
 
         unsafe {

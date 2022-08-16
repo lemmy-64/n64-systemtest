@@ -1,8 +1,7 @@
-use crate::math::bits::Bitmasks32;
+use bitbybit::{bitenum, bitfield};
 
-#[repr(u8)]
+#[bitenum(u2, exhaustive: true)]
 #[allow(dead_code)]
-#[derive(Copy, Clone)]
 pub enum CycleType {
     SingleCycle = 0,
     DualCycle = 1,
@@ -10,9 +9,8 @@ pub enum CycleType {
     Fill = 3,
 }
 
-#[repr(u8)]
+#[bitenum(u2, exhaustive: true)]
 #[allow(dead_code)]
-#[derive(Copy, Clone)]
 pub enum CoverageMode {
     Clamp = 0,
     Wrap = 1,
@@ -20,9 +18,8 @@ pub enum CoverageMode {
     Save = 3,
 }
 
-#[repr(u8)]
+#[bitenum(u3, exhaustive: false)]
 #[allow(dead_code)]
-#[derive(Copy, Clone)]
 pub enum Format {
     RGBA = 0,
     YUV = 1,
@@ -31,9 +28,8 @@ pub enum Format {
     I = 4
 }
 
-#[repr(u8)]
+#[bitenum(u2, exhaustive: true)]
 #[allow(dead_code)]
-#[derive(Copy, Clone)]
 pub enum PixelSize {
     Bits4 = 0,
     Bits8 = 1,
@@ -41,9 +37,8 @@ pub enum PixelSize {
     Bits32 = 3,
 }
 
-#[repr(u8)]
+#[bitenum(u2, exhaustive: true)]
 #[allow(dead_code)]
-#[derive(Copy, Clone)]
 pub enum PM {
     CombineColor = 0,
     MemoryColor = 1,
@@ -51,10 +46,8 @@ pub enum PM {
     FogColor = 3
 }
 
-#[repr(u8)]
+#[bitenum(u2, exhaustive: true)]
 #[allow(dead_code)]
-#[derive()]
-#[derive(Copy, Clone)]
 pub enum A {
     CombineAlpha = 0,
     FogAlpha = 1,
@@ -62,9 +55,8 @@ pub enum A {
     Zero = 3,
 }
 
-#[repr(u8)]
+#[bitenum(u2, exhaustive: true)]
 #[allow(dead_code)]
-#[derive(Copy, Clone)]
 pub enum B {
     InverseA = 0,
     MemoryAlpha = 1,
@@ -72,43 +64,57 @@ pub enum B {
     Zero = 3
 }
 
+#[bitfield(u64, default: 0)]
 pub struct Othermode {
-    raw_value: u64
+    #[bits(52..=53, rw)]
+    cycle_type: CycleType,
+
+    #[bits(30..=31, rw)]
+    blender_0p: PM,
+
+    #[bits(28..=29, rw)]
+    blender_1p: PM,
+
+    #[bits(26..=27, rw)]
+    blender_0a: A,
+
+    #[bits(24..=25, rw)]
+    blender_1a: A,
+
+    #[bits(22..=23, rw)]
+    blender_0m: PM,
+
+    #[bits(20..=21, rw)]
+    blender_1m: PM,
+
+    #[bits(18..=19, rw)]
+    blender_0b: B,
+
+    #[bits(16..=17, rw)]
+    blender_1b: B,
+
+    #[bits(8..=9, rw)]
+    coverage_mode: CoverageMode,
+
 }
 
 impl Othermode {
-    pub const fn new() -> Self { Self { raw_value: 0 } }
-
-    pub const fn raw_value(&self) -> u64 { self.raw_value }
-
-    pub const fn with_cycle_type(&self, value: CycleType) -> Self {
-        const SHIFT: u32 = 52;
-        const MASK: u64 = !((Bitmasks32::M2 as u64) << SHIFT);
-        Self {
-            raw_value: self.raw_value & MASK | ((value as u64) << SHIFT),
-        }
+    pub const fn with_blender_0(&self, value: Blender) -> Self {
+        self
+            .with_blender_0p(value.p)
+            .with_blender_0a(value.a)
+            .with_blender_0m(value.m)
+            .with_blender_0b(value.b)
     }
-
-    pub const fn with_coverage_mode(&self, value: CoverageMode) -> Self {
-        const SHIFT: u32 = 8;
-        const MASK: u64 = !((Bitmasks32::M2 as u64) << SHIFT);
-        Self {
-            raw_value: self.raw_value & MASK | ((value as u64) << SHIFT),
-        }
-    }
-
-    const fn with_blender<const EXTRA_SHIFT: usize>(&self, value: Blender) -> Self {
-        let mask: u64 = !(0b11_0011_0011_0011u64 << (16 + EXTRA_SHIFT));
-        let value = (((value.b as u64) << 16) | ((value.m as u64) << 20) | ((value.a as u64) << 24) | ((value.p as u64) << 28)) << EXTRA_SHIFT;
-        Self {
-            raw_value: self.raw_value & mask | value,
-        }
-    }
-
-    pub const fn with_blender_0(&self, value: Blender) -> Self { self.with_blender::<2>(value) }
 
     #[allow(dead_code)]
-    pub const fn with_blender_1(&self, value: Blender) -> Self { self.with_blender::<0>(value) }
+    pub const fn with_blender_1(&self, value: Blender) -> Self {
+        self
+            .with_blender_1p(value.p)
+            .with_blender_1a(value.a)
+            .with_blender_1m(value.m)
+            .with_blender_1b(value.b)
+    }
 }
 
 pub struct Blender {

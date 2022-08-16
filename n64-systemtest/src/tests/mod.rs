@@ -4,6 +4,7 @@ use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::any::Any;
 use core::cmp::min;
+use arbitrary_int::{u2, u27, u5};
 
 use crate::cop0::cause_extract_exception;
 use crate::exception_handler::drain_seen_exception;
@@ -123,11 +124,19 @@ pub fn run() {
                 Some(v) => return format!(" with '{:x?}'", v),
                 None => {},
             }
+            match (*value).downcast_ref::<(u32, u5, u32)>() {
+                Some(v) => return format!(" with '{:x?}'", v),
+                None => {},
+            }
             match (*value).downcast_ref::<(u64, u32, u64)>() {
                 Some(v) => return format!(" with '{:x?}'", v),
                 None => {},
             }
             match (*value).downcast_ref::<(u64, u32, u8)>() {
+                Some(v) => return format!(" with '{:x?}'", v),
+                None => {},
+            }
+            match (*value).downcast_ref::<(u64, u27, u2)>() {
                 Some(v) => return format!(" with '{:x?}'", v),
                 None => {},
             }

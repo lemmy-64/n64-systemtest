@@ -1,7 +1,7 @@
 use crate::graphics::framebuffer_images::FramebufferImages;
 
 // Supported: RGBA1555
-pub type PixelType = crate::graphics::color::RGBA1555;
+pub type PixelType = crate::graphics::color::RGBA5551;
 
 const WIDTH: u32 = 320;
 const HEIGHT: u32 = 240;

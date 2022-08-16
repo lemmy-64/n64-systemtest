@@ -4,6 +4,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 use core::any::Any;
 use core::arch::asm;
+use arbitrary_int::{u2, u27};
 
 use crate::cop0;
 use crate::cop0::{CauseException, make_entry_hi, make_entry_lo};
@@ -194,7 +195,7 @@ impl Test for TLBAndAddressError64 {
     }
 }
 
-fn test_tlb_miss(address: u64, vpn: u32, r: u8) -> Result<(), String> {
+fn test_tlb_miss(address: u64, vpn: u27, r: u2) -> Result<(), String> {
     // Enable 64 bit kernel addressing mode
     unsafe { cop0::set_status(0x240000E0); }
 
@@ -248,45 +249,45 @@ impl Test for TLB64MissDueToR64Bit {
     fn values(&self) -> Vec<Box<dyn Any>> {
         vec! {
             // These would match if r was 0
-            Box::new((0x00000000_0DEA0000u64, 0x0000_DEA0u32 >> 1, 1u8)),
-            Box::new((0x00000000_DEA00000u64, 0x000D_EA00u32 >> 1, 1u8)),
-            Box::new((0x00000003_F0000000u64, 0x003F_0000u32 >> 1, 1u8)),
-            Box::new((0x00000003_F0000000u64, 0x003F_0000u32 >> 1, 2u8)),
-            Box::new((0x00000007_F0000000u64, 0x007F_0000u32 >> 1, 2u8)),
-            Box::new((0x0000003F_F0000000u64, 0x03FF_0000u32 >> 1, 3u8)),
-            Box::new((0x000000FF_F0000000u64, 0x0FFF_0000u32 >> 1, 3u8)),
+            Box::new((0x00000000_0DEA0000u64, u27::new(0x0000_DEA0u32 >> 1), u2::new(1))),
+            Box::new((0x00000000_DEA00000u64, u27::new(0x000D_EA00u32 >> 1), u2::new(1))),
+            Box::new((0x00000003_F0000000u64, u27::new(0x003F_0000u32 >> 1), u2::new(1))),
+            Box::new((0x00000003_F0000000u64, u27::new(0x003F_0000u32 >> 1), u2::new(2))),
+            Box::new((0x00000007_F0000000u64, u27::new(0x007F_0000u32 >> 1), u2::new(2))),
+            Box::new((0x0000003F_F0000000u64, u27::new(0x03FF_0000u32 >> 1), u2::new(3))),
+            Box::new((0x000000FF_F0000000u64, u27::new(0x0FFF_0000u32 >> 1), u2::new(3))),
 
             // These would match if r was 1
-            Box::new((0x400000FF_10000000u64, 0x0FF1_0000u32 >> 1, 0u8)),
-            Box::new((0x400000FF_FF200000u64, 0x0FFF_F200u32 >> 1, 0u8)),
-            Box::new((0x400000FF_10000000u64, 0x0FF1_0000u32 >> 1, 2u8)),
-            Box::new((0x400000FF_FF200000u64, 0x0FFF_F200u32 >> 1, 2u8)),
-            Box::new((0x400000FF_10000000u64, 0x0FF1_0000u32 >> 1, 3u8)),
-            Box::new((0x400000FF_FF200000u64, 0x0FFF_F200u32 >> 1, 3u8)),
+            Box::new((0x400000FF_10000000u64, u27::new(0x0FF1_0000u32 >> 1), u2::new(0))),
+            Box::new((0x400000FF_FF200000u64, u27::new(0x0FFF_F200u32 >> 1), u2::new(0))),
+            Box::new((0x400000FF_10000000u64, u27::new(0x0FF1_0000u32 >> 1), u2::new(2))),
+            Box::new((0x400000FF_FF200000u64, u27::new(0x0FFF_F200u32 >> 1), u2::new(2))),
+            Box::new((0x400000FF_10000000u64, u27::new(0x0FF1_0000u32 >> 1), u2::new(3))),
+            Box::new((0x400000FF_FF200000u64, u27::new(0x0FFF_F200u32 >> 1), u2::new(3))),
 
             // These would match if r was 3
-            Box::new((0xC0000000_00000000u64, 0x0000_0000u32 >> 1, 0u8)),
-            Box::new((0xC00000FF_20000000u64, 0x0FF2_0000u32 >> 1, 0u8)),
-            Box::new((0xC00000FF_40000000u64, 0x0FF4_0000u32 >> 1, 0u8)),
-            Box::new((0xC00000FF_70000000u64, 0x0FF7_0000u32 >> 1, 0u8)),
-            Box::new((0xC0000000_00000000u64, 0x0000_0000u32 >> 1, 1u8)),
-            Box::new((0xC00000FF_20000000u64, 0x0FF2_0000u32 >> 1, 1u8)),
-            Box::new((0xC00000FF_40000000u64, 0x0FF4_0000u32 >> 1, 1u8)),
-            Box::new((0xC00000FF_70000000u64, 0x0FF7_0000u32 >> 1, 1u8)),
-            Box::new((0xC0000000_00000000u64, 0x0000_0000u32 >> 1, 2u8)),
-            Box::new((0xC00000FF_20000000u64, 0x0FF2_0000u32 >> 1, 2u8)),
-            Box::new((0xC00000FF_40000000u64, 0x0FF4_0000u32 >> 1, 2u8)),
-            Box::new((0xC00000FF_70000000u64, 0x0FF7_0000u32 >> 1, 2u8)),
+            Box::new((0xC0000000_00000000u64, u27::new(0x0000_0000u32 >> 1), u2::new(0))),
+            Box::new((0xC00000FF_20000000u64, u27::new(0x0FF2_0000u32 >> 1), u2::new(0))),
+            Box::new((0xC00000FF_40000000u64, u27::new(0x0FF4_0000u32 >> 1), u2::new(0))),
+            Box::new((0xC00000FF_70000000u64, u27::new(0x0FF7_0000u32 >> 1), u2::new(0))),
+            Box::new((0xC0000000_00000000u64, u27::new(0x0000_0000u32 >> 1), u2::new(1))),
+            Box::new((0xC00000FF_20000000u64, u27::new(0x0FF2_0000u32 >> 1), u2::new(1))),
+            Box::new((0xC00000FF_40000000u64, u27::new(0x0FF4_0000u32 >> 1), u2::new(1))),
+            Box::new((0xC00000FF_70000000u64, u27::new(0x0FF7_0000u32 >> 1), u2::new(1))),
+            Box::new((0xC0000000_00000000u64, u27::new(0x0000_0000u32 >> 1), u2::new(2))),
+            Box::new((0xC00000FF_20000000u64, u27::new(0x0FF2_0000u32 >> 1), u2::new(2))),
+            Box::new((0xC00000FF_40000000u64, u27::new(0x0FF4_0000u32 >> 1), u2::new(2))),
+            Box::new((0xC00000FF_70000000u64, u27::new(0x0FF7_0000u32 >> 1), u2::new(2))),
 
-            // These would match if we only looked at 32 bit of the address
-            Box::new((0x00000001_F0000000u64, 0x003F_0000u32 >> 1, 0u8)),
-            Box::new((0x00000002_F0000000u64, 0x003F_0000u32 >> 1, 0u8)),
-            Box::new((0x0000007F_F0000000u64, 0x0FFF_0000u32 >> 1, 0u8)),
+// These would match if we only looked at 32 bit of the address
+            Box::new((0x00000001_F0000000u64, u27::new(0x003F_0000u32 >> 1), u2::new(0))),
+            Box::new((0x00000002_F0000000u64, u27::new(0x003F_0000u32 >> 1), u2::new(0))),
+            Box::new((0x0000007F_F0000000u64, u27::new(0x0FFF_0000u32 >> 1), u2::new(0))),
         }
     }
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
-        match (*value).downcast_ref::<(u64, u32, u8)>() {
+        match (*value).downcast_ref::<(u64, u27, u2)>() {
             Some((address, vpn, r)) => {
                 test_tlb_miss(*address, *vpn, *r)
             }

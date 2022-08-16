@@ -4,6 +4,7 @@ use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::any::Any;
 use core::cmp::min;
+use arbitrary_int::u5;
 
 use crate::rsp::rsp::RSP;
 use crate::rsp::rsp_assembler::{CP2FlagsRegister, GPR, RSPAssembler};
@@ -100,7 +101,7 @@ impl Test for CFC2WeirdIndexes {
         for i in 0..32 {
             // Clear target register
             assembler.write_li(GPR::S0, 0);
-            assembler.write_cfc2_any_index(i, GPR::S0);
+            assembler.write_cfc2_any_index(u5::new(i), GPR::S0);
             assembler.write_sw(GPR::S0, GPR::R0, 4 * i as i16);
         }
 
@@ -144,9 +145,9 @@ impl Test for CTC2WeirdIndexes {
 
         // CTC2 using every possible index, but read back using one of the first three
         for i in 0..32 {
-            assembler.write_li(GPR::S0, i);
-            assembler.write_ctc2_any_index(i, GPR::S0);
-            assembler.write_cfc2_any_index(min(i & 3, 3), GPR::S1);
+            assembler.write_li(GPR::S0, i as u32);
+            assembler.write_ctc2_any_index(u5::new(i), GPR::S0);
+            assembler.write_cfc2_any_index(min(u5::new(i & 3), u5::new(3)), GPR::S1);
             assembler.write_sw(GPR::S1, GPR::R0, i as i16 * 4);
         }
 

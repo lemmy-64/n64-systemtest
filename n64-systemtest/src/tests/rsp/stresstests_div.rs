@@ -8,7 +8,7 @@ use num_traits::ToPrimitive;
 
 use crate::VIDEO;
 use crate::graphics::color::Color;
-use crate::graphics::color::RGBA1555;
+use crate::graphics::color::RGBA5551;
 use crate::graphics::cursor::Cursor;
 use crate::graphics::font::Font;
 use crate::graphics::system_font::FONT_GENEVA_9;
@@ -27,14 +27,14 @@ fn run_stress_test<FEmitter: Fn(&mut RSPAssembler, VR), FSimulator: Fn(u32) -> u
     assembler.write_break();
 
     let font = Font::from_data(&FONT_GENEVA_9).unwrap();
-    let mut cursor = Cursor::new_with_font(&font, RGBA1555::BLACK);
+    let mut cursor = Cursor::new_with_font(&font, RGBA5551::BLACK);
     for input_value in 0x0000_0000..=0xFFFF_FFFF {
         if (input_value & 0xFFFFF) == 0 {
             let v = VIDEO.lock();
             {
                 let mut lock = v.framebuffers().backbuffer().lock();
                 let buffer = lock.as_mut().unwrap();
-                buffer.clear_with_color(RGBA1555::WHITE);
+                buffer.clear_with_color(RGBA5551::WHITE);
 
                 cursor.x = 16;
                 cursor.y = 16;

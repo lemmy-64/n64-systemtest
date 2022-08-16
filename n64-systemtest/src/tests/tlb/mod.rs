@@ -5,6 +5,7 @@ use alloc::vec::Vec;
 use core::any::Any;
 use core::arch::asm;
 use core::cmp::min;
+use arbitrary_int::{u2, u27};
 
 use crate::cop0;
 use crate::cop0::{make_entry_hi, make_entry_lo};
@@ -428,7 +429,7 @@ impl Test for TLBUseTestRead0 {
                 0b11 << 13,
                 make_entry_lo(true, true, false, 0, (MemoryMap::HEAP_END >> 12) as u32),
                 make_entry_lo(true, false, false, 0, 0),
-                make_entry_hi(1, 0xDEA0 >> 1, 0))
+                make_entry_hi(1, u27::new(0xDEA0 >> 1), u2::new(0)))
         }
 
         // Set a different ASID to make sure it doesn't match
@@ -468,7 +469,7 @@ impl Test for TLBUseTestRead1 {
                 0b11 << 13,
                 make_entry_lo(true, false, false, 0, 0),
                 make_entry_lo(true, true, false, 0, (MemoryMap::HEAP_END >> 12) as u32),
-                make_entry_hi(1, 0xDEA0 >> 1, 0))
+                make_entry_hi(1, u27::new(0xDEA0 >> 1), u2::new(0)))
         }
 
         // Set a different ASID to make sure it doesn't match
@@ -508,7 +509,7 @@ impl Test for TLBUseTestReadMatchViaASID {
                 0b11 << 13,
                 make_entry_lo(false, true, false, 0, (MemoryMap::HEAP_END >> 12) as u32),
                 make_entry_lo(false, false, false, 0, 0),
-                make_entry_hi(1, 0xDEA0 >> 1, 0))
+                make_entry_hi(1, u27::new(0xDEA0 >> 1), u2::new(0)))
         }
 
         // Set a matching ASID - this will make the CPU ignore the global bit
@@ -541,26 +542,26 @@ impl Test for TLBPMatch {
                 0b11 << 13,
                 make_entry_lo(false, false, false, 0, (MemoryMap::HEAP_END >> 12) as u32),
                 make_entry_lo(false, false, false, 0, (MemoryMap::HEAP_END >> 12) as u32),
-                make_entry_hi(1, 0xDEA3, 1));
+                make_entry_hi(1, u27::new(0xDEA3), u2::new(1)));
 
             cop0::write_tlb(
                 29,
                 0b1111 << 13,
                 make_entry_lo(true, false, false, 0, (MemoryMap::HEAP_END >> 12) as u32),
                 make_entry_lo(false, false, false, 0, (MemoryMap::HEAP_END >> 12) as u32),
-                make_entry_hi(1, 0x7FF_0000, 2));
+                make_entry_hi(1, u27::new(0x7FF_0000), u2::new(2)));
             cop0::write_tlb(
                 30,
                 0b1111 << 13,
                 make_entry_lo(false, false, false, 0, (MemoryMap::HEAP_END >> 12) as u32),
                 make_entry_lo(true, false, false, 0, (MemoryMap::HEAP_END >> 12) as u32),
-                make_entry_hi(2, 0x0001, 3));
+                make_entry_hi(2, u27::new(0x0001), u2::new(3)));
             cop0::write_tlb(
                 31,
                 0b1111 << 13,
                 make_entry_lo(true, false, false, 0, (MemoryMap::HEAP_END >> 12) as u32),
                 make_entry_lo(true, false, false, 0, (MemoryMap::HEAP_END >> 12) as u32),
-                make_entry_hi(3, 0x7FF_0002, 0));
+                make_entry_hi(3, u27::new(0x7FF_0002), u2::new(0)));
         }
 
         // TLBP ignores entry_lo and pagemask. Set them all to 0 to prove
@@ -577,44 +578,44 @@ impl Test for TLBPMatch {
 
         // Match via asid, but not global
         unsafe { cop0::set_index(1); }
-        unsafe { cop0::set_entry_hi(make_entry_hi(1, 0xDEA3, 1)); }
+        unsafe { cop0::set_entry_hi(make_entry_hi(1, u27::new(0xDEA3), u2::new(1))); }
         cop0::tlbp();
         soft_assert_eq(cop0::index(), 4, "TLBP result (match via ASID)")?;
 
         // Use wrong R and observe that it no longer matches
-        unsafe { cop0::set_entry_hi(make_entry_hi(1, 0xDEA3, 0)); }
+        unsafe { cop0::set_entry_hi(make_entry_hi(1, u27::new(0xDEA3), u2::new(0))); }
         cop0::tlbp();
         soft_assert_eq(cop0::index(), 0x80000000, "TLBP result (match via ASID, incorrect R)")?;
 
         // Match both global, with asid incorrect
-        unsafe { cop0::set_entry_hi(make_entry_hi(1, 0x7FF_0002, 0)); }
+        unsafe { cop0::set_entry_hi(make_entry_hi(1, u27::new(0x7FF_0002), u2::new(0))); }
         cop0::tlbp();
         soft_assert_eq(cop0::index(), 31, "TLBP result (ASID mismatch, but global is set)")?;
 
         // Try to match with only one global on (with asid incorrect). This shouldn't match
-        unsafe { cop0::set_entry_hi(make_entry_hi(0, 0x0001, 3)); }
+        unsafe { cop0::set_entry_hi(make_entry_hi(0, u27::new(0x0001), u2::new(3))); }
         cop0::tlbp();
         soft_assert_eq(cop0::index(), 0x80000000, "TLBP result (ASID mismatch, and only one of the global bits enabled)")?;
 
         // Again, but this time the other global bit
-        unsafe { cop0::set_entry_hi(make_entry_hi(0, 0x7FF_0000, 2)); }
+        unsafe { cop0::set_entry_hi(make_entry_hi(0, u27::new(0x7FF_0000), u2::new(2))); }
         cop0::tlbp();
         soft_assert_eq(cop0::index(), 0x80000000, "TLBP result (ASID mismatch, and only one of the global bits enabled)")?;
 
         // Finally, actually check the masked VPN
-        unsafe { cop0::set_entry_hi(make_entry_hi(1, 0xDEA0, 1)); }
+        unsafe { cop0::set_entry_hi(make_entry_hi(1, u27::new(0xDEA0), u2::new(1))); }
         cop0::tlbp();
         soft_assert_eq(cop0::index(), 4, "TLBP result (masked VPN 1)")?;
 
-        unsafe { cop0::set_entry_hi(make_entry_hi(1, 0xDEA1, 1)); }
+        unsafe { cop0::set_entry_hi(make_entry_hi(1, u27::new(0xDEA1), u2::new(1))); }
         cop0::tlbp();
         soft_assert_eq(cop0::index(), 4, "TLBP result (masked VPN 1)")?;
 
-        unsafe { cop0::set_entry_hi(make_entry_hi(1, 0xDEA2, 1)); }
+        unsafe { cop0::set_entry_hi(make_entry_hi(1, u27::new(0xDEA2), u2::new(1))); }
         cop0::tlbp();
         soft_assert_eq(cop0::index(), 4, "TLBP result (masked VPN 2)")?;
 
-        unsafe { cop0::set_entry_hi(make_entry_hi(1, 0xDEA4, 1)); }
+        unsafe { cop0::set_entry_hi(make_entry_hi(1, u27::new(0xDEA4), u2::new(1))); }
         cop0::tlbp();
         soft_assert_eq(cop0::index(), 0x80000000, "TLBP result (masked VPN 3)")?;
 

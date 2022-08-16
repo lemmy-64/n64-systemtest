@@ -3,10 +3,11 @@ use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::any::Any;
+use arbitrary_int::u5;
 
 use crate::{MemoryMap, VIDEO};
 use crate::graphics::color::Color;
-use crate::graphics::color::RGBA1555;
+use crate::graphics::color::RGBA5551;
 use crate::graphics::cursor::Cursor;
 use crate::graphics::font::Font;
 use crate::graphics::system_font::FONT_GENEVA_9;
@@ -63,7 +64,7 @@ fn run_stress_test<F: Fn(&mut RSPAssembler) -> (), F2: Fn(u16, u16, u64) -> (u16
     assembler.write_lhu(GPR::S2, GPR::R0, 0x10);
 
     // Duplicate value and write through four SW
-    assembler.write_sll(GPR::A0, GPR::S2, 16);
+    assembler.write_sll(GPR::A0, GPR::S2, u5::new(16));
     assembler.write_or(GPR::A0, GPR::A0, GPR::S2);
     for i in 0..4 {
         assembler.write_sw(GPR::A0, GPR::R0, 0x10 + (i << 2));
@@ -85,7 +86,7 @@ fn run_stress_test<F: Fn(&mut RSPAssembler) -> (), F2: Fn(u16, u16, u64) -> (u16
 
     // Increment second vector register and write back. we can't use VADD as that clears the accumulator
     assembler.write_addiu(GPR::S2, GPR::S2, 1);
-    assembler.write_sll(GPR::A0, GPR::S2, 16);
+    assembler.write_sll(GPR::A0, GPR::S2, u5::new(16));
     assembler.write_or(GPR::A0, GPR::A0, GPR::S2);
     for i in 0..4 {
         assembler.write_sw(GPR::A0, GPR::R0, 0x10 + (i << 2));
@@ -106,14 +107,14 @@ fn run_stress_test<F: Fn(&mut RSPAssembler) -> (), F2: Fn(u16, u16, u64) -> (u16
     assembler.write_break();
 
     let font = Font::from_data(&FONT_GENEVA_9).unwrap();
-    let mut cursor = Cursor::new_with_font(&font, RGBA1555::BLACK);
+    let mut cursor = Cursor::new_with_font(&font, RGBA5551::BLACK);
     for a_base in (0..=0xFFFF).step_by(8) {
         {
             let v = VIDEO.lock();
             {
                 let mut lock = v.framebuffers().backbuffer().lock();
                 let buffer = lock.as_mut().unwrap();
-                buffer.clear_with_color(RGBA1555::WHITE);
+                buffer.clear_with_color(RGBA5551::WHITE);
 
                 cursor.x = 16;
                 cursor.y = 16;
