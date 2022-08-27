@@ -1,7 +1,7 @@
 // Memory map:
-// 0x8000_0000 to (a little more): bss
-// until 2mb: heap (including the framebuffer)
-// 2mb-3mb: available for tests
+// 0x8000_0000 to (as much as needed): bss
+// until 2.5mb: heap (including the framebuffer)
+// 2.5mb-3mb: available for tests
 // growing down from the end: stack
 
 static mut MEMORY_SIZE: usize = 0;
@@ -11,7 +11,7 @@ pub struct MemoryMap {
 }
 
 impl MemoryMap {
-    pub const HEAP_END: usize = 2 * 1024 * 1024;
+    pub const HEAP_END: usize = 2 * 1024 * 1024 + 512 * 1024;
     pub const HEAP_END_VIRTUAL_CACHED: usize = 0x8000_0000 | MemoryMap::HEAP_END;
     pub const HEAP_END_VIRTUAL_UNCACHED: usize = 0xA000_0000 | MemoryMap::HEAP_END;
 

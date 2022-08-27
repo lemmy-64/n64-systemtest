@@ -6,7 +6,7 @@ use core::any::Any;
 use core::cmp::min;
 use arbitrary_int::{u2, u27, u5};
 
-use crate::cop0::cause_extract_exception;
+use crate::cop0::{cause_extract_exception, Status};
 use crate::exception_handler::drain_seen_exception;
 use crate::{print, println};
 use crate::tests::traps::Immediate;
@@ -14,6 +14,7 @@ use crate::tests::traps::Immediate;
 mod arithmetic;
 mod address_error_exception;
 mod cart_memory;
+mod cop_unusable;
 mod cop0;
 mod exception_instructions;
 mod jumps;
@@ -158,21 +159,21 @@ pub fn run() {
         if test.level() == Level::TooWeird || test.level() == Level::CycleExact {
             *skipped += 1
         } else {
-            // Kernel mode, erl/exl off. 32 bit addressing mode. Tests that want to test something else
+            // Kernel mode, 32 bit addressing mode. Tests that want to test something else
             // will have to set that themselves
-            unsafe { crate::cop0::set_status(0x24000000); }
+            unsafe { crate::cop0::set_status(Status::DEFAULT); }
 
             let counter_before = crate::cop0::count();
             let test_result = test.run(&value);
             let counter_after = crate::cop0::count();
             *time += counter_after - counter_before;
 
-            unsafe { crate::cop0::set_status(0x24000000); }
+            unsafe { crate::cop0::set_status(Status::DEFAULT); }
 
             match drain_seen_exception() {
-                Some(exception) => {
+                Some((exception, _)) => {
                     // If the test caused an exception, don't even bother looking at the result. Just count it as failed
-                    crate::println!("Test '{}'{} failed with exception: {:?}\n", test.name(), value_desc(value), cause_extract_exception(exception.cause));
+                    println!("Test '{}'{} failed with exception: {:?}\n", test.name(), value_desc(value), cause_extract_exception(exception.cause));
                     *failed += 1;
                 }
                 None => {
@@ -181,7 +182,7 @@ pub fn run() {
                             *succeeded += 1
                         }
                         Err(error) => {
-                            crate::println!("Test '{}'{} failed: {}\n", test.name(), value_desc(value), error);
+                            println!("Test '{}'{} failed: {}\n", test.name(), value_desc(value), error);
                             *failed += 1;
                         }
                     }

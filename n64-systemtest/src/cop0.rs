@@ -1,5 +1,6 @@
 use core::arch::asm;
 use arbitrary_int::{u2, u27};
+use bitbybit::{bitenum, bitfield};
 
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
@@ -33,27 +34,146 @@ pub enum RegisterIndex {
     ErrorEPC = 0x1E,
 }
 
-crate::enum_str! {
-    #[derive(FromPrimitive, Copy, Clone, PartialEq, Eq, Debug)]
-    pub enum CauseException {
-        Int = 0,
-        Mod = 1,
-        TLBL = 2,
-        TLBS = 3,
-        AdEL = 4,
-        AdES = 5,
-        IBE = 6,
-        DBE = 7,
-        Sys = 8,
-        Bp = 9,
-        RI = 10,
-        CpU = 11,
-        Ov = 12,
-        Tr = 13,
-        VirtualCoherencyInstructionFetch = 14,
-        FPE = 15,
-        Watch = 23,
-    }
+#[bitfield(u32, default: 0)]
+#[derive(Debug, PartialEq, Eq)]
+pub struct Cause {
+    #[bit(31, rw)]
+    branch_delay : bool,
+
+    #[bits(28..=29, rw)]
+    coprocessor_error : u2,
+
+    #[bit(15, rw)]
+    interrupt_compare : bool,
+
+    #[bit(14, rw)]
+    interrupt_int4 : bool,
+
+    #[bit(13, rw)]
+    interrupt_int3 : bool,
+
+    #[bit(12, rw)]
+    interrupt_int2 : bool,
+
+    #[bit(11, rw)]
+    interrupt_int1 : bool,
+
+    #[bit(10, rw)]
+    interrupt_int0 : bool,
+
+    #[bit(9, rw)]
+    interrupt_sw2 : bool,
+
+    #[bit(8, rw)]
+    interrupt_sw1 : bool,
+
+    #[bits(2..=6, rw)]
+    exception : Option<CauseException>,
+}
+
+#[allow(dead_code)]
+#[bitenum(u2, exhaustive: false)]
+pub enum StatusKSU {
+    Kernel = 0,
+    Supervisor = 1,
+    User = 2,
+}
+
+#[bitfield(u32, default: 0)]
+#[derive(Debug, Eq, PartialEq)]
+pub struct Status {
+    #[bit(31, rw)]
+    cop3usable : bool,
+
+    #[bit(30, rw)]
+    cop2usable : bool,
+
+    #[bit(29, rw)]
+    cop1usable : bool,
+
+    #[bit(28, rw)]
+    cop0usable : bool,
+
+    #[bit(27, rw)]
+    reduced_power : bool,
+
+    #[bit(26, rw)]
+    fpu64 : bool,
+
+    #[bit(19, rw)]
+    nmi : bool,
+
+    #[bit(15, r)]
+    interrupt_mask_compare : bool,
+
+    #[bit(14, r)]
+    interrupt_mask_int4 : bool,
+
+    #[bit(13, r)]
+    interrupt_mask_int3 : bool,
+
+    #[bit(12, r)]
+    interrupt_mask_int2 : bool,
+
+    #[bit(11, r)]
+    interrupt_mask_int1 : bool,
+
+    #[bit(10, r)]
+    interrupt_mask_int0 : bool,
+
+    #[bit(9, r)]
+    interrupt_mask_sw2 : bool,
+
+    #[bit(8, r)]
+    interrupt_mask_sw1 : bool,
+
+    #[bit(7, rw)]
+    kx : bool,
+
+    #[bit(6, rw)]
+    sx : bool,
+
+    #[bit(5, rw)]
+    ux : bool,
+
+    #[bits(3..=4, rw)]
+    ksu : Option<StatusKSU>,
+
+    #[bit(2, rw)]
+    erl : bool,
+
+    #[bit(1, rw)]
+    exl : bool,
+
+    #[bit(0, rw)]
+    ie : bool,
+}
+
+impl Status {
+    pub const DEFAULT: Status = Status::new().with_cop1usable(true).with_fpu64(true);
+    pub const ADDRESSING_MODE_64_BIT: Status = Self::DEFAULT.with_kx(true).with_sx(true).with_ux(true);
+}
+
+#[bitenum(u5, exhaustive: false)]
+#[derive(FromPrimitive, PartialEq, Eq, Debug)]
+pub enum CauseException {
+    Int = 0,
+    Mod = 1,
+    TLBL = 2,
+    TLBS = 3,
+    AdEL = 4,
+    AdES = 5,
+    IBE = 6,
+    DBE = 7,
+    Sys = 8,
+    Bp = 9,
+    RI = 10,
+    CpU = 11,
+    Ov = 12,
+    Tr = 13,
+    VirtualCoherencyInstructionFetch = 14,
+    FPE = 15,
+    Watch = 23,
 }
 
 #[inline]
@@ -232,14 +352,14 @@ pub unsafe fn set_entry_hi(value: u64) {
     unsafe { write_cop0_64::<INDEX>(value) }
 }
 
-pub fn status() -> u32 {
+pub fn status() -> Status {
     const INDEX: u32 = RegisterIndex::Status as u32;
-    unsafe { read_cop0::<INDEX>() }
+    Status::new_with_raw_value(unsafe { read_cop0::<INDEX>() })
 }
 
-pub unsafe fn set_status(value: u32) {
+pub unsafe fn set_status(value: Status) {
     const INDEX: u32 = RegisterIndex::Status as u32;
-    unsafe { write_cop0::<INDEX>(value) }
+    unsafe { write_cop0::<INDEX>(value.raw_value()) }
 }
 
 pub fn status_64() -> u64 {

@@ -453,10 +453,10 @@ impl Test for StatusMasking {
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
         let previous = cop0::status();
-        unsafe { cop0::set_status(previous | 0x00080000) }
+        unsafe { cop0::set_status(previous.with_nmi(true)) }
         let readback = cop0::status();
         
-        soft_assert_eq(readback, previous & 0xFFF7FFFF, "Status bit-19 set. Expected readback bit-19 to be clear")?;
+        soft_assert_eq(readback, previous.with_nmi(false), "Status bit-19 set. Expected readback bit-19 to be clear")?;
         
         Ok(())
     }

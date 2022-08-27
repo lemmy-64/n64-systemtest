@@ -6,8 +6,8 @@ use core::any::Any;
 use core::arch::asm;
 use arbitrary_int::{u2, u27};
 
-use crate::cop0;
-use crate::cop0::{CauseException, make_entry_hi, make_entry_lo};
+use crate::{cop0, MemoryMap};
+use crate::cop0::{CauseException, make_entry_hi, make_entry_lo, Status};
 use crate::exception_handler::expect_exception;
 use crate::math::bits::Bitmasks64;
 use crate::tests::{Level, Test};
@@ -25,22 +25,21 @@ impl Test for LWAddressNotSignExtended {
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
         // Enable 64 bit kernel addressing mode
-        unsafe { crate::cop0::set_status(0x240000E0); }
+        unsafe { cop0::set_status(Status::ADDRESSING_MODE_64_BIT); }
 
-        // Load from 0x00000000_80201234 causes TLBL, as upper bits are 0
+        // Load from 0x00000000_80xxxxxx causes TLBL, as upper bits are 0
+        let p = (MemoryMap::HEAP_END_VIRTUAL_CACHED + 0x1234) as *mut u32;
         unsafe { cop0::set_context_64(0); }
         unsafe { cop0::set_xcontext_64(0); }
         let exception_context = expect_exception(CauseException::TLBL, 1, || {
             unsafe {
                 asm!("
                     .set noat
-                    LUI $2, 0x8020
-                    ORI $2, $2, 0x1234
                     // zero out upper bits
                     DSLL32 $2, $2, 0
                     DSRL32 $2, $2, 0
                     LW $0, 0($2)
-                ", out("$2") _)
+                ", inout("$2") p => _)
             }
 
             Ok(())
@@ -49,11 +48,11 @@ impl Test for LWAddressNotSignExtended {
         soft_assert_eq(exception_context.k0_exception_vector, 0xFFFFFFFF_80000080, "Exception Vector")?;
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32) }, 0x8C400000, "ExceptPC points to wrong instruction")?;
-        soft_assert_eq(exception_context.badvaddr, 0x00000000_80201234, "BadVAddr")?;
+        soft_assert_eq(exception_context.badvaddr, p as u64 & 0xFFFFFFFF, "BadVAddr")?;
         soft_assert_eq(exception_context.cause, 0x8, "Cause")?;
         soft_assert_eq(exception_context.status, 0x240000E2, "Status")?;
-        soft_assert_eq(exception_context.context, 0x401000, "Context")?;
-        soft_assert_eq(exception_context.xcontext, 0x401000, "XContext")?;
+        soft_assert_eq(exception_context.context, 0x401400, "Context")?;
+        soft_assert_eq(exception_context.xcontext, 0x401400, "XContext")?;
 
         Ok(())
     }
@@ -70,22 +69,21 @@ impl Test for SWAddressNotSignExtended {
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
         // Enable 64 bit kernel addressing mode
-        unsafe { crate::cop0::set_status(0x240000E0); }
+        unsafe { cop0::set_status(Status::ADDRESSING_MODE_64_BIT); }
 
-        // Store to 0x00000000_80201234 causes TLBS, as upper bits are 0
+        // Store to 0x00000000_80xxxxxx causes TLBS, as upper bits are 0
         unsafe { cop0::set_context_64(0); }
         unsafe { cop0::set_xcontext_64(0); }
+        let p = (MemoryMap::HEAP_END_VIRTUAL_CACHED + 0x1234) as *mut u32;
         let exception_context = expect_exception(CauseException::TLBS, 1, || {
             unsafe {
                 asm!("
                     .set noat
-                    LUI $2, 0x8020
-                    ORI $2, $2, 0x1234
                     // zero out upper bits
                     DSLL32 $2, $2, 0
                     DSRL32 $2, $2, 0
                     SW $0, 0($2)
-                ", out("$2") _)
+                ", inout("$2") p => _)
             }
 
             Ok(())
@@ -94,11 +92,11 @@ impl Test for SWAddressNotSignExtended {
         soft_assert_eq(exception_context.k0_exception_vector, 0xFFFFFFFF_80000080, "Exception Vector")?;
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32) }, 0xAC400000, "ExceptPC points to wrong instruction")?;
-        soft_assert_eq(exception_context.badvaddr, 0x00000000_80201234, "BadVAddr")?;
+        soft_assert_eq(exception_context.badvaddr, p as u64 & 0xFFFFFFFF, "BadVAddr")?;
         soft_assert_eq(exception_context.cause, 0xC, "Cause")?;
         soft_assert_eq(exception_context.status, 0x240000E2, "Status")?;
-        soft_assert_eq(exception_context.context, 0x401000, "Context")?;
-        soft_assert_eq(exception_context.xcontext, 0x401000, "XContext")?;
+        soft_assert_eq(exception_context.context, 0x401400, "Context")?;
+        soft_assert_eq(exception_context.xcontext, 0x401400, "XContext")?;
 
         Ok(())
     }
@@ -109,7 +107,7 @@ fn test_load_and_catch_exception(address: u64, tlb_miss: bool) -> Result<(), Str
     unsafe { cop0::clear_tlb(); }
 
     // Enable 64 bit kernel addressing mode
-    unsafe { cop0::set_status(0x240000E0); }
+    unsafe { cop0::set_status(Status::ADDRESSING_MODE_64_BIT); }
 
     unsafe { cop0::set_context_64(0); }
     unsafe { cop0::set_xcontext_64(0); }
@@ -197,7 +195,7 @@ impl Test for TLBAndAddressError64 {
 
 fn test_tlb_miss(address: u64, vpn: u27, r: u2) -> Result<(), String> {
     // Enable 64 bit kernel addressing mode
-    unsafe { cop0::set_status(0x240000E0); }
+    unsafe { cop0::set_status(Status::ADDRESSING_MODE_64_BIT); }
 
     let mut data = UncachedHeapMemory::<u32>::new_with_align((16 * 1024) >> 2, 16 * 1024);
 

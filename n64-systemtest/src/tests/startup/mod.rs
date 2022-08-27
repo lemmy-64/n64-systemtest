@@ -38,7 +38,7 @@ impl Test for StartupTest {
         //soft_assert_eq(crate::cop0::errorepc(), 0xFFFFFFFF_FFFFFFFF, "COP0 ErrorEPC")?;
 
         // Status is initialized in main(), so this test isn't too valuable
-        soft_assert_eq(crate::cop0::status(), 0x24000000, "COP0 Status")?;
+        soft_assert_eq(crate::cop0::status().raw_value(), 0x24000000, "COP0 Status")?;
         soft_assert_eq(crate::cop0::status_64(), 0x24000000, "COP0 Status (DMFC0)")?;
 
         // RSP Status

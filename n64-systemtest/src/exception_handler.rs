@@ -1,3 +1,4 @@
+use alloc::format;
 use core::arch::asm;
 use core::ops::{Deref, DerefMut};
 
@@ -14,7 +15,10 @@ use crate::VIDEO;
 use super::cop0;
 
 static EXCEPTION_SKIP: Spinlock<Option<u64>> = Spinlock::new(None);
-static SEEN_EXCEPTION: Spinlock<Option<Context>> = Spinlock::new(None);
+
+/// Once an exception is seen, this is set to the exception context, along with 1. If another
+/// exception comes in, the counter is incremented and its Context is lost)
+static SEEN_EXCEPTION: Spinlock<Option<(Context, u32)>> = Spinlock::new(None);
 
 // TODO: named labels (like exception_handler_000_start) raise a warning. Our usage should be fine,
 // as we only use them to calculate a delta and as we only use it within [naked] functions.
@@ -206,21 +210,28 @@ extern "C" fn exception_handler_generic() {
 }
 
 extern "C" fn exception_handler_compiled(stackpointer: usize) -> usize {
+    let avoid_bluescreen = true;
+
     let context = unsafe { &mut *(stackpointer as *mut Context) };
 
     let mut guard = SEEN_EXCEPTION.lock();
     let skip_guard = EXCEPTION_SKIP.lock();
-    if guard.is_none() {
+    if guard.is_none() || avoid_bluescreen {
         // Skip the offending instruction(s) and return
         if skip_guard.is_some() {
             context.return_to = context.exceptpc + skip_guard.unwrap() * 4;
         } else {
-            crate::isviewer::text_out("Got unhandled exception. Attempting to continue");
+            crate::isviewer::text_out("Got unhandled exception. Attempting to continue\n");
             context.return_to = context.exceptpc + (if cause_extract_delay(context.cause) { 8 } else { 4 });
         }
 
         // Save the exception context
-        *guard.deref_mut() = Some(*context);
+        if guard.is_none() {
+            *guard.deref_mut() = Some(((*context), 1));
+        } else {
+            guard.deref_mut().as_mut().unwrap().1 += 1;
+            crate::println!("Multiple exceptions seen. Trying to recover (turn off avoid_bluescreen if this loops endlessly)")
+        }
 
         // Continue running
         return stackpointer;
@@ -230,7 +241,7 @@ extern "C" fn exception_handler_compiled(stackpointer: usize) -> usize {
     show_bluescreen_of_death(context);
 }
 
-pub fn drain_seen_exception() -> Option<Context> {
+pub fn drain_seen_exception() -> Option<(Context, u32)> {
     let mut guard = SEEN_EXCEPTION.lock();
     let result = *guard.deref();
     *guard.deref_mut() = None;
@@ -241,7 +252,7 @@ pub fn expect_exception<F>(code: CauseException, skip_instructions_on_hit: u64, 
     where F: FnOnce() -> Result<(), &'static str> {
     let guard = SEEN_EXCEPTION.lock();
     if guard.is_some() {
-        return Err(alloc::format!("Expected exception {:?} but we already previously got {:?}", code, cause_extract_exception(guard.unwrap().cause)));
+        return Err(format!("Expected exception {:?} but we already previously got {:?}", code, cause_extract_exception(guard.unwrap().0.cause)));
     }
     drop(guard);
 
@@ -257,24 +268,26 @@ pub fn expect_exception<F>(code: CauseException, skip_instructions_on_hit: u64, 
     *skip_guard = None;
     drop(skip_guard);
 
-    let seen_exception = drain_seen_exception();
+    let seen_exception_and_count = drain_seen_exception();
     match result {
         Ok(_) => {
-            match seen_exception {
+            match seen_exception_and_count {
                 None => {
-                    Err(alloc::format!("Exception expected but none seen"))
+                    Err(format!("Exception expected but none seen"))
                 }
-                Some(context) => {
+                Some((context, count)) => {
                     let actual_exception = cause_extract_exception(context.cause);
-                    if actual_exception == Ok(code) {
+                    if count != 1 {
+                        Err(format!("Expected exception {:?} but got {} exceptions, the first of which was {:?}", code, count, actual_exception))
+                    } else if actual_exception == Ok(code) {
                         Ok(context)
                     } else {
-                        Err(alloc::format!("Expected exception {:?} but got {:?}", code, actual_exception))
+                        Err(format!("Expected exception {:?} but got {:?}", code, actual_exception))
                     }
                 }
             }
         }
-        Err(result) => Err(alloc::format!("{}", result))
+        Err(result) => Err(format!("{}", result))
     }
 }
 
@@ -359,7 +372,7 @@ fn show_bluescreen_of_death(context: &Context) -> ! {
         cursor.draw_hex_u32(backbuffer, context.cause);
         cursor.draw_text(backbuffer, " (");
         match cause_extract_exception(context.cause) {
-            Ok(exc) => { cursor.draw_text(backbuffer, exc.to_string()); }
+            Ok(exc) => { cursor.draw_text(backbuffer, format!("{:?}", exc).as_str()); }
             Err(code) => {
                 cursor.draw_text(backbuffer, "0x");
                 cursor.draw_hex_u32(backbuffer, code as u32);

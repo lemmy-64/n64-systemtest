@@ -51,8 +51,8 @@ impl Test for UnalignedLW {
         soft_assert_eq(exception_context.badvaddr, p as isize as u64, "BadVAddr during AdEL exception")?;
         soft_assert_eq(exception_context.cause, 0x10, "Cause during AdEL exception")?;
         soft_assert_eq(exception_context.status, 0x24000002, "Status during AdEL exception")?;
-        soft_assert_eq(exception_context.context, 0x401010, "Context during AdEL exception")?;
-        soft_assert_eq(exception_context.xcontext, 0x1_FFC01010, "XContext during AdEL exception")?;
+        soft_assert_eq(exception_context.context, 0x401410, "Context during AdEL exception")?;
+        soft_assert_eq(exception_context.xcontext, 0x1_FFC01410, "XContext during AdEL exception")?;
 
         Ok(())
     }
@@ -90,8 +90,8 @@ impl Test for UnalignedLW2 {
         soft_assert_eq(exception_context.badvaddr, p as isize as u64, "BadVAddr during AdEL exception")?;
         soft_assert_eq(exception_context.cause, 0x10, "Cause during AdEL exception")?;
         soft_assert_eq(exception_context.status, 0x24000002, "Status during AdEL exception")?;
-        soft_assert_eq(exception_context.context, 0xFFFFFFFF_FFC01020, "Context during AdEL exception")?;
-        soft_assert_eq(exception_context.xcontext, 0xFFFFFFFF_FFC01020, "XContext during AdEL exception")?;
+        soft_assert_eq(exception_context.context, 0xFFFFFFFF_FFC01420, "Context during AdEL exception")?;
+        soft_assert_eq(exception_context.xcontext, 0xFFFFFFFF_FFC01420, "XContext during AdEL exception")?;
 
         Ok(())
     }
@@ -134,8 +134,8 @@ impl Test for UnalignedLWDelay {
         soft_assert_eq(exception_context.badvaddr, p as isize as u64, "BadVAddr during AdEL exception")?;
         soft_assert_eq(exception_context.cause, 0x80000010, "Cause during AdEL exception")?;
         soft_assert_eq(exception_context.status, 0x24000002, "Status during AdEL exception")?;
-        soft_assert_eq(exception_context.context, 0x401010, "Context during AdEL exception")?;
-        soft_assert_eq(exception_context.xcontext, 0x1_FFC01010, "XContext during AdEL exception")?;
+        soft_assert_eq(exception_context.context, 0x401410, "Context during AdEL exception")?;
+        soft_assert_eq(exception_context.xcontext, 0x1_FFC01410, "XContext during AdEL exception")?;
 
         Ok(())
     }
@@ -172,8 +172,8 @@ impl Test for UnalignedSW {
         soft_assert_eq(exception_context.badvaddr, p as isize as u64, "BadVAddr during AdES exception")?;
         soft_assert_eq(exception_context.cause, 0x14, "Cause during AdES exception")?;
         soft_assert_eq(exception_context.status, 0x24000002, "Status during AdES exception")?;
-        soft_assert_eq(exception_context.context, 0x401030, "Context during AdES exception")?;
-        soft_assert_eq(exception_context.xcontext, 0x1ffc01030, "XContext during AdES exception")?;
+        soft_assert_eq(exception_context.context, 0x401430, "Context during AdES exception")?;
+        soft_assert_eq(exception_context.xcontext, 0x1ffc01430, "XContext during AdES exception")?;
 
         Ok(())
     }
@@ -189,20 +189,19 @@ impl Test for LWAddressNotSignExtended {
     fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
-        // Load from 0x00000000_80201234 causes AdEL, as upper bits are 0
+        let p = (MemoryMap::HEAP_END_VIRTUAL_CACHED + 0x1234) as *mut u32;
+        // Load from 0x00000000_80xxxxxx causes AdEL, as upper bits are 0
         unsafe { cop0::set_context_64(0); }
         unsafe { cop0::set_xcontext_64(0); }
         let exception_context = expect_exception(CauseException::AdEL, 1, || {
             unsafe {
                 asm!("
                     .set noat
-                    LUI $2, 0x8020
-                    ORI $2, $2, 0x1234
                     // zero out upper bits
                     DSLL32 $2, $2, 0
                     DSRL32 $2, $2, 0
                     LW $0, 0($2)
-                ", out("$2") _)
+                ", inout("$2") p => _)
             }
 
             Ok(())
@@ -211,11 +210,11 @@ impl Test for LWAddressNotSignExtended {
         soft_assert_eq(exception_context.k0_exception_vector, 0xFFFFFFFF_80000180, "Exception Vector")?;
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32) }, 0x8C400000, "ExceptPC points to wrong instruction")?;
-        soft_assert_eq(exception_context.badvaddr, 0x00000000_80201234, "BadVAddr")?;
+        soft_assert_eq(exception_context.badvaddr, p as u64 & 0xFFFFFFFF, "BadVAddr")?;
         soft_assert_eq(exception_context.cause, 0x10, "Cause")?;
         soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
-        soft_assert_eq(exception_context.context, 0x401000, "Context")?;
-        soft_assert_eq(exception_context.xcontext, 0x401000, "XContext")?;
+        soft_assert_eq(exception_context.context, 0x401400, "Context")?;
+        soft_assert_eq(exception_context.xcontext, 0x401400, "XContext")?;
 
         Ok(())
     }
@@ -231,20 +230,19 @@ impl Test for SWAddressNotSignExtended {
     fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
-        // Load from 0x00000000_80201234 causes AdES, as upper bits are 0
+        // Store into 0x00000000_80xxxxxx causes AdES, as upper bits are 0
+        let p = (MemoryMap::HEAP_END_VIRTUAL_CACHED + 0x1234) as *mut u32;
         unsafe { cop0::set_context_64(0); }
         unsafe { cop0::set_xcontext_64(0); }
         let exception_context = expect_exception(CauseException::AdES, 1, || {
             unsafe {
                 asm!("
                     .set noat
-                    LUI $2, 0x8020
-                    ORI $2, $2, 0x1234
                     // zero out upper bits
                     DSLL32 $2, $2, 0
                     DSRL32 $2, $2, 0
                     SW $0, 0($2)
-                ", out("$2") _)
+                ", inout("$2") p => _)
             }
 
             Ok(())
@@ -253,11 +251,11 @@ impl Test for SWAddressNotSignExtended {
         soft_assert_eq(exception_context.k0_exception_vector, 0xFFFFFFFF_80000180, "Exception Vector")?;
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32) }, 0xAC400000, "ExceptPC points to wrong instruction")?;
-        soft_assert_eq(exception_context.badvaddr, 0x00000000_80201234, "BadVAddr")?;
+        soft_assert_eq(exception_context.badvaddr, p as u64 & 0xFFFFFFFF, "BadVAddr")?;
         soft_assert_eq(exception_context.cause, 0x14, "Cause")?;
         soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
-        soft_assert_eq(exception_context.context, 0x401000, "Context")?;
-        soft_assert_eq(exception_context.xcontext, 0x401000, "XContext")?;
+        soft_assert_eq(exception_context.context, 0x401400, "Context")?;
+        soft_assert_eq(exception_context.xcontext, 0x401400, "XContext")?;
 
         Ok(())
     }

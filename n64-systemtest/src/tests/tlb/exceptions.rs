@@ -490,9 +490,6 @@ impl Test for LWTLBMissTest32 {
     fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
-        // Enable 64 bit kernel addressing mode
-        unsafe { crate::cop0::set_status(0x24000000); }
-
         // Load from 0x00000000_00201234 causes TLBL, as upper bits are 0
         unsafe { cop0::set_context_64(0); }
         unsafe { cop0::set_xcontext_64(0); }
