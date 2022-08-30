@@ -9,6 +9,7 @@ use arbitrary_int::{u2, u27, u5};
 use crate::cop0::{cause_extract_exception, Status};
 use crate::exception_handler::drain_seen_exception;
 use crate::{print, println};
+use crate::isviewer::text_out;
 use crate::tests::traps::Immediate;
 
 mod arithmetic;
@@ -196,6 +197,10 @@ pub fn run() {
     let dummy_test_value: Box<dyn Any> = Box::new(());
     let counter_before = crate::cop0::count();
     for (index, test) in tests.iter().enumerate() {
+        text_out("Running ");
+        text_out(test.name());
+        text_out("...\n");
+
         let values = test.values();
         let mut time = 0u32;
         if values.len() == 0 {
