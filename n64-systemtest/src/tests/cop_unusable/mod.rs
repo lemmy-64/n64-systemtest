@@ -11,6 +11,16 @@ use crate::exception_handler::expect_exception;
 use crate::tests::{Level, Test};
 use crate::tests::soft_asserts::soft_assert_eq;
 
+// Various tests for COP unusable (and related). Some findings:
+// - COP 0..=3 can be enabled and disabled independently
+// - COP3 does not exist - any instruction fires RI without the cop-index set
+// - Illegal COP1 instructions (while enabled) fire FloatingPointException
+// - Illegal COP2 instructions (while enabled) fire RI, with cop-index = 2
+// - Some COP2 instructions (MFC2, LWC2 etc) exist, but they don't do much. Tests below are very
+//   incomplete
+// - COP0 unusable probably exists, but it isn't tested yet as we're running in kernel mode where
+//   it can't fire
+
 fn test_masking(value: Status) -> Result<(), String> {
     unsafe { cop0::set_status(value); }
     soft_assert_eq(value, cop0::status(), "Flag should be settable")?;
