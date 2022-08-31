@@ -174,7 +174,11 @@ pub fn run() {
             match drain_seen_exception() {
                 Some((exception, _)) => {
                     // If the test caused an exception, don't even bother looking at the result. Just count it as failed
-                    println!("Test '{}'{} failed with exception: {:?}\n", test.name(), value_desc(value), cause_extract_exception(exception.cause));
+                    match cause_extract_exception(exception.cause) {
+                        Ok(e) => println!("Test '{}'{} failed with exception: {:?}\n", test.name(), value_desc(value), e),
+                        Err(e) => println!("Test '{}'{} failed with unknown exception: {:?}\n", test.name(), value_desc(value), e),
+                    }
+
                     *failed += 1;
                 }
                 None => {
