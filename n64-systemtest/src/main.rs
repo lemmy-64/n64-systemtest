@@ -27,6 +27,7 @@ use crate::memory_map::MemoryMap;
 mod allocator;
 mod assembler;
 mod cop0;
+mod cop1;
 mod enum_str;
 mod exception_handler;
 mod graphics;

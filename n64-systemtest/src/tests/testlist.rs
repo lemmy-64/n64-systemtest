@@ -466,6 +466,8 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::cop0::UnusedRegistersWriteRead),
         Box::new(super::cop0::ParityErrorMasking),
         Box::new(super::cop0::CacheErrorMasking),
+        Box::new(super::cop1::CFC1CTC1_0),
+        Box::new(super::cop1::CFC1CTC1_31),
         Box::new(super::cop_unusable::COP3Usable {}),
         Box::new(super::cop_unusable::COP2Usable {}),
         Box::new(super::cop_unusable::COP1Usable {}),

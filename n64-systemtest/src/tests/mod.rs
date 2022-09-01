@@ -6,9 +6,10 @@ use core::any::Any;
 use core::cmp::min;
 use arbitrary_int::{u2, u27, u5};
 
-use crate::cop0::{cause_extract_exception, Status};
+use crate::cop0::{cause_extract_exception, set_status, Status};
 use crate::exception_handler::drain_seen_exception;
 use crate::{print, println};
+use crate::cop1::{FCSR, set_fcsr};
 use crate::isviewer::text_out;
 use crate::tests::traps::Immediate;
 
@@ -17,6 +18,7 @@ mod address_error_exception;
 mod cart_memory;
 mod cop_unusable;
 mod cop0;
+mod cop1;
 mod exception_instructions;
 mod jumps;
 mod overflow_exception;
@@ -160,16 +162,19 @@ pub fn run() {
         if test.level() == Level::TooWeird || test.level() == Level::CycleExact {
             *skipped += 1
         } else {
-            // Kernel mode, 32 bit addressing mode. Tests that want to test something else
-            // will have to set that themselves
-            unsafe { crate::cop0::set_status(Status::DEFAULT); }
+            if test.name() != "StartupTest" {
+                // Set sane environment for any test except the startup test (that one tests values that
+                // were set at boot/reset
+                unsafe { set_status(Status::DEFAULT); }
+                set_fcsr(FCSR::DEFAULT);
+            }
 
             let counter_before = crate::cop0::count();
             let test_result = test.run(&value);
             let counter_after = crate::cop0::count();
             *time += counter_after - counter_before;
 
-            unsafe { crate::cop0::set_status(Status::DEFAULT); }
+            unsafe { set_status(Status::DEFAULT); }
 
             match drain_seen_exception() {
                 Some((exception, _)) => {
