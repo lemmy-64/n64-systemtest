@@ -5,6 +5,7 @@ use core::ops::{Deref, DerefMut};
 use spinning_top::Spinlock;
 
 use crate::cop0::{cause_extract_delay, cause_extract_exception, CauseException};
+use crate::cop1::FCSR;
 use crate::graphics::color::Color;
 use crate::graphics::cursor::Cursor;
 use crate::graphics::font::Font;
@@ -134,6 +135,14 @@ extern "C" fn exception_handler_generic() {
             dmfc0 $8, ${EntryHiRegisterIndex}
             mfc0 $9, ${CauseRegisterIndex}
             mfc0 $10, ${StatusRegisterIndex}
+
+            // Make sure COP1 is usable so that we can get FCSR
+            lui $11, 0x2000
+            or $11, $11, $10
+            mtc0 $11, ${StatusRegisterIndex}
+            nop
+            nop
+            cfc1 $11, $31          # COP1 FCSR
             sd $1, 256 ($sp)
             sd $2, 264 ($sp)
             sd $3, 272 ($sp)
@@ -145,6 +154,7 @@ extern "C" fn exception_handler_generic() {
             sd $0, 320 ($sp) // return_to address
             sw $9, 328 ($sp)
             sw $10, 332 ($sp)
+            sw $11, 336 ($sp)
 
             // Call into compiled code. Pass stackpointer as argument
             la $at, {CompiledFunction}
@@ -155,8 +165,10 @@ extern "C" fn exception_handler_generic() {
             ori $sp, $v0, 0x0
 
             ld $2, 320 ($sp)
+            lw $10, 332 ($sp)
             // TODO: In some cases, we'll need to return from ErrorEPC. When is that? (Nested exceptions?)
             dmtc0 $2, ${ExceptPCRegisterIndex}
+            mtc0 $10, ${StatusRegisterIndex}
 
             ld $2, 248 ($sp)
             ld $1, 240 ($sp)
@@ -461,8 +473,10 @@ pub struct Context {
 
     pub cause: u32,
     pub status: u32,
+    pub fcsr: FCSR,
+    padding: u32,  // used to pad to 64 bit - feel free to use going forward
 }
 
 impl Context {
-    pub const SIZE: usize = 336;
+    pub const SIZE: usize = 344;
 }

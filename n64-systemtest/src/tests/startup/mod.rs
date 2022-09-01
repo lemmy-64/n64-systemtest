@@ -2,6 +2,7 @@ use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::any::Any;
+use crate::cop1::cfc1;
 
 use crate::rsp::rsp::RSP;
 use crate::tests::{Level, Test};
@@ -37,13 +38,15 @@ impl Test for StartupTest {
         //soft_assert_eq(crate::cop0::exceptpc(), 0xFFFFFFFF_FFFFFFFF, "COP0 ExceptPC")?;
         //soft_assert_eq(crate::cop0::errorepc(), 0xFFFFFFFF_FFFFFFFF, "COP0 ErrorEPC")?;
 
-        // Status is initialized in main(), so this test isn't too valuable
-        soft_assert_eq(crate::cop0::status().raw_value(), 0x24000000, "COP0 Status")?;
-        soft_assert_eq(crate::cop0::status_64(), 0x24000000, "COP0 Status (DMFC0)")?;
+        soft_assert_eq(crate::cop0::status().raw_value(), 0x241000e0, "COP0 Status")?;
+        soft_assert_eq(crate::cop0::status_64(), 0x241000e0, "COP0 Status (DMFC0)")?;
 
         // RSP Status
         soft_assert_eq(RSP::status(), 0x1, "RSP STATUS")?;
         soft_assert_eq(RSP::pc(), 0x0, "RSP PC")?;
+
+        // COP1 control word
+        soft_assert_eq(0x01000800, cfc1::<31>(), "COP1 FCSR")?;
 
         Ok(())
     }
