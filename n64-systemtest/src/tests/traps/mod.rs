@@ -8,7 +8,7 @@ use core::any::Any;
 use core::arch::asm;
 use arbitrary_int::u5;
 use crate::assembler::{Assembler, RegimmOpcode, SpecialOpcode};
-use crate::cop0::CauseException;
+use crate::cop0::{CauseException, preset_cause_to_copindex2};
 use crate::exception_handler::expect_exception;
 
 use crate::tests::{Level, Test};
@@ -55,7 +55,7 @@ fn test_trap<const INSTRUCTION: u32>(v1: u64, v2: u64, expect_trap: bool) -> Res
         soft_assert_eq(exception_context.k0_exception_vector, 0xFFFFFFFF_80000180, "Exception Vector")?;
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32) }, INSTRUCTION, "ExceptPC points to wrong instruction")?;
-        soft_assert_eq(exception_context.cause, 0x34, "Cause")?;
+        soft_assert_eq(exception_context.cause.raw_value(), 0x34, "Cause")?;
         soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
     } else {
         trap::<INSTRUCTION>(v1, v2);
@@ -91,7 +91,7 @@ fn test_trap_imm<const INSTRUCTION: u32>(v1: u64, expect_trap: bool) -> Result<(
         soft_assert_eq(exception_context.k0_exception_vector, 0xFFFFFFFF_80000180, "Exception Vector")?;
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32) }, INSTRUCTION, "ExceptPC points to wrong instruction")?;
-        soft_assert_eq(exception_context.cause, 0x34, "Cause")?;
+        soft_assert_eq(exception_context.cause.raw_value(), 0x34, "Cause")?;
         soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
     } else {
         trap_imm::<INSTRUCTION>(v1);
@@ -172,6 +172,8 @@ impl Test for TLT {
     }
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
+        preset_cause_to_copindex2()?;
+
         const INSTRUCTION: u32 = Assembler::make_special(SpecialOpcode::TLT, u5::new(0), u5::new(0), u5::new(2), u5::new(3));
         execute_test_case_2_registers::<INSTRUCTION>(value)
     }

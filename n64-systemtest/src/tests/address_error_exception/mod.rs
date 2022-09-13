@@ -49,7 +49,7 @@ impl Test for UnalignedLW {
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32) }, 0x8C600000, "ExceptPC points to wrong instruction")?;
         soft_assert_eq(exception_context.badvaddr, p as isize as u64, "BadVAddr during AdEL exception")?;
-        soft_assert_eq(exception_context.cause, 0x10, "Cause during AdEL exception")?;
+        soft_assert_eq(exception_context.cause.raw_value(), 0x10, "Cause during AdEL exception")?;
         soft_assert_eq(exception_context.status, 0x24000002, "Status during AdEL exception")?;
         soft_assert_eq(exception_context.context, 0x401410, "Context during AdEL exception")?;
         soft_assert_eq(exception_context.xcontext, 0x1_FFC01410, "XContext during AdEL exception")?;
@@ -88,7 +88,7 @@ impl Test for UnalignedLW2 {
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32) }, 0x8C400000, "ExceptPC points to wrong instruction")?;
         soft_assert_eq(exception_context.badvaddr, p as isize as u64, "BadVAddr during AdEL exception")?;
-        soft_assert_eq(exception_context.cause, 0x10, "Cause during AdEL exception")?;
+        soft_assert_eq(exception_context.cause.raw_value(), 0x10, "Cause during AdEL exception")?;
         soft_assert_eq(exception_context.status, 0x24000002, "Status during AdEL exception")?;
         soft_assert_eq(exception_context.context, 0xFFFFFFFF_FFC01420, "Context during AdEL exception")?;
         soft_assert_eq(exception_context.xcontext, 0xFFFFFFFF_FFC01420, "XContext during AdEL exception")?;
@@ -132,7 +132,7 @@ impl Test for UnalignedLWDelay {
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32).add(1) }, 0x8C400000, "ExceptPC points to wrong instruction")?;
         soft_assert_eq(exception_context.badvaddr, p as isize as u64, "BadVAddr during AdEL exception")?;
-        soft_assert_eq(exception_context.cause, 0x80000010, "Cause during AdEL exception")?;
+        soft_assert_eq(exception_context.cause.raw_value(), 0x80000010, "Cause during AdEL exception")?;
         soft_assert_eq(exception_context.status, 0x24000002, "Status during AdEL exception")?;
         soft_assert_eq(exception_context.context, 0x401410, "Context during AdEL exception")?;
         soft_assert_eq(exception_context.xcontext, 0x1_FFC01410, "XContext during AdEL exception")?;
@@ -170,7 +170,7 @@ impl Test for UnalignedSW {
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32) }, 0xAC400000, "ExceptPC points to wrong instruction")?;
         soft_assert_eq(exception_context.badvaddr, p as isize as u64, "BadVAddr during AdES exception")?;
-        soft_assert_eq(exception_context.cause, 0x14, "Cause during AdES exception")?;
+        soft_assert_eq(exception_context.cause.raw_value(), 0x14, "Cause during AdES exception")?;
         soft_assert_eq(exception_context.status, 0x24000002, "Status during AdES exception")?;
         soft_assert_eq(exception_context.context, 0x401430, "Context during AdES exception")?;
         soft_assert_eq(exception_context.xcontext, 0x1ffc01430, "XContext during AdES exception")?;
@@ -211,7 +211,7 @@ impl Test for LWAddressNotSignExtended {
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32) }, 0x8C400000, "ExceptPC points to wrong instruction")?;
         soft_assert_eq(exception_context.badvaddr, p as u64 & 0xFFFFFFFF, "BadVAddr")?;
-        soft_assert_eq(exception_context.cause, 0x10, "Cause")?;
+        soft_assert_eq(exception_context.cause.raw_value(), 0x10, "Cause")?;
         soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
         soft_assert_eq(exception_context.context, 0x401400, "Context")?;
         soft_assert_eq(exception_context.xcontext, 0x401400, "XContext")?;
@@ -252,7 +252,7 @@ impl Test for SWAddressNotSignExtended {
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32) }, 0xAC400000, "ExceptPC points to wrong instruction")?;
         soft_assert_eq(exception_context.badvaddr, p as u64 & 0xFFFFFFFF, "BadVAddr")?;
-        soft_assert_eq(exception_context.cause, 0x14, "Cause")?;
+        soft_assert_eq(exception_context.cause.raw_value(), 0x14, "Cause")?;
         soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
         soft_assert_eq(exception_context.context, 0x401400, "Context")?;
         soft_assert_eq(exception_context.xcontext, 0x401400, "XContext")?;

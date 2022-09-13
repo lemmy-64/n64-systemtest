@@ -3,7 +3,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::any::Any;
 use core::arch::asm;
-use crate::cop0::CauseException;
+use crate::cop0::{CauseException, preset_cause_to_copindex2};
 use crate::exception_handler::expect_exception;
 
 use crate::tests::{Level, Test};
@@ -19,6 +19,8 @@ impl Test for Break {
     fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        preset_cause_to_copindex2()?;
+
         let exception_context = expect_exception(CauseException::Bp, 1, || {
             unsafe {
                 asm!("
@@ -33,7 +35,7 @@ impl Test for Break {
         soft_assert_eq(exception_context.k0_exception_vector, 0xFFFFFFFF_80000180, "Exception Vector")?;
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(((unsafe { *(exception_context.exceptpc as *const u32) }) >> 16) & 0x3FF, 0x319, "ExceptPC points to wrong instruction")?;
-        soft_assert_eq(exception_context.cause, 0x24, "Cause")?;
+        soft_assert_eq(exception_context.cause.raw_value(), 0x24, "Cause")?;
         soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
 
         Ok(())
@@ -69,7 +71,7 @@ impl Test for BreakDelay {
         soft_assert_eq(exception_context.k0_exception_vector, 0xFFFFFFFF_80000180, "Exception Vector")?;
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(((unsafe { *(exception_context.exceptpc as *const u32).add(1) }) >> 16) & 0x3FF, 0x319, "ExceptPC points to wrong instruction")?;
-        soft_assert_eq(exception_context.cause, 0x80000024, "Cause")?;
+        soft_assert_eq(exception_context.cause.raw_value(), 0x80000024, "Cause")?;
         soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
 
         Ok(())
@@ -86,6 +88,8 @@ impl Test for Syscall {
     fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        preset_cause_to_copindex2()?;
+
         let exception_context = expect_exception(CauseException::Sys, 1, || {
             unsafe {
                 asm!("
@@ -100,7 +104,7 @@ impl Test for Syscall {
         soft_assert_eq(exception_context.k0_exception_vector, 0xFFFFFFFF_80000180, "Exception Vector")?;
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(((unsafe { *(exception_context.exceptpc as *const u32) }) >> 6) & 0xFFFFF, 0xF123F, "ExceptPC points to wrong instruction")?;
-        soft_assert_eq(exception_context.cause, 0x20, "Cause")?;
+        soft_assert_eq(exception_context.cause.raw_value(), 0x20, "Cause")?;
         soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
 
         Ok(())
@@ -136,7 +140,7 @@ impl Test for SyscallDelay {
         soft_assert_eq(exception_context.k0_exception_vector, 0xFFFFFFFF_80000180, "Exception Vector")?;
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(((unsafe { *(exception_context.exceptpc as *const u32).add(1) }) >> 6) & 0xFFFFF, 0xF123F, "ExceptPC points to wrong instruction")?;
-        soft_assert_eq(exception_context.cause, 0x80000020, "Cause")?;
+        soft_assert_eq(exception_context.cause.raw_value(), 0x80000020, "Cause")?;
         soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
 
         Ok(())
@@ -154,6 +158,8 @@ impl Test for Reserved31 {
     fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        preset_cause_to_copindex2()?;
+
         let exception_context = expect_exception(CauseException::RI, 1, || {
             unsafe {
                 asm!("
@@ -168,7 +174,7 @@ impl Test for Reserved31 {
         soft_assert_eq(exception_context.k0_exception_vector, 0xFFFFFFFF_80000180, "Exception Vector")?;
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32) }, 0x7C03E83B, "ExceptPC points to wrong instruction")?;
-        soft_assert_eq(exception_context.cause, 0x28, "Cause")?;
+        soft_assert_eq(exception_context.cause.raw_value(), 0x28, "Cause")?;
         soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
 
         Ok(())
@@ -204,7 +210,7 @@ impl Test for Reserved31Delay {
         soft_assert_eq(exception_context.k0_exception_vector, 0xFFFFFFFF_80000180, "Exception Vector")?;
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32).add(1) }, 0x7C03E83B, "ExceptPC points to wrong instruction")?;
-        soft_assert_eq(exception_context.cause, 0x80000028, "Cause")?;
+        soft_assert_eq(exception_context.cause.raw_value(), 0x80000028, "Cause")?;
         soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
 
         Ok(())

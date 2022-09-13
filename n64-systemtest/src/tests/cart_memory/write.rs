@@ -5,8 +5,7 @@ use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::any::Any;
 use core::arch::asm;
-use arbitrary_int::u5;
-use crate::assembler::{Assembler, Opcode};
+use crate::assembler::{Assembler, GPR};
 use crate::{MemoryMap, pi};
 use crate::tests::soft_asserts::{soft_assert_eq, soft_assert_neq};
 
@@ -212,19 +211,19 @@ impl Test for DecayAfterSomeClockCycles {
         // How long does the temp-value stay? A short while, but not very long
         match (*value).downcast_ref::<u32>() {
             Some(&64) => {
-                const INSTRUCTION: u32 = Assembler::make_loadstore(Opcode::SD, u5::new(4), 0, u5::new(2));
+                const INSTRUCTION: u32 = Assembler::make_sd( GPR::A0, 0, GPR::V0);
                 DecayAfterSomeClockCycles::test::<INSTRUCTION, 10, 110>()?;
             }
             Some(&32) => {
-                const INSTRUCTION: u32 = Assembler::make_loadstore(Opcode::SW, u5::new(4), 0, u5::new(2));
+                const INSTRUCTION: u32 = Assembler::make_sw(GPR::A0, 0, GPR::V0);
                 DecayAfterSomeClockCycles::test::<INSTRUCTION, 10, 110>()?;
             }
             Some(&16) => {
-                const INSTRUCTION: u32 = Assembler::make_loadstore(Opcode::SH, u5::new(4), 0, u5::new(2));
+                const INSTRUCTION: u32 = Assembler::make_sh(GPR::A0, 0, GPR::V0);
                 DecayAfterSomeClockCycles::test::<INSTRUCTION, 10, 110>()?;
             }
             Some(&8) => {
-                const INSTRUCTION: u32 = Assembler::make_loadstore(Opcode::SB, u5::new(4), 0, u5::new(2));
+                const INSTRUCTION: u32 = Assembler::make_sb(GPR::A0, 0, GPR::V0);
                 DecayAfterSomeClockCycles::test::<INSTRUCTION, 10, 110>()?;
             }
             _ => {

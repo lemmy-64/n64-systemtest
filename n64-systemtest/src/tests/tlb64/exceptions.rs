@@ -7,7 +7,7 @@ use core::arch::asm;
 use arbitrary_int::{u2, u27};
 
 use crate::{cop0, MemoryMap};
-use crate::cop0::{CauseException, make_entry_hi, make_entry_lo, Status};
+use crate::cop0::{Cause, CauseException, make_entry_hi, make_entry_lo, Status};
 use crate::exception_handler::expect_exception;
 use crate::math::bits::Bitmasks64;
 use crate::tests::{Level, Test};
@@ -49,7 +49,7 @@ impl Test for LWAddressNotSignExtended {
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32) }, 0x8C400000, "ExceptPC points to wrong instruction")?;
         soft_assert_eq(exception_context.badvaddr, p as u64 & 0xFFFFFFFF, "BadVAddr")?;
-        soft_assert_eq(exception_context.cause, 0x8, "Cause")?;
+        soft_assert_eq(exception_context.cause.raw_value(), 0x8, "Cause")?;
         soft_assert_eq(exception_context.status, 0x240000E2, "Status")?;
         soft_assert_eq(exception_context.context, 0x401400, "Context")?;
         soft_assert_eq(exception_context.xcontext, 0x401400, "XContext")?;
@@ -93,7 +93,7 @@ impl Test for SWAddressNotSignExtended {
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32) }, 0xAC400000, "ExceptPC points to wrong instruction")?;
         soft_assert_eq(exception_context.badvaddr, p as u64 & 0xFFFFFFFF, "BadVAddr")?;
-        soft_assert_eq(exception_context.cause, 0xC, "Cause")?;
+        soft_assert_eq(exception_context.cause.raw_value(), 0xC, "Cause")?;
         soft_assert_eq(exception_context.status, 0x240000E2, "Status")?;
         soft_assert_eq(exception_context.context, 0x401400, "Context")?;
         soft_assert_eq(exception_context.xcontext, 0x401400, "XContext")?;
@@ -128,7 +128,7 @@ fn test_load_and_catch_exception(address: u64, tlb_miss: bool) -> Result<(), Str
         Ok(())
     })?;
 
-    soft_assert_eq(exception_context.cause,  (cause_exception as u32) << 2, "Cause")?;
+    soft_assert_eq(exception_context.cause,  Cause::new().with_exception(cause_exception), "Cause")?;
     soft_assert_eq(exception_context.k0_exception_vector, if tlb_miss { 0xFFFFFFFF_80000080 } else { 0xFFFFFFFF_80000180 }, "Exception Vector")?;
     soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
     soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32) }, 0x8C400000, "ExceptPC points to wrong instruction")?;
@@ -222,7 +222,7 @@ fn test_tlb_miss(address: u64, vpn: u27, r: u2) -> Result<(), String> {
         Ok(())
     })?;
 
-    soft_assert_eq(exception_context.cause,  (CauseException::TLBL as u32) << 2, "Cause")?;
+    soft_assert_eq(exception_context.cause, Cause::new().with_exception(CauseException::TLBL), "Cause")?;
     soft_assert_eq(exception_context.k0_exception_vector, 0xFFFFFFFF_80000080, "Exception Vector")?;
     soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
     soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32) }, 0x8C440000, "ExceptPC points to wrong instruction")?;

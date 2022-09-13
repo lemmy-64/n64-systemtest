@@ -1,7 +1,12 @@
+use alloc::format;
+use alloc::string::String;
 use core::arch::asm;
+use core::fmt::{Debug, Formatter};
 use bitbybit::{bitenum, bitfield};
+use crate::cop1::FCSRRoundingMode::{NegativeInfinity, PositiveInfinity};
 
 #[bitenum(u2, exhaustive: true)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum FCSRRoundingMode {
     Nearest = 0,
     Zero = 1,
@@ -9,8 +14,62 @@ pub enum FCSRRoundingMode {
     NegativeInfinity = 3,
 }
 
+impl FCSRRoundingMode {
+    pub const ALL: [FCSRRoundingMode; 4] = [FCSRRoundingMode::Nearest, FCSRRoundingMode::Zero, PositiveInfinity, NegativeInfinity];
+}
+
+#[bitfield(u8, default: 0)]
+#[derive(PartialEq, Eq)]
+pub struct FCSRFlags {
+    #[bit(4, rw)]
+    invalid_operation : bool,
+    #[bit(3, rw)]
+    division_by_zero : bool,
+    #[bit(2, rw)]
+    overflow : bool,
+    #[bit(1, rw)]
+    underflow : bool,
+    #[bit(0, rw)]
+    inexact_operation : bool,
+}
+
+impl FCSRFlags {
+    pub const ALL: FCSRFlags = FCSRFlags::new().with_invalid_operation(true).with_division_by_zero(true).with_overflow(true).with_underflow(true).with_inexact_operation(true);
+    pub const NONE: FCSRFlags = FCSRFlags::new();
+    pub const fn invert(&self) -> Self {
+        FCSRFlags::new()
+            .with_invalid_operation(!self.invalid_operation())
+            .with_division_by_zero(!self.division_by_zero())
+            .with_overflow(!self.overflow())
+            .with_underflow(!self.underflow())
+            .with_inexact_operation(!self.inexact_operation())
+    }
+}
+
+impl Debug for FCSRFlags {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        let mut s = String::new();
+        if self.invalid_operation() {
+            s += "inv-op "
+        }
+        if self.division_by_zero() {
+            s += "div-by-0 "
+        }
+        if self.overflow() {
+            s += "overflow "
+        }
+        if self.underflow() {
+            s += "underflow "
+        }
+        if self.inexact_operation() {
+            s += "inexact "
+        }
+        f.write_str(s.trim_end())
+    }
+}
+
 #[bitfield(u32, default: 0)]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(PartialEq, Eq)]
 pub struct FCSR {
     #[bit(24, rw)]
     flush_denorm_to_zero : bool,
@@ -60,6 +119,69 @@ pub struct FCSR {
 
 impl FCSR {
     pub const DEFAULT: Self = Self::new().with_enable_invalid_operation(true).with_flush_denorm_to_zero(true);
+
+    pub const fn with_maskable_causes(self, value: FCSRFlags) -> Self {
+        self.with_cause_invalid_operation(value.invalid_operation())
+            .with_cause_division_by_zero(value.division_by_zero())
+            .with_cause_overflow(value.overflow())
+            .with_cause_underflow(value.underflow())
+            .with_cause_inexact_operation(value.inexact_operation())
+    }
+    pub const fn maskable_causes(self) -> FCSRFlags {
+        FCSRFlags::new()
+            .with_invalid_operation(self.cause_invalid_operation())
+            .with_division_by_zero(self.cause_division_by_zero())
+            .with_overflow(self.cause_overflow())
+            .with_underflow(self.cause_underflow())
+            .with_inexact_operation(self.cause_inexact_operation())
+    }
+
+    pub const fn with_enables(self, value: FCSRFlags) -> Self {
+        self.with_enable_invalid_operation(value.invalid_operation())
+            .with_enable_division_by_zero(value.division_by_zero())
+            .with_enable_overflow(value.overflow())
+            .with_enable_underflow(value.underflow())
+            .with_enable_inexact_operation(value.inexact_operation())
+    }
+    pub const fn enables(self) -> FCSRFlags {
+        FCSRFlags::new()
+            .with_invalid_operation(self.enable_invalid_operation())
+            .with_division_by_zero(self.enable_division_by_zero())
+            .with_overflow(self.enable_overflow())
+            .with_underflow(self.enable_underflow())
+            .with_inexact_operation(self.enable_inexact_operation())
+    }
+
+    pub const fn with_flags(self, value: FCSRFlags) -> Self {
+        self.with_invalid_operation(value.invalid_operation())
+            .with_division_by_zero(value.division_by_zero())
+            .with_overflow(value.overflow())
+            .with_underflow(value.underflow())
+            .with_inexact_operation(value.inexact_operation())
+    }
+    pub const fn flags(self) -> FCSRFlags {
+        FCSRFlags::new()
+            .with_invalid_operation(self.invalid_operation())
+            .with_division_by_zero(self.division_by_zero())
+            .with_overflow(self.overflow())
+            .with_underflow(self.underflow())
+            .with_inexact_operation(self.inexact_operation())
+    }
+}
+
+impl Debug for FCSR {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        let cause_tmp = format!("{} {:?}", if self.cause_unimplemented_operation() { "unimpl " } else { "" }, self.maskable_causes());
+        let cause = cause_tmp.trim_end();
+
+        f.debug_struct("FCSR")
+            .field("rounding_mode", &self.rounding_mode())
+            .field("flush_denorm_to_zero", &self.flush_denorm_to_zero())
+            .field("flags", &self.flags())
+            .field("enables", &self.enables())
+            .field("causes", &cause)
+            .finish()
+    }
 }
 
 #[inline(always)]
@@ -72,7 +194,8 @@ pub fn cfc1<const INDEX: u8>() -> u32 {
             nop
             nop",
         index = const INDEX,
-        result = out(reg) result)
+        result = out(reg) result,
+        options(nostack, nomem))
     }
     result
 }
@@ -86,7 +209,8 @@ pub fn ctc1<const INDEX: u8>(value: u32) {
             nop
             nop",
         index = const INDEX,
-        value = in(reg) value)
+        value = in(reg) value,
+        options(nostack, nomem))
     }
 }
 

@@ -4,8 +4,6 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::any::Any;
 
-use num_traits::ToPrimitive;
-
 use crate::VIDEO;
 use crate::graphics::color::Color;
 use crate::graphics::color::RGBA5551;
@@ -38,7 +36,7 @@ fn run_stress_test<FEmitter: Fn(&mut RSPAssembler, VR), FSimulator: Fn(u32) -> u
 
                 cursor.x = 16;
                 cursor.y = 16;
-                cursor.draw_text(buffer, format!("Stress testing {}. {:3.2}% complete (at 0x{:x})", name, input_value as f32 / 0xFFFF_FFFFu32.to_f32().unwrap() * 100.0f32, input_value).as_str());
+                cursor.draw_text(buffer, format!("Stress testing {}. {:3.2}% complete (at 0x{:x})", name, input_value as f32 / 0xFFFF_FFFFu32 as f32 * 100.0f32, input_value).as_str());
             }
             v.swap_buffers();
         }

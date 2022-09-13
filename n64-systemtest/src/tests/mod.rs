@@ -6,10 +6,10 @@ use core::any::Any;
 use core::cmp::min;
 use arbitrary_int::{u2, u27, u5};
 
-use crate::cop0::{cause_extract_exception, set_status, Status};
+use crate::cop0::{set_status, Status};
 use crate::exception_handler::drain_seen_exception;
 use crate::{print, println};
-use crate::cop1::{FCSR, set_fcsr};
+use crate::cop1::{FCSR, FCSRFlags, FCSRRoundingMode, set_fcsr};
 use crate::isviewer::text_out;
 use crate::tests::traps::Immediate;
 
@@ -156,6 +156,86 @@ pub fn run() {
                 Some(v) => return format!(" with '{:x?}'", v),
                 None => {}
             }
+            match (*value).downcast_ref::<(bool, FCSRRoundingMode, f32, Result<(FCSRFlags, f32), ()>)>() {
+                Some(v) => return format!(" with '{:x?}'", v),
+                None => {}
+            }
+            match (*value).downcast_ref::<(bool, FCSRRoundingMode, f32, Result<(FCSRFlags, f64), ()>)>() {
+                Some(v) => return format!(" with '{:x?}'", v),
+                None => {}
+            }
+            match (*value).downcast_ref::<(bool, FCSRRoundingMode, f32, Result<(FCSRFlags, i32), ()>)>() {
+                Some(v) => return format!(" with '{:x?}'", v),
+                None => {}
+            }
+            match (*value).downcast_ref::<(bool, FCSRRoundingMode, f32, Result<(FCSRFlags, i64), ()>)>() {
+                Some(v) => return format!(" with '{:x?}'", v),
+                None => {}
+            }
+            match (*value).downcast_ref::<(f32, Result<(FCSRFlags, i64), ()>)>() {
+                Some(v) => return format!(" with '{:x?}'", v),
+                None => {}
+            }
+            match (*value).downcast_ref::<(bool, FCSRRoundingMode, f32, f32, Result<(FCSRFlags, f32), ()>)>() {
+                Some(v) => return format!(" with '{:x?}'", v),
+                None => {}
+            }
+            match (*value).downcast_ref::<(bool, FCSRRoundingMode, f64, Result<(FCSRFlags, f32), ()>)>() {
+                Some(v) => return format!(" with '{:x?}'", v),
+                None => {}
+            }
+            match (*value).downcast_ref::<(bool, FCSRRoundingMode, f64, Result<(FCSRFlags, f64), ()>)>() {
+                Some(v) => return format!(" with '{:x?}'", v),
+                None => {}
+            }
+            match (*value).downcast_ref::<(bool, FCSRRoundingMode, f64, Result<(FCSRFlags, i32), ()>)>() {
+                Some(v) => return format!(" with '{:x?}'", v),
+                None => {}
+            }
+            match (*value).downcast_ref::<(bool, FCSRRoundingMode, f64, Result<(FCSRFlags, i64), ()>)>() {
+                Some(v) => return format!(" with '{:x?}'", v),
+                None => {}
+            }
+            match (*value).downcast_ref::<(f64, Result<(FCSRFlags, i64), ()>)>() {
+                Some(v) => return format!(" with '{:x?}'", v),
+                None => {}
+            }
+            match (*value).downcast_ref::<(bool, FCSRRoundingMode, i32, Result<(FCSRFlags, f32), ()>)>() {
+                Some(v) => return format!(" with '{:x?}'", v),
+                None => {}
+            }
+            match (*value).downcast_ref::<(bool, FCSRRoundingMode, i32, Result<(FCSRFlags, f64), ()>)>() {
+                Some(v) => return format!(" with '{:x?}'", v),
+                None => {}
+            }
+            match (*value).downcast_ref::<(i32, Result<(FCSRFlags, i32), ()>)>() {
+                Some(v) => return format!(" with '{:x?}'", v),
+                None => {}
+            }
+            match (*value).downcast_ref::<(i32, Result<(FCSRFlags, i64), ()>)>() {
+                Some(v) => return format!(" with '{:x?}'", v),
+                None => {}
+            }
+            match (*value).downcast_ref::<(bool, FCSRRoundingMode, i64, Result<(FCSRFlags, f64), ()>)>() {
+                Some(v) => return format!(" with '{:x?}'", v),
+                None => {}
+            }
+            match (*value).downcast_ref::<(bool, FCSRRoundingMode, i64, Result<(FCSRFlags, f32), ()>)>() {
+                Some(v) => return format!(" with '{:x?}'", v),
+                None => {}
+            }
+            match (*value).downcast_ref::<(i64, Result<(FCSRFlags, i32), ()>)>() {
+                Some(v) => return format!(" with '{:x?}'", v),
+                None => {}
+            }
+            match (*value).downcast_ref::<(i64, Result<(FCSRFlags, i64), ()>)>() {
+                Some(v) => return format!(" with '{:x?}'", v),
+                None => {}
+            }
+            match (*value).downcast_ref::<(bool, FCSRRoundingMode, f64, f64, Result<(FCSRFlags, f64), ()>)>() {
+                Some(v) => return format!(" with '{:x?}'", v),
+                None => {}
+            }
             return " with unknown arguments".to_string();
         }
 
@@ -175,11 +255,12 @@ pub fn run() {
             *time += counter_after - counter_before;
 
             unsafe { set_status(Status::DEFAULT); }
+            set_fcsr(FCSR::DEFAULT);
 
             match drain_seen_exception() {
                 Some((exception, _)) => {
                     // If the test caused an exception, don't even bother looking at the result. Just count it as failed
-                    match cause_extract_exception(exception.cause) {
+                    match exception.cause.exception() {
                         Ok(e) => println!("Test '{}'{} failed with exception: {:?}\n", test.name(), value_desc(value), e),
                         Err(e) => println!("Test '{}'{} failed with unknown exception: {:?}\n", test.name(), value_desc(value), e),
                     }
