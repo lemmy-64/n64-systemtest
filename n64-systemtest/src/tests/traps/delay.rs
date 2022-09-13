@@ -38,7 +38,7 @@ impl Test for TNEDelay1 {
         soft_assert_eq(exception_context.k0_exception_vector, 0xFFFFFFFF_80000180, "Exception Vector")?;
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32).add(1) }, 0x00430036, "ExceptPC points to wrong instruction")?;
-        soft_assert_eq(exception_context.cause, 0x80000034, "Cause")?;
+        soft_assert_eq(exception_context.cause.raw_value(), 0x80000034, "Cause")?;
         soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
 
         Ok(())
@@ -75,7 +75,7 @@ impl Test for TNEDelay2 {
         soft_assert_eq(exception_context.k0_exception_vector, 0xFFFFFFFF_80000180, "Exception Vector")?;
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32).add(1) }, 0x00430036, "ExceptPC points to wrong instruction")?;
-        soft_assert_eq(exception_context.cause, 0x80000034, "Cause")?;
+        soft_assert_eq(exception_context.cause.raw_value(), 0x80000034, "Cause")?;
         soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
 
         Ok(())

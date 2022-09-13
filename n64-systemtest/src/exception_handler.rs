@@ -4,7 +4,7 @@ use core::ops::{Deref, DerefMut};
 
 use spinning_top::Spinlock;
 
-use crate::cop0::{cause_extract_delay, cause_extract_exception, CauseException};
+use crate::cop0::{Cause, CauseException};
 use crate::cop1::FCSR;
 use crate::graphics::color::Color;
 use crate::graphics::cursor::Cursor;
@@ -142,7 +142,7 @@ extern "C" fn exception_handler_generic() {
             mtc0 $11, ${StatusRegisterIndex}
             nop
             nop
-            cfc1 $11, $31          # COP1 FCSR
+            cfc1 $11, $31          // COP1 FCSR
             sd $1, 256 ($sp)
             sd $2, 264 ($sp)
             sd $3, 272 ($sp)
@@ -163,6 +163,12 @@ extern "C" fn exception_handler_generic() {
 
             // Use new stackpointer as returned, then restore from stack
             ori $sp, $v0, 0x0
+
+            // Restore FCSR with cause bits cleared (so that the exception isn't re-raised)
+            lw $11, 336 ($sp)
+            li $12, 0xFFFC0FFF
+            and $11, $12, $11
+            ctc1 $11, $31
 
             ld $2, 320 ($sp)
             lw $10, 332 ($sp)
@@ -234,7 +240,7 @@ extern "C" fn exception_handler_compiled(stackpointer: usize) -> usize {
             context.return_to = context.exceptpc + skip_guard.unwrap() * 4;
         } else {
             crate::isviewer::text_out("Got unhandled exception. Attempting to continue\n");
-            context.return_to = context.exceptpc + (if cause_extract_delay(context.cause) { 8 } else { 4 });
+            context.return_to = context.exceptpc + (if context.cause.branch_delay() { 8 } else { 4 });
         }
 
         // Save the exception context
@@ -264,7 +270,7 @@ pub fn expect_exception<F>(code: CauseException, skip_instructions_on_hit: u64, 
     where F: FnOnce() -> Result<(), &'static str> {
     let guard = SEEN_EXCEPTION.lock();
     if guard.is_some() {
-        return Err(format!("Expected exception {:?} but we already previously got {:?}", code, cause_extract_exception(guard.unwrap().0.cause)));
+        return Err(format!("Expected exception {:?} but we already previously got {:?}", code, guard.unwrap().0.cause.exception()));
     }
     drop(guard);
 
@@ -288,7 +294,7 @@ pub fn expect_exception<F>(code: CauseException, skip_instructions_on_hit: u64, 
                     Err(format!("Exception expected but none seen"))
                 }
                 Some((context, count)) => {
-                    let actual_exception = cause_extract_exception(context.cause);
+                    let actual_exception = context.cause.exception();
                     if count != 1 {
                         Err(format!("Expected exception {:?} but got {} exceptions, the first of which was {:?}", code, count, actual_exception))
                     } else if actual_exception == Ok(code) {
@@ -381,9 +387,9 @@ fn show_bluescreen_of_death(context: &Context) -> ! {
         cursor.x = 32;
         cursor.y += 16;
         cursor.draw_text(backbuffer, "Cause: ");
-        cursor.draw_hex_u32(backbuffer, context.cause);
+        cursor.draw_hex_u32(backbuffer, context.cause.raw_value());
         cursor.draw_text(backbuffer, " (");
-        match cause_extract_exception(context.cause) {
+        match context.cause.exception() {
             Ok(exc) => { cursor.draw_text(backbuffer, format!("{:?}", exc).as_str()); }
             Err(code) => {
                 cursor.draw_text(backbuffer, "0x");
@@ -471,7 +477,7 @@ pub struct Context {
 
     pub return_to: u64,
 
-    pub cause: u32,
+    pub cause: Cause,
     pub status: u32,
     pub fcsr: FCSR,
     padding: u32,  // used to pad to 64 bit - feel free to use going forward

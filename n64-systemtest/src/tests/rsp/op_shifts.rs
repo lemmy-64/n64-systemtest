@@ -3,6 +3,7 @@ use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 use core::any::Any;
+use core::arch::asm;
 use arbitrary_int::u5;
 
 use crate::rsp::rsp::RSP;
@@ -96,8 +97,10 @@ impl Test for SLLV {
     }
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
+        unsafe { asm!("TNE $0, $0")};
         match (*value).downcast_ref::<(u32, u32, u32)>() {
             Some((source_value, shift_amount, expected_value)) => {
+                unsafe { asm!("TNE $2, $2")};
                 test(*source_value, *expected_value, |assembler, target_reg, source_reg| {
                     assembler.write_li(GPR::AT, *shift_amount);
                     assembler.write_sllv(target_reg, source_reg, GPR::AT)

@@ -1,9 +1,8 @@
+use alloc::string::{String, ToString};
 use core::arch::asm;
 use arbitrary_int::{u2, u27};
 use bitbybit::{bitenum, bitfield};
-
-use num_derive::FromPrimitive;
-use num_traits::FromPrimitive;
+use crate::exception_handler::expect_exception;
 
 #[allow(dead_code)]
 pub enum RegisterIndex {
@@ -155,7 +154,7 @@ impl Status {
 }
 
 #[bitenum(u5, exhaustive: false)]
-#[derive(FromPrimitive, PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum CauseException {
     Int = 0,
     Mod = 1,
@@ -168,7 +167,7 @@ pub enum CauseException {
     Sys = 8,
     Bp = 9,
     RI = 10,
-    CpU = 11,
+    CopUnusable = 11,
     Ov = 12,
     Tr = 13,
     VirtualCoherencyInstructionFetch = 14,
@@ -437,15 +436,6 @@ pub unsafe fn set_errorepc(value: u64) {
     unsafe { write_cop0_64::<INDEX>(value) }
 }
 
-pub fn cause_extract_exception(value: u32) -> Result<CauseException, u8> {
-    let code = ((value >> 2) & 0b11111) as u8;
-    FromPrimitive::from_u8(code).ok_or(code)
-}
-
-pub fn cause_extract_delay(value: u32) -> bool {
-    (value & 0x80000000) != 0
-}
-
 pub unsafe fn tlbwi() {
     unsafe {
         asm!("tlbwi; nop; nop;")
@@ -530,4 +520,18 @@ pub unsafe fn cache64<const OP: u8, const OFFSET: u16>(location: u64) {
         op = const OP,
         temp = out(reg) _)
     }
+}
+
+// Fires a cop2 usable exception and handles it itself. Afterwards, Cause.copindex will be set to 2
+pub fn preset_cause_to_copindex2() -> Result<(), String> {
+    // Fire a COP2 unusable exception. This is to write something into Cause.copindex so that we can see whether it gets overwritten
+    let temp_context = expect_exception(CauseException::CopUnusable, 1, || {
+        unsafe { asm!("MFC2 $0, $0"); }
+        Ok(())
+    })?;
+    if temp_context.cause != Cause::new().with_coprocessor_error(u2::new(2)).with_exception(CauseException::CopUnusable) {
+        return Err("Presetting Cause.copindex to 2 failed".to_string());
+    };
+
+    Ok(())
 }

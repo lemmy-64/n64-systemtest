@@ -6,7 +6,7 @@ use core::arch::asm;
 use arbitrary_int::{u2, u27};
 
 use crate::{cop0, MemoryMap, println};
-use crate::cop0::{CauseException, make_entry_hi, make_entry_lo};
+use crate::cop0::{Cause, CauseException, make_entry_hi, make_entry_lo};
 use crate::exception_handler::expect_exception;
 use crate::tests::{Level, Test};
 use crate::tests::soft_asserts::soft_assert_eq;
@@ -54,7 +54,7 @@ pub fn test_miss_exception<F>(pagemask: u32, offset: u32, valid: bool, dirty: bo
     // Testing for the exact ExceptPC is difficult as we can't easily find out the PC of the LW above. Test ballpark and sign-extension at least
     soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC during TLB exception")?;
     soft_assert_eq(exception_context.badvaddr, (virtual_page_base + offset) as u64, "BadVAddr during TLB exception")?;
-    soft_assert_eq(exception_context.cause, (if delay { 0x80000000 } else { 0 }) | (code as u32) << 2, "Cause during TLB exception")?;
+    soft_assert_eq(exception_context.cause, Cause::new().with_exception(code).with_branch_delay(delay), "Cause during TLB exception")?;
     soft_assert_eq(exception_context.status, 0x24000002, "Status during TLB exception")?;
     soft_assert_eq(exception_context.context, expected_context, "Context during TLB exception")?;
     soft_assert_eq(exception_context.xcontext, expected_context, "XContext during TLB exception")?;
@@ -308,7 +308,7 @@ impl Test for ExecuteTLBMappedMiss {
         soft_assert_eq(exception_context.k0_exception_vector, 0xFFFFFFFF_80000180, "Exception Vector for TLB exception")?;
         soft_assert_eq(exception_context.exceptpc, fault_address as u64, "ExceptPC during TLB exception")?;
         soft_assert_eq(exception_context.badvaddr, fault_address as u64, "BadVAddr during TLB exception")?;
-        soft_assert_eq(exception_context.cause, (CauseException::TLBL as u32) << 2, "Cause during TLB exception")?;
+        soft_assert_eq(exception_context.cause, Cause::new().with_exception(CauseException::TLBL), "Cause during TLB exception")?;
         soft_assert_eq(exception_context.status, 0x24000002, "Status during TLB exception")?;
         soft_assert_eq(exception_context.context, expected_context, "Context during TLB exception")?;
         soft_assert_eq(exception_context.xcontext, expected_context, "XContext during TLB exception")?;
@@ -370,7 +370,7 @@ impl Test for ExecuteTLBMappedMissInDelay {
         soft_assert_eq(exception_context.k0_exception_vector, 0xFFFFFFFF_80000180, "Exception Vector for TLB exception")?;
         soft_assert_eq(exception_context.exceptpc, (fault_address - 4) as u64, "ExceptPC during TLB exception")?;
         soft_assert_eq(exception_context.badvaddr, fault_address as u64, "BadVAddr during TLB exception")?;
-        soft_assert_eq(exception_context.cause, 0x80000008, "Cause during TLB exception")?;
+        soft_assert_eq(exception_context.cause.raw_value(), 0x80000008, "Cause during TLB exception")?;
         soft_assert_eq(exception_context.status, 0x24000002, "Status during TLB exception")?;
         soft_assert_eq(exception_context.context, expected_context, "Context during TLB exception")?;
         soft_assert_eq(exception_context.xcontext, expected_context, "XContext during TLB exception")?;
@@ -510,7 +510,7 @@ impl Test for LWTLBMissTest32 {
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32) }, 0x8C400000, "ExceptPC points to wrong instruction")?;
         soft_assert_eq(exception_context.badvaddr, 0x00000000_00201234, "BadVAddr")?;
-        soft_assert_eq(exception_context.cause, 0x8, "Cause")?;
+        soft_assert_eq(exception_context.cause.raw_value(), 0x8, "Cause")?;
         soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
         soft_assert_eq(exception_context.context, 0x1000, "Context")?;
         soft_assert_eq(exception_context.xcontext, 0x1000, "XContext")?;

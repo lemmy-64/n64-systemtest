@@ -1,14 +1,15 @@
 use alloc::format;
 use alloc::string::String;
 use core::fmt::{Debug, Display, LowerHex};
+use core::mem::transmute;
 use crate::math::vector::Vector;
 
 /// Tests if `v1 == v2`.
-pub fn soft_assert_eq<T: Debug + PartialEq + Eq>(v1: T, v2: T, help: &str) -> Result<(), String> {
+pub fn soft_assert_eq<T: Debug + PartialEq>(v1: T, v2: T, help: &str) -> Result<(), String> {
     if v1 == v2 {
         Ok(())
     } else {
-        Err(format!("a == b expected, but a={:?} b={:?} (hex: a=0x{:x?} b=0x{:x?}). {}", v1, v2, v1, v2, help))
+        Err(format!("a == b expected, but a={:#x?} b={:#x?}. {}", v1, v2, help))
     }
 }
 
@@ -19,7 +20,7 @@ pub fn soft_assert_eq2<T: Debug + PartialEq + Eq, H: FnOnce() -> String>(v1: T, 
     if v1 == v2 {
         Ok(())
     } else {
-        Err(format!("a == b expected, but a={:?} b={:?} (hex: a=0x{:x?} b=0x{:x?}). {}", v1, v2, v1, v2, help()))
+        Err(format!("a == b expected, but a={:#x?} b={:#x?}. {}", v1, v2, help()))
     }
 }
 
@@ -54,6 +55,28 @@ pub fn soft_assert_eq_2d_array<H: FnOnce() -> String, T: Debug + PartialEq + Eq,
             result
         }
         Err(format!("a == b expected for '{}'. Actual:\n{}\nExpected:\n{}\n", help(), format(actual), format(expected)))
+    }
+}
+
+/// Tests if `v1 == v2`, looking at the exact bit representation
+pub fn soft_assert_f32_bits(v1: f32, v2: f32, help: &str) -> Result<(), String> {
+    let u1: u32 = unsafe { transmute(v1) };
+    let u2: u32 = unsafe { transmute(v2) };
+    if u1 == u2 {
+        Ok(())
+    } else {
+        Err(format!("a == b expected, but a={:?} b={:?} (0x{:x} vs 0x{:x}). {}", v1, v2, u1, u2, help))
+    }
+}
+
+/// Tests if `v1 == v2`, looking at the exact bit representation
+pub fn soft_assert_f64_bits(v1: f64, v2: f64, help: &str) -> Result<(), String> {
+    let u1: u64 = unsafe { transmute(v1) };
+    let u2: u64 = unsafe { transmute(v2) };
+    if u1 == u2 {
+        Ok(())
+    } else {
+        Err(format!("a == b expected, but a={:?} b={:?} (0x{:x} vs 0x{:x}). {}", v1, v2, u1, u2, help))
     }
 }
 

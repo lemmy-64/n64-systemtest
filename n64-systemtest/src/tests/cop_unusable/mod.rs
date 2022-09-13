@@ -87,10 +87,11 @@ impl Test for COP0Usable {
     }
 }
 
-fn test_instruction_causes_exception<const INSTRUCTION: u32>(
+fn test_instruction_causes_exception<const INSTRUCTION: u32>(base_fcsr: FCSR,
     cop_index_usable: u2, usable: Status, exception_usable: CauseException, fcsr_usable: FCSR,
     cop_index_unusable: u2, unusable: Status, exception_unusable: CauseException, fcsr_unusable: FCSR,) -> Result<(), String> {
     for (desc, cop_index, status, exception, fcsr) in [("usable", cop_index_usable, usable, exception_usable, fcsr_usable), ("unusable", cop_index_unusable, unusable, exception_unusable, fcsr_unusable)] {
+        set_fcsr(base_fcsr);
         let exception_context = expect_exception(exception, 1, || {
             unsafe { cop0::set_status(status); }
             unsafe {
@@ -105,11 +106,12 @@ fn test_instruction_causes_exception<const INSTRUCTION: u32>(
         soft_assert_eq(exception_context.k0_exception_vector, 0xFFFFFFFF_80000180, "Exception Vector")?;
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32) }, INSTRUCTION, "ExceptPC points to wrong instruction")?;
-        soft_assert_eq(exception_context.cause, Cause::new().with_exception(exception).with_coprocessor_error(cop_index).raw_value(), "Cause")?;
+        soft_assert_eq(exception_context.cause, Cause::new().with_exception(exception).with_coprocessor_error(cop_index), "Cause")?;
         soft_assert_eq(exception_context.status, status.with_exl(true).raw_value(), "Status")?;
         soft_assert_eq(exception_context.fcsr, fcsr, format!("FCSR {}", desc).as_str())?;
 
         // Same test, this time within delay slot
+        set_fcsr(base_fcsr);
         let exception_context = expect_exception(exception, 2, || {
             unsafe { cop0::set_status(status); }
             unsafe {
@@ -128,7 +130,7 @@ fn test_instruction_causes_exception<const INSTRUCTION: u32>(
         soft_assert_eq(exception_context.k0_exception_vector, 0xFFFFFFFF_80000180, "Exception Vector (delay)")?;
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC (delay)")?;
         soft_assert_eq(unsafe { *((exception_context.exceptpc + 4) as *const u32) }, INSTRUCTION, "ExceptPC points to wrong instruction (delay)")?;
-        soft_assert_eq(exception_context.cause, Cause::new().with_branch_delay(true).with_coprocessor_error(cop_index).with_exception(exception).raw_value(), "Cause (delay)")?;
+        soft_assert_eq(exception_context.cause, Cause::new().with_branch_delay(true).with_coprocessor_error(cop_index).with_exception(exception), "Cause (delay)")?;
         soft_assert_eq(exception_context.status, status.with_exl(true).raw_value(), "Status (delay)")?;
         soft_assert_eq(exception_context.fcsr, fcsr, "FCSR (delay)")?;
     }
@@ -156,7 +158,7 @@ fn test_instruction_causes_unusable<const INSTRUCTION: u32>(cop_index: u2, usabl
     };
 
     // Try calling instruction while the COP is disabled
-    let exception_context = expect_exception(CauseException::CpU, 1, || {
+    let exception_context = expect_exception(CauseException::CopUnusable, 1, || {
         // Set unusable within this block as Rust's function/closure stuff might also cause cop1 code
         unsafe { cop0::set_status(unusable); }
         unsafe {
@@ -171,7 +173,7 @@ fn test_instruction_causes_unusable<const INSTRUCTION: u32>(cop_index: u2, usabl
     soft_assert_eq(exception_context.k0_exception_vector, 0xFFFFFFFF_80000180, "Exception Vector")?;
     soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
     soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32) }, INSTRUCTION, "ExceptPC points to wrong instruction")?;
-    soft_assert_eq(exception_context.cause, Cause::new().with_exception(CauseException::CpU).with_coprocessor_error(cop_index).raw_value(), "Cause")?;
+    soft_assert_eq(exception_context.cause, Cause::new().with_exception(CauseException::CopUnusable).with_coprocessor_error(cop_index), "Cause")?;
     soft_assert_eq(exception_context.status, unusable.with_exl(true).raw_value(), "Status")?;
 
     // Ensure the following weren't changed
@@ -180,7 +182,7 @@ fn test_instruction_causes_unusable<const INSTRUCTION: u32>(cop_index: u2, usabl
     soft_assert_eq(exception_context.badvaddr, badvaddr_before, "BadVAddr")?;
 
     // Call while it's illegal to call it, but in a delay slot
-    let exception_context = expect_exception(CauseException::CpU, 2, || {
+    let exception_context = expect_exception(CauseException::CopUnusable, 2, || {
         // Set unusable within this block as Rust's function/closure stuff might also cause cop1 code
         unsafe { cop0::set_status(unusable); }
         unsafe {
@@ -199,7 +201,7 @@ fn test_instruction_causes_unusable<const INSTRUCTION: u32>(cop_index: u2, usabl
     soft_assert_eq(exception_context.k0_exception_vector, 0xFFFFFFFF_80000180, "Exception Vector")?;
     soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
     soft_assert_eq(unsafe { *((exception_context.exceptpc + 4) as *const u32) }, INSTRUCTION, "ExceptPC points to wrong instruction")?;
-    soft_assert_eq(exception_context.cause, Cause::new().with_exception(CauseException::CpU).with_coprocessor_error(cop_index).with_branch_delay(true).raw_value(), "Cause")?;
+    soft_assert_eq(exception_context.cause, Cause::new().with_exception(CauseException::CopUnusable).with_coprocessor_error(cop_index).with_branch_delay(true), "Cause")?;
     soft_assert_eq(exception_context.status, unusable.with_exl(true).raw_value(), "Status")?;
 
     // Ensure the following weren't changed
@@ -220,12 +222,12 @@ fn test_cop1_instruction_causes_fpe<const INSTRUCTION: u32>() -> Result<(), Stri
         FCSR::new().with_cause_invalid_operation(true).with_cause_inexact_operation(true).with_cause_underflow(true).with_cause_overflow(true).with_cause_division_by_zero(true),
         FCSR::new().with_condition(true).with_flush_denorm_to_zero(true).with_invalid_operation(true).with_inexact_operation(true).with_underflow(true).with_overflow(true).with_division_by_zero(true)
     ] {
-        set_fcsr(base_fcsr);
-        // When an exception is fired, all cause flags are cleared and only the one that is being fired remains
-        let expected_fcsr = base_fcsr.with_cause_invalid_operation(false).with_cause_inexact_operation(false).with_cause_underflow(false).with_cause_overflow(false).with_cause_division_by_zero(false).with_cause_unimplemented_operation(true);
-        test_instruction_causes_exception::<INSTRUCTION>(
-            u2::new(0), Status::DEFAULT.with_cop1usable(true), CauseException::FPE, expected_fcsr,
-            u2::new(1), Status::DEFAULT.with_cop1usable(false), CauseException::CpU, expected_fcsr)?
+        // When an FPE exception is fired, all cause flags are cleared and only the one that is being fired remains; for unusable exception, the fcsr is not changed
+        let expected_fcsr_usable = base_fcsr.with_cause_invalid_operation(false).with_cause_inexact_operation(false).with_cause_underflow(false).with_cause_overflow(false).with_cause_division_by_zero(false).with_cause_unimplemented_operation(true);
+        let expected_fcsr_unusable = base_fcsr;
+        test_instruction_causes_exception::<INSTRUCTION>(base_fcsr,
+                                                         u2::new(0), Status::DEFAULT.with_cop1usable(true), CauseException::FPE, expected_fcsr_usable,
+                                                         u2::new(1), Status::DEFAULT.with_cop1usable(false), CauseException::CopUnusable, expected_fcsr_unusable)?
     }
     Ok(())
 }
@@ -235,14 +237,14 @@ fn test_cop2_instruction_causes_unusable<const INSTRUCTION: u32>() -> Result<(),
 }
 
 fn test_cop2_instruction_causes_ri<const INSTRUCTION: u32>() -> Result<(), String> {
-    test_instruction_causes_exception::<INSTRUCTION>(
-        u2::new(2),Status::DEFAULT.with_cop2usable(true), CauseException::RI, FCSR::DEFAULT,
-        u2::new(2),Status::DEFAULT.with_cop2usable(false), CauseException::CpU, FCSR::DEFAULT)
+    test_instruction_causes_exception::<INSTRUCTION>(FCSR::DEFAULT,
+                                                     u2::new(2), Status::DEFAULT.with_cop2usable(true), CauseException::RI, FCSR::DEFAULT,
+                                                     u2::new(2), Status::DEFAULT.with_cop2usable(false), CauseException::CopUnusable, FCSR::DEFAULT)
 }
 
 fn test_cop3_instruction_causes_ri<const INSTRUCTION: u32>() -> Result<(), String> {
     // COP3 doesn't exist, so the cop index isn't set
-    test_instruction_causes_exception::<INSTRUCTION>(
+    test_instruction_causes_exception::<INSTRUCTION>(FCSR::DEFAULT,
         u2::new(0),Status::DEFAULT.with_cop3usable(true), CauseException::RI, FCSR::DEFAULT,
         u2::new(0),Status::DEFAULT.with_cop3usable(false), CauseException::RI, FCSR::DEFAULT)
 }
