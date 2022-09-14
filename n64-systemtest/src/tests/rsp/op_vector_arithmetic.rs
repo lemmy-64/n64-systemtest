@@ -92,10 +92,10 @@ fn run_test_with_emulation_whole_reg<FEmitter: Fn(&mut RSPAssembler, VR, VR, VR,
     // 5: 0000 0000 0001
     // 6: 3FFF 4000 0001
     // 7: 3FFF C000 0000
-    let acc_high = Vector::from_u16([0x3FFF, 0xFFFF, 0x0007, 0x0000, 0xFFFF, 0x0000, 0x3FFF, 0x3FFF]);
-    let acc_mid = Vector::from_u16([0x4000, 0xFFFF, 0xFFF7, 0x0000, 0xFFFF, 0x0000, 0x4000, 0xC000]);
+    const ACC_HIGH: Vector = Vector::from_u16([0x3FFF, 0xFFFF, 0x0007, 0x0000, 0xFFFF, 0x0000, 0x3FFF, 0x3FFF]);
+    const ACC_MID: Vector = Vector::from_u16([0x4000, 0xFFFF, 0xFFF7, 0x0000, 0xFFFF, 0x0000, 0x4000, 0xC000]);
 
-    let register_configurations = [
+    const REGISTER_CONFIGURATIONS: [(i16, VR, VR, VR); 5] = [
         // all three different
         (0x90 + 80 * 0, VR::V2, VR::V4, VR::V5),
         // target == source1
@@ -109,7 +109,7 @@ fn run_test_with_emulation_whole_reg<FEmitter: Fn(&mut RSPAssembler, VR, VR, VR,
     ];
 
     // We'll run the test several times with different source/target configurations (so that source and target are also the same).
-    for (result_address, target, source1, source2) in register_configurations {
+    for (result_address, target, source1, source2) in REGISTER_CONFIGURATIONS {
         // Set flags
         assembler.write_li(GPR::AT, vco as u32);
         assembler.write_ctc2(CP2FlagsRegister::VCO, GPR::AT);
@@ -179,7 +179,7 @@ fn run_test_with_emulation_whole_reg<FEmitter: Fn(&mut RSPAssembler, VR, VR, VR,
 
     RSP::wait_until_rsp_is_halted();
 
-    for (result_address, target, source1, source2) in register_configurations {
+    for (result_address, target, source1, source2) in REGISTER_CONFIGURATIONS {
         let expected_result = if source1 == source2 { &emulation_registers_same_input } else { &emulation_registers };
         let addr = result_address as usize;
         // The default for target_register is only accurate when V2 is the target reg. NOOP instructions don't overwrite it, so don't check for those
@@ -190,8 +190,8 @@ fn run_test_with_emulation_whole_reg<FEmitter: Fn(&mut RSPAssembler, VR, VR, VR,
         soft_assert_eq2(SPMEM::read(addr + 4) as u16, expected_result.vcc, || format!("VCC after calculation for {:?},{:?},{:?}[{:?}]", target, source1, source2, e))?;
         soft_assert_eq2(SPMEM::read(addr + 8) as u8, expected_result.vce, || format!("VCE after calculation for {:?},{:?},{:?}[{:?}]", target, source1, source2, e))?;
         soft_assert_eq_vector(SPMEM::read_vector_from_dmem(addr + 64), expected_result.accum_0_16, || format!("Acc[0..16] after calculation for {:?},{:?},{:?}[{:?}]", target, source1, source2, e))?;
-        soft_assert_eq_vector(SPMEM::read_vector_from_dmem(addr + 48), acc_mid, || format!("Acc[16..32] after calculation for {:?},{:?},{:?}[{:?}]", target, source1, source2, e))?;
-        soft_assert_eq_vector(SPMEM::read_vector_from_dmem(addr + 32), acc_high, || format!("Acc[32..48] after calculation for {:?},{:?},{:?}[{:?}]", target, source1, source2, e))?;
+        soft_assert_eq_vector(SPMEM::read_vector_from_dmem(addr + 48), ACC_MID, || format!("Acc[16..32] after calculation for {:?},{:?},{:?}[{:?}]", target, source1, source2, e))?;
+        soft_assert_eq_vector(SPMEM::read_vector_from_dmem(addr + 32), ACC_HIGH, || format!("Acc[32..48] after calculation for {:?},{:?},{:?}[{:?}]", target, source1, source2, e))?;
     }
 
     Ok(())
