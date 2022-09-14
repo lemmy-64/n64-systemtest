@@ -53,14 +53,17 @@ impl EmulationRegisters {
     }
 }
 
-// inline(never) saves 4s of compilation time (9.7s instead 13.4s). The runtime cost is measurable but minimal
-#[inline(never)]
-fn run_test_with_emulation_whole_reg<FEmitter: Fn(&mut RSPAssembler, VR, VR, VR, Element), FEmulation: Fn(Element, &mut EmulationRegisters)>(
+trait TestCase {
+    fn emit(&self, assembler: &mut RSPAssembler, target: VR, source1: VR, source2: VR, e: Element);
+    fn emulate(&self, registers: &mut VectorElements);
+}
+
+fn run_test_with_emulation_whole_reg<FEmit: Fn(&mut RSPAssembler, VR, VR, VR, Element), FEmulate: Fn(Element, &mut EmulationRegisters)>(
     vco: u16, vcc: u16, vce: u8,
     e: Element,
-    emitter: FEmitter,
-    vector1: Vector, vector2: Vector,
-    emulate: FEmulation) -> Result<(), String> {
+    emit: FEmit,
+    emulate: FEmulate,
+    vector1: Vector, vector2: Vector) -> Result<(), String> {
 
     // Two vectors to multiply upfront. That sets the accumulator register
     SPMEM::write_vector_into_dmem(0x00, &Vector::from_u16([0x7FFF, 0x7FFF, 0x7FFF, 0x0000, 0x0001, 0xFFFF, 0x7FFF, 0x8000]));
@@ -125,7 +128,7 @@ fn run_test_with_emulation_whole_reg<FEmitter: Fn(&mut RSPAssembler, VR, VR, VR,
         }
 
         // Perform the calculation
-        emitter(&mut assembler, target, source1, source2, e);
+        emit(&mut assembler, target, source1, source2, e);
 
         // Get flags and accumulators
         assembler.write_cfc2(CP2FlagsRegister::VCO, GPR::S0);
@@ -197,42 +200,42 @@ fn run_test_with_emulation_whole_reg<FEmitter: Fn(&mut RSPAssembler, VR, VR, VR,
     Ok(())
 }
 
-/// Tests all combination of flag bits and all possible Element specifiers (64 roundtrips to the RSP)
-#[inline(never)]
-fn run_test_with_emulation_all_flags_and_elements<FEmitter: Fn(&mut RSPAssembler, VR, VR, VR, Element), FEmulation: Fn(&mut VectorElements)>(
-    emitter: &FEmitter,
-    vector1: Vector, vector2: Vector,
-    emulate: FEmulation) -> Result<(), String> {
+fn run_test_with_emulation_all_flags_and_elements(
+    test_case: &dyn TestCase,
+    vector1: Vector, vector2: Vector) -> Result<(), String> {
     for e in Element::range() {
         // There are five flags: VCO.low, VCO.high, VCC.low, VCC.high, VCE. We can set the bits in a way that four tests are enough to get through all combinations
         // For VCC and VCE, the first bitmask is the one that should test all combinations for a given vector. Throw in two extras to also have some other cases
         for vco in [0x0000, 0x00FF, 0xFF00, 0xFFFF] {
             for (vcc, vce) in [(0b00001111_00110011, 0b10101001), (0, 0), (0xFFFF, 0xFF), (0xFFFF, 0)] {
-                run_test_with_emulation_whole_reg(vco, vcc, vce, e, emitter, vector1, vector2, |e, registers| {
-                    for i in 0..8 {
-                        let mut vector_elements = VectorElements {
-                            source1: registers.source_register1.get16(e.get_effective_element_index(i)),
-                            source2: registers.source_register2.get16(i),
-                            target: registers.target_register.get16(i),
-                            accum_0_16: registers.accum_0_16.get16(i),
-                            vco_low: ((registers.vco >> i) & 1) != 0,
-                            vco_high: ((registers.vco >> (8 + i)) & 1) != 0,
-                            vcc_low: ((registers.vcc >> i) & 1) != 0,
-                            vcc_high: ((registers.vcc >> (8 + i)) & 1) != 0,
-                            vce: ((registers.vce >> i) & 1) != 0,
-                        };
-                        emulate(&mut vector_elements);
-                        registers.source_register1.set16(i, vector_elements.source1);
-                        registers.source_register2.set16(i, vector_elements.source2);
-                        registers.target_register.set16(i, vector_elements.target);
-                        registers.accum_0_16.set16(i, vector_elements.accum_0_16);
-                        registers.set_vcc_low(i, vector_elements.vcc_low);
-                        registers.set_vcc_high(i, vector_elements.vcc_high);
-                        registers.set_vco_low(i, vector_elements.vco_low);
-                        registers.set_vco_high(i, vector_elements.vco_high);
-                        registers.set_vce(i, vector_elements.vce);
-                    }
-                })?;
+                run_test_with_emulation_whole_reg(
+                    vco, vcc, vce, e,
+                    |assembler, target, source1, source2, e| test_case.emit(assembler, target, source1, source2, e),
+                    |e, registers| {
+                        for i in 0..8 {
+                            let mut vector_elements = VectorElements {
+                                source1: registers.source_register1.get16(e.get_effective_element_index(i)),
+                                source2: registers.source_register2.get16(i),
+                                target: registers.target_register.get16(i),
+                                accum_0_16: registers.accum_0_16.get16(i),
+                                vco_low: ((registers.vco >> i) & 1) != 0,
+                                vco_high: ((registers.vco >> (8 + i)) & 1) != 0,
+                                vcc_low: ((registers.vcc >> i) & 1) != 0,
+                                vcc_high: ((registers.vcc >> (8 + i)) & 1) != 0,
+                                vce: ((registers.vce >> i) & 1) != 0,
+                            };
+                            test_case.emulate(&mut vector_elements);
+                            registers.source_register1.set16(i, vector_elements.source1);
+                            registers.source_register2.set16(i, vector_elements.source2);
+                            registers.target_register.set16(i, vector_elements.target);
+                            registers.accum_0_16.set16(i, vector_elements.accum_0_16);
+                            registers.set_vcc_low(i, vector_elements.vcc_low);
+                            registers.set_vcc_high(i, vector_elements.vcc_high);
+                            registers.set_vco_low(i, vector_elements.vco_low);
+                            registers.set_vco_high(i, vector_elements.vco_high);
+                            registers.set_vce(i, vector_elements.vce);
+                        }
+                    }, vector1, vector2)?;
             }
         }
     }
@@ -240,38 +243,52 @@ fn run_test_with_emulation_all_flags_and_elements<FEmitter: Fn(&mut RSPAssembler
     Ok(())
 }
 
-// Runs the test with the given two vectors and then again with a vector2 that has the first element duplicated into all lanes
-#[inline(never)]
-fn run_test_with_emulation_all_flags_and_elements_vector2_variations<FEmitter: Fn(&mut RSPAssembler, VR, VR, VR, Element), FEmulation: Fn(&mut VectorElements)>(
-    emitter: &FEmitter,
-    vector1: Vector, vector2: Vector,
-    emulate: FEmulation) -> Result<(), String> {
-    run_test_with_emulation_all_flags_and_elements(emitter, vector1, vector2, |elements| { emulate(elements) })?;
-    run_test_with_emulation_all_flags_and_elements(emitter, vector1, vector2.copy_with_broadcast_16(0), |elements| { emulate(elements) })?;
+fn run_test_with_emulation_all_flags_and_elements_vector2_variations(
+    test_case: &dyn TestCase,
+    vector1: Vector, vector2: Vector) -> Result<(), String> {
+
+    run_test_with_emulation_all_flags_and_elements(test_case, vector1, vector2)?;
+    run_test_with_emulation_all_flags_and_elements(test_case, vector1, vector2.copy_with_broadcast_16(0))?;
 
     Ok(())
 }
 
 /// A couple of instructions add up the input vectors, put that on the accumulator and otherwise zero out
 /// the target register
-fn run_vzero<FEmitter: Fn(&mut RSPAssembler, VR, VR, VR, Element)>(emitter: &FEmitter) -> Result<(), String> {
-    run_test_with_emulation_all_flags_and_elements(
-        emitter,
+fn run_vzero<FEmitter: Fn(&mut RSPAssembler, VR, VR, VR, Element)>(emitter: &'static FEmitter) -> Result<(), String> {
+    run_test_with_emulation_all_flags_and_elements_vector2_variations(
+        make_test_case(
+            emitter,
+            |elements| {
+                elements.accum_0_16 = elements.source1 + elements.source2;
+                elements.target = 0;
+            }).as_ref(),
         Vector::from_u16([0, 1, 0x0010, 0xFFFF, 0x7FFF, 0x7FFF, 0x7FFF, 0xFFFF]),
-        Vector::from_u16([0, 2, 0x7FFF, 0x7FFF, 0x0000, 0xFFFF, 0xFFFE, 0xFFFF]),
-        |elements| {
-            elements.accum_0_16 = elements.source1 + elements.source2;
-            elements.target = 0;
-        })
+        Vector::from_u16([0, 2, 0x7FFF, 0x7FFF, 0x0000, 0xFFFF, 0xFFFE, 0xFFFF]))
 }
 
 /// Some instructions do absolutely nothing
-fn run_noop<FEmitter: Fn(&mut RSPAssembler, VR, VR, VR, Element)>(emitter: &FEmitter) -> Result<(), String> {
-    run_test_with_emulation_all_flags_and_elements(
-        emitter,
+fn run_noop<FEmitter: Fn(&mut RSPAssembler, VR, VR, VR, Element)>(emitter: &'static FEmitter) -> Result<(), String> {
+    run_test_with_emulation_all_flags_and_elements_vector2_variations(
+        make_test_case(
+            emitter,
+            |_| {}).as_ref(),
         Vector::from_u16([0, 1, 0x0010, 0xFFFF, 0x7FFF, 0x7FFF, 0x7FFF, 0xFFFF]),
-        Vector::from_u16([0, 2, 0x7FFF, 0x7FFF, 0x0000, 0xFFFF, 0xFFFE, 0xFFFF]),
-        |_| {})
+        Vector::from_u16([0, 2, 0x7FFF, 0x7FFF, 0x0000, 0xFFFF, 0xFFFE, 0xFFFF]))
+}
+
+fn make_test_case<FEmitter: Fn(&mut RSPAssembler, VR, VR, VR, Element) + 'static, FEmulation: Fn(&mut VectorElements) + 'static>(emitter: FEmitter, emulation: FEmulation) -> Box<dyn TestCase> {
+    struct CustomTestCase<FInnerEmitter, FInnerEmulation> { emitter: FInnerEmitter, emulation: FInnerEmulation }
+    impl<FInnerEmitter: Fn(&mut RSPAssembler, VR, VR, VR, Element), FInnerEmulation: Fn(&mut VectorElements)> TestCase for CustomTestCase<FInnerEmitter, FInnerEmulation> {
+        fn emit(&self, assembler: &mut RSPAssembler, target: VR, source1: VR, source2: VR, e: Element) {
+            (self.emitter)(assembler, target, source1, source2, e);
+        }
+
+        fn emulate(&self, elements: &mut VectorElements) {
+            (self.emulation)(elements);
+        }
+    }
+    Box::new(CustomTestCase { emitter, emulation })
 }
 
 pub struct VADD {}
@@ -285,17 +302,19 @@ impl Test for VADD {
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
         run_test_with_emulation_all_flags_and_elements_vector2_variations(
-            &|assembler, target, source1, source2, e| { assembler.write_vadd(target, source1, source2, e); },
+            make_test_case(
+                |assembler, target, source1, source2, e| { assembler.write_vadd(target, source1, source2, e); },
+                |elements| {
+                    let unclamped = (elements.source1 as i16 as i32) + (elements.source2 as i16 as i32) + elements.vco_low as i32;
+                    let clamped = unclamped.clamp(-32768, 32767);
+                    elements.target = clamped as u16;
+                    elements.accum_0_16 = unclamped as u16;
+                    elements.vco_low = false;
+                    elements.vco_high = false;
+                }
+            ).as_ref(),
             Vector::from_u16([0, 1, 0x8000, 0xFFFF, 0x7fff, 0x8001, 0x8000, 0x0001]),
-            Vector::from_u16([0, 2, 0x7FFF, 0x7FFF, 0x7fff, 0x8001, 0xFFFF, 0xFFFF]),
-            |elements| {
-                let unclamped = (elements.source1 as i16 as i32) + (elements.source2 as i16 as i32) + elements.vco_low as i32;
-                let clamped = unclamped.clamp(-32768, 32767);
-                elements.target = clamped as u16;
-                elements.accum_0_16 = unclamped as u16;
-                elements.vco_low = false;
-                elements.vco_high = false;
-            })
+            Vector::from_u16([0, 2, 0x7FFF, 0x7FFF, 0x7fff, 0x8001, 0xFFFF, 0xFFFF]))
     }
 }
 
@@ -310,17 +329,19 @@ impl Test for VSUB {
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
         run_test_with_emulation_all_flags_and_elements_vector2_variations(
-            &|assembler, target, source1, source2, e| { assembler.write_vsub(target, source1, source2, e); },
+            make_test_case(
+                |assembler, target, source1, source2, e| { assembler.write_vsub(target, source1, source2, e); },
+                |elements| {
+                    let unclamped = (elements.source2 as i16 as i32) - (elements.source1 as i16 as i32) - elements.vco_low as i32;
+                    let clamped = unclamped.clamp(-32768, 32767);
+                    elements.target = clamped as u16;
+                    elements.accum_0_16 = unclamped as u16;
+                    elements.vco_low = false;
+                    elements.vco_high = false;
+                }
+            ).as_ref(),
             Vector::from_u16([0, 1, 0x0010, 0xFFFF, 0x7FFF, 0x7FFF, 0x7FFF, 0x8000]),
-            Vector::from_u16([0, 2, 0x7FFF, 0x7FFF, 0x0000, 0xFFFF, 0xFFFE, 0x7FFF]),
-            |elements| {
-                let unclamped = (elements.source2 as i16 as i32) - (elements.source1 as i16 as i32) - elements.vco_low as i32;
-                let clamped = unclamped.clamp(-32768, 32767);
-                elements.target = clamped as u16;
-                elements.accum_0_16 = unclamped as u16;
-                elements.vco_low = false;
-                elements.vco_high = false;
-            })
+            Vector::from_u16([0, 2, 0x7FFF, 0x7FFF, 0x0000, 0xFFFF, 0xFFFE, 0x7FFF]))
     }
 }
 
@@ -335,26 +356,28 @@ impl Test for VABS {
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
         run_test_with_emulation_all_flags_and_elements_vector2_variations(
-            &|assembler, target, source1, source2, e| { assembler.write_vabs(target, source1, source2, e); },
-            Vector::from_u16([0x1234, 0x1234, 0x8765, 0x0001, 0xFFFF, 0x0000, 0x7FFF, 0x8000]),
-            Vector::from_u16([0x0000, 0x0002, 0x0002, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF]),
-            |elements| {
-                if (elements.source2 as i16) < 0 {
-                    if elements.source1 == 0x8000 {
-                        elements.accum_0_16 = 0x8000;
-                        elements.target = 0x7FFF;
+            make_test_case(
+                |assembler, target, source1, source2, e| { assembler.write_vabs(target, source1, source2, e); },
+                |elements| {
+                    if (elements.source2 as i16) < 0 {
+                        if elements.source1 == 0x8000 {
+                            elements.accum_0_16 = 0x8000;
+                            elements.target = 0x7FFF;
+                        } else {
+                            elements.accum_0_16 = (-(elements.source1 as i16)) as u16;
+                            elements.target = elements.accum_0_16;
+                        }
+                    } else if elements.source2 == 0 {
+                        elements.accum_0_16 = 0;
+                        elements.target = 0;
                     } else {
-                        elements.accum_0_16 = (-(elements.source1 as i16)) as u16;
-                        elements.target = elements.accum_0_16;
+                        elements.accum_0_16 = elements.source1;
+                        elements.target = elements.source1;
                     }
-                } else if elements.source2 == 0 {
-                    elements.accum_0_16 = 0;
-                    elements.target = 0;
-                } else {
-                    elements.accum_0_16 = elements.source1;
-                    elements.target = elements.source1;
                 }
-            })
+            ).as_ref(),
+            Vector::from_u16([0x1234, 0x1234, 0x8765, 0x0001, 0xFFFF, 0x0000, 0x7FFF, 0x8000]),
+            Vector::from_u16([0x0000, 0x0002, 0x0002, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF]))
     }
 }
 
@@ -369,17 +392,18 @@ impl Test for VADDC {
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
         run_test_with_emulation_all_flags_and_elements_vector2_variations(
-            &|assembler, target, source1, source2, e| { assembler.write_vaddc(target, source1, source2, e); },
+            make_test_case(
+                |assembler, target, source1, source2, e| { assembler.write_vaddc(target, source1, source2, e); },
+                |elements| {
+                    let sum32 = (elements.source1 as u32) + (elements.source2 as u32);
+                    let sum16 = sum32 as u16;
+                    elements.vco_low = (sum16 as u32) != sum32;
+                    elements.vco_high = false;
+                    elements.target = sum16;
+                    elements.accum_0_16 = sum16;
+                }).as_ref(),
             Vector::from_u16([0x0001, 0x7FFF, 0xF000, 0xF000, 0xFFFF, 0x8000, 0xFFFF, 0xFFFF]),
-            Vector::from_u16([0x0001, 0x7FFF, 0x1000, 0xF001, 0xFFFF, 0xFFFF, 0x8000, 0x0001]),
-            |elements| {
-                let sum32 = (elements.source1 as u32) + (elements.source2 as u32);
-                let sum16 = sum32 as u16;
-                elements.vco_low = (sum16 as u32) != sum32;
-                elements.vco_high = false;
-                elements.target = sum16;
-                elements.accum_0_16 = sum16;
-            })
+            Vector::from_u16([0x0001, 0x7FFF, 0x1000, 0xF001, 0xFFFF, 0xFFFF, 0x8000, 0x0001]))
     }
 }
 
@@ -394,17 +418,18 @@ impl Test for VSUBC {
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
         run_test_with_emulation_all_flags_and_elements_vector2_variations(
-            &|assembler, target, source1, source2, e| { assembler.write_vsubc(target, source1, source2, e); },
+            make_test_case(
+                |assembler, target, source1, source2, e| { assembler.write_vsubc(target, source1, source2, e); },
+                |elements| {
+                    let result32 = (elements.source2 as i32) - (elements.source1 as i32);
+                    let result16 = result32 as u16;
+                    elements.vco_high = result32 != 0;
+                    elements.vco_low = result32 < 0;
+                    elements.target = result16;
+                    elements.accum_0_16 = result16;
+                }).as_ref(),
             Vector::from_u16([0x0001, 0x0002, 0xFFFF, 0x0000, 0xFFFF, 0x0050, 0x0050, 0x0050]),
-            Vector::from_u16([0x0003, 0x0003, 0x0000, 0xFFFF, 0xFFFF, 0x004F, 0x0050, 0x0051]),
-            |elements| {
-                let result32 = (elements.source2 as i32) - (elements.source1 as i32);
-                let result16 = result32 as u16;
-                elements.vco_high = result32 != 0;
-                elements.vco_low = result32 < 0;
-                elements.target = result16;
-                elements.accum_0_16 = result16;
-            })
+            Vector::from_u16([0x0003, 0x0003, 0x0000, 0xFFFF, 0xFFFF, 0x004F, 0x0050, 0x0051]))
     }
 }
 
@@ -560,18 +585,19 @@ impl Test for VLT {
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
         run_test_with_emulation_all_flags_and_elements_vector2_variations(
-            &|assembler, target, source1, source2, e| { assembler.write_vlt(target, source1, source2, e); },
+            make_test_case(
+                |assembler, target, source1, source2, e| { assembler.write_vlt(target, source1, source2, e); },
+                |elements| {
+                    elements.vcc_high = false;
+                    let on_equal = elements.vco_high && elements.vco_low;
+                    elements.vcc_low = ((elements.source2 as i16) < (elements.source1 as i16)) || ((elements.source1 == elements.source2) && on_equal);
+                    elements.vco_low = false;
+                    elements.vco_high = false;
+                    elements.target = if elements.vcc_low { elements.source2 } else { elements.source1 };
+                    elements.accum_0_16 = elements.target;
+                }).as_ref(),
             Vector::from_u16([0x1234, 0x1234, 0x1234, 0xF234, 0xF234, 0xF234, 0xF234, 0x1234]),
-            Vector::from_u16([0x1234, 0x1233, 0x1235, 0xF233, 0xF234, 0xF235, 0x1234, 0xF234]),
-            |elements| {
-                elements.vcc_high = false;
-                let on_equal = elements.vco_high && elements.vco_low;
-                elements.vcc_low = ((elements.source2 as i16) < (elements.source1 as i16)) || ((elements.source1 == elements.source2) && on_equal);
-                elements.vco_low = false;
-                elements.vco_high = false;
-                elements.target = if elements.vcc_low { elements.source2 } else { elements.source1 };
-                elements.accum_0_16 = elements.target;
-            })
+            Vector::from_u16([0x1234, 0x1233, 0x1235, 0xF233, 0xF234, 0xF235, 0x1234, 0xF234]))
     }
 }
 
@@ -586,17 +612,18 @@ impl Test for VEQ {
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
         run_test_with_emulation_all_flags_and_elements_vector2_variations(
-            &|assembler, target, source1, source2, e| { assembler.write_veq(target, source1, source2, e); },
+            make_test_case(
+                |assembler, target, source1, source2, e| { assembler.write_veq(target, source1, source2, e); },
+                |elements| {
+                    elements.vcc_high = false;
+                    elements.vcc_low = (elements.source1 == elements.source2) && !elements.vco_high;
+                    elements.vco_low = false;
+                    elements.vco_high = false;
+                    elements.target = elements.source1;
+                    elements.accum_0_16 = elements.source1;
+                }).as_ref(),
             Vector::from_u16([0x1234, 0x1234, 0x1234, 0xF234, 0xF234, 0xF234, 0xF234, 0x1234]),
-            Vector::from_u16([0x1234, 0x1233, 0x1235, 0xF233, 0xF234, 0xF235, 0x1234, 0xF234]),
-            |elements| {
-                elements.vcc_high = false;
-                elements.vcc_low = (elements.source1 == elements.source2) && !elements.vco_high;
-                elements.vco_low = false;
-                elements.vco_high = false;
-                elements.target = elements.source1;
-                elements.accum_0_16 = elements.source1;
-            })
+            Vector::from_u16([0x1234, 0x1233, 0x1235, 0xF233, 0xF234, 0xF235, 0x1234, 0xF234]))
     }
 }
 
@@ -611,17 +638,18 @@ impl Test for VNE {
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
         run_test_with_emulation_all_flags_and_elements_vector2_variations(
-            &|assembler, target, source1, source2, e| { assembler.write_vne(target, source1, source2, e); },
+            make_test_case(
+                |assembler, target, source1, source2, e| { assembler.write_vne(target, source1, source2, e); },
+                |elements| {
+                    elements.vcc_high = false;
+                    elements.vcc_low = (elements.source1 != elements.source2) || elements.vco_high;
+                    elements.vco_low = false;
+                    elements.vco_high = false;
+                    elements.target = elements.source2;
+                    elements.accum_0_16 = elements.source2;
+                }).as_ref(),
             Vector::from_u16([0x1234, 0x1234, 0x1234, 0xF234, 0xF234, 0xF234, 0xF234, 0x1234]),
-            Vector::from_u16([0x1234, 0x1233, 0x1235, 0xF233, 0xF234, 0xF235, 0x1234, 0xF234]),
-            |elements| {
-                elements.vcc_high = false;
-                elements.vcc_low = (elements.source1 != elements.source2) || elements.vco_high;
-                elements.vco_low = false;
-                elements.vco_high = false;
-                elements.target = elements.source2;
-                elements.accum_0_16 = elements.source2;
-            })
+            Vector::from_u16([0x1234, 0x1233, 0x1235, 0xF233, 0xF234, 0xF235, 0x1234, 0xF234]))
     }
 }
 
@@ -636,18 +664,19 @@ impl Test for VGE {
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
         run_test_with_emulation_all_flags_and_elements_vector2_variations(
-            &|assembler, target, source1, source2, e| { assembler.write_vge(target, source1, source2, e); },
+            make_test_case(
+                |assembler, target, source1, source2, e| { assembler.write_vge(target, source1, source2, e); },
+                |elements| {
+                    elements.vcc_high = false;
+                    let on_equal = !(elements.vco_high && elements.vco_low);
+                    elements.vcc_low = ((elements.source2 as i16) > (elements.source1 as i16)) || ((elements.source1 == elements.source2) && on_equal);
+                    elements.vco_low = false;
+                    elements.vco_high = false;
+                    elements.target = if elements.vcc_low { elements.source2 } else { elements.source1 };
+                    elements.accum_0_16 = elements.target;
+                }).as_ref(),
             Vector::from_u16([0x1234, 0x1234, 0x1234, 0xF234, 0xF234, 0xF234, 0xF234, 0x1234]),
-            Vector::from_u16([0x1234, 0x1233, 0x1235, 0xF233, 0xF234, 0xF235, 0x1234, 0xF234]),
-            |elements| {
-                elements.vcc_high = false;
-                let on_equal = !(elements.vco_high && elements.vco_low);
-                elements.vcc_low = ((elements.source2 as i16) > (elements.source1 as i16)) || ((elements.source1 == elements.source2) && on_equal);
-                elements.vco_low = false;
-                elements.vco_high = false;
-                elements.target = if elements.vcc_low { elements.source2 } else { elements.source1 };
-                elements.accum_0_16 = elements.target;
-            })
+            Vector::from_u16([0x1234, 0x1233, 0x1235, 0xF233, 0xF234, 0xF235, 0x1234, 0xF234]))
     }
 }
 
@@ -662,15 +691,16 @@ impl Test for VMRG {
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
         run_test_with_emulation_all_flags_and_elements_vector2_variations(
-            &|assembler, target, source1, source2, e| { assembler.write_vmrg(target, source1, source2, e); },
+            make_test_case(
+                |assembler, target, source1, source2, e| { assembler.write_vmrg(target, source1, source2, e); },
+                |elements| {
+                    elements.target = if elements.vcc_low { elements.source2 } else { elements.source1 };
+                    elements.accum_0_16 = elements.target;
+                    elements.vco_low = false;
+                    elements.vco_high = false;
+                }).as_ref(),
             Vector::from_u16([0x1111, 0x2222, 0x3333, 0x4444, 0x5555, 0x6666, 0x7777, 0x8888]),
-            Vector::from_u16([0xAAAA, 0xBBBB, 0xCCCC, 0xDDDD, 0xEEEE, 0xFFFF, 0xEFEF, 0xEFEF]),
-            |elements| {
-                elements.target = if elements.vcc_low { elements.source2 } else { elements.source1 };
-                elements.accum_0_16 = elements.target;
-                elements.vco_low = false;
-                elements.vco_high = false;
-            })
+            Vector::from_u16([0xAAAA, 0xBBBB, 0xCCCC, 0xDDDD, 0xEEEE, 0xFFFF, 0xEFEF, 0xEFEF]))
     }
 }
 
@@ -685,13 +715,14 @@ impl Test for VAND {
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
         run_test_with_emulation_all_flags_and_elements(
-            &|assembler, target, source1, source2, e| { assembler.write_vand(target, source1, source2, e); },
+            make_test_case(
+                |assembler, target, source1, source2, e| { assembler.write_vand(target, source1, source2, e); },
+                |elements| {
+                    elements.target = elements.source1 & elements.source2;
+                    elements.accum_0_16 = elements.target;
+                }).as_ref(),
             Vector::from_u16([0x1111, 0x1245, 0x3333, 0x4444, 0xB0C5, 0x6666, 0x0000, 0xFFFF]),
-            Vector::from_u16([0xFF0F, 0xEF20, 0x0000, 0xFFFF, 0x3312, 0x0000, 0xEFEF, 0xEFEF]),
-            |elements| {
-                elements.target = elements.source1 & elements.source2;
-                elements.accum_0_16 = elements.target;
-            })
+            Vector::from_u16([0xFF0F, 0xEF20, 0x0000, 0xFFFF, 0x3312, 0x0000, 0xEFEF, 0xEFEF]))
     }
 }
 
@@ -706,13 +737,14 @@ impl Test for VNAND {
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
         run_test_with_emulation_all_flags_and_elements(
-            &|assembler, target, source1, source2, e| { assembler.write_vnand(target, source1, source2, e); },
+            make_test_case(
+                |assembler, target, source1, source2, e| { assembler.write_vnand(target, source1, source2, e); },
+                |elements| {
+                    elements.target = !(elements.source1 & elements.source2);
+                    elements.accum_0_16 = elements.target;
+                }).as_ref(),
             Vector::from_u16([0x1111, 0x1245, 0x3333, 0x4444, 0xB0C5, 0x6666, 0x0000, 0xFFFF]),
-            Vector::from_u16([0xFF0F, 0xEF20, 0x0000, 0xFFFF, 0x3312, 0x0000, 0xEFEF, 0xEFEF]),
-            |elements| {
-                elements.target = !(elements.source1 & elements.source2);
-                elements.accum_0_16 = elements.target;
-            })
+            Vector::from_u16([0xFF0F, 0xEF20, 0x0000, 0xFFFF, 0x3312, 0x0000, 0xEFEF, 0xEFEF]))
     }
 }
 
@@ -728,13 +760,14 @@ impl Test for VOR {
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
         run_test_with_emulation_all_flags_and_elements(
-            &|assembler, target, source1, source2, e| { assembler.write_vor(target, source1, source2, e); },
+            make_test_case(
+                |assembler, target, source1, source2, e| { assembler.write_vor(target, source1, source2, e); },
+                |elements| {
+                    elements.target = elements.source1 | elements.source2;
+                    elements.accum_0_16 = elements.target;
+                }).as_ref(),
             Vector::from_u16([0x1111, 0x1245, 0x3333, 0x4444, 0xB0C5, 0x6666, 0x0000, 0xFFFF]),
-            Vector::from_u16([0xFF0F, 0xEF20, 0x0000, 0xFFFF, 0x3312, 0x0000, 0xEFEF, 0xEFEF]),
-            |elements| {
-                elements.target = elements.source1 | elements.source2;
-                elements.accum_0_16 = elements.target;
-            })
+            Vector::from_u16([0xFF0F, 0xEF20, 0x0000, 0xFFFF, 0x3312, 0x0000, 0xEFEF, 0xEFEF]))
     }
 }
 
@@ -749,13 +782,14 @@ impl Test for VNOR {
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
         run_test_with_emulation_all_flags_and_elements(
-            &|assembler, target, source1, source2, e| { assembler.write_vnor(target, source1, source2, e); },
+            make_test_case(
+                |assembler, target, source1, source2, e| { assembler.write_vnor(target, source1, source2, e); },
+                |elements| {
+                    elements.target = !(elements.source1 | elements.source2);
+                    elements.accum_0_16 = elements.target;
+                }).as_ref(),
             Vector::from_u16([0x1111, 0x1245, 0x3333, 0x4444, 0xB0C5, 0x6666, 0x0000, 0xFFFF]),
-            Vector::from_u16([0xFF0F, 0xEF20, 0x0000, 0xFFFF, 0x3312, 0x0000, 0xEFEF, 0xEFEF]),
-            |elements| {
-                elements.target = !(elements.source1 | elements.source2);
-                elements.accum_0_16 = elements.target;
-            })
+            Vector::from_u16([0xFF0F, 0xEF20, 0x0000, 0xFFFF, 0x3312, 0x0000, 0xEFEF, 0xEFEF]))
     }
 }
 
@@ -770,13 +804,14 @@ impl Test for VXOR {
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
         run_test_with_emulation_all_flags_and_elements(
-            &|assembler, target, source1, source2, e| { assembler.write_vxor(target, source1, source2, e); },
-            Vector::from_u16([0x1111, 0x1245, 0x3333, 0x4444, 0xB0C5, 0x6666, 0x0000, 0xFFFF]),
-            Vector::from_u16([0xFF0F, 0xEF20, 0x0000, 0xFFFF, 0x3312, 0x0000, 0xEFEF, 0xEFEF]),
+            make_test_case(
+            |assembler, target, source1, source2, e| { assembler.write_vxor(target, source1, source2, e); },
             |elements| {
                 elements.target = elements.source1 ^ elements.source2;
                 elements.accum_0_16 = elements.target;
-            })
+            }).as_ref(),
+            Vector::from_u16([0x1111, 0x1245, 0x3333, 0x4444, 0xB0C5, 0x6666, 0x0000, 0xFFFF]),
+            Vector::from_u16([0xFF0F, 0xEF20, 0x0000, 0xFFFF, 0x3312, 0x0000, 0xEFEF, 0xEFEF]))
     }
 }
 
@@ -791,13 +826,14 @@ impl Test for VNXOR {
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
         run_test_with_emulation_all_flags_and_elements(
-            &|assembler, target, source1, source2, e| { assembler.write_vnxor(target, source1, source2, e); },
+            make_test_case(
+                |assembler, target, source1, source2, e| { assembler.write_vnxor(target, source1, source2, e); },
+                |elements| {
+                    elements.target = !(elements.source1 ^ elements.source2);
+                    elements.accum_0_16 = elements.target;
+                }).as_ref(),
             Vector::from_u16([0x1111, 0x1245, 0x3333, 0x4444, 0xB0C5, 0x6666, 0x0000, 0xFFFF]),
-            Vector::from_u16([0xFF0F, 0xEF20, 0x0000, 0xFFFF, 0x3312, 0x0000, 0xEFEF, 0xEFEF]),
-            |elements| {
-                elements.target = !(elements.source1 ^ elements.source2);
-                elements.accum_0_16 = elements.target;
-            })
+            Vector::from_u16([0xFF0F, 0xEF20, 0x0000, 0xFFFF, 0x3312, 0x0000, 0xEFEF, 0xEFEF]))
     }
 }
 
@@ -1010,28 +1046,29 @@ impl Test for VCL {
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
         run_test_with_emulation_all_flags_and_elements(
-            &|assembler, target, source1, source2, e| { assembler.write_vcl(target, source1, source2, e); },
-            Vector::from_u16([0x0000, 0x0001, 0x7FFE, 0x7FFF, 0x8000, 0xFFFE, 0xFFFF, 0x0000]),
-            Vector::from_u16([0x8000, 0xFFFE, 0xFFFF, 0x0000, 0x0000, 0x0001, 0x7FFE, 0x7FFF]),
-            |elements| {
-                if elements.vco_low {
-                    let (sum, carry) = elements.source2.overflowing_add(elements.source1);
-                    if !elements.vco_high {
-                        elements.vcc_low = (((sum == 0) && !carry)) || (elements.vce && ((sum == 0) || !carry));
+            make_test_case(
+                |assembler, target, source1, source2, e| { assembler.write_vcl(target, source1, source2, e); },
+                |elements| {
+                    if elements.vco_low {
+                        let (sum, carry) = elements.source2.overflowing_add(elements.source1);
+                        if !elements.vco_high {
+                            elements.vcc_low = (((sum == 0) && !carry)) || (elements.vce && ((sum == 0) || !carry));
+                        }
+                        elements.target = if elements.vcc_low { -(elements.source1 as i16) as u16 } else { elements.source2 };
+                    } else {
+                        if !elements.vco_high {
+                            elements.vcc_high = elements.source2 >= elements.source1;
+                        }
+                        elements.target = if elements.vcc_high { elements.source1 } else { elements.source2 };
                     }
-                    elements.target = if elements.vcc_low { -(elements.source1 as i16) as u16 } else { elements.source2 };
-                } else {
-                    if !elements.vco_high {
-                        elements.vcc_high = elements.source2 >= elements.source1;
-                    }
-                    elements.target = if elements.vcc_high { elements.source1 } else { elements.source2 };
-                }
 
-                elements.accum_0_16 = elements.target;
-                elements.vco_low = false;
-                elements.vco_high = false;
-                elements.vce = false;
-            })
+                    elements.accum_0_16 = elements.target;
+                    elements.vco_low = false;
+                    elements.vco_high = false;
+                    elements.vce = false;
+                }).as_ref(),
+            Vector::from_u16([0x0000, 0x0001, 0x7FFE, 0x7FFF, 0x8000, 0xFFFE, 0xFFFF, 0x0000]),
+            Vector::from_u16([0x8000, 0xFFFE, 0xFFFF, 0x0000, 0x0000, 0x0001, 0x7FFE, 0x7FFF]))
     }
 }
 
@@ -1046,31 +1083,32 @@ impl Test for VCH {
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
         run_test_with_emulation_all_flags_and_elements(
-            &|assembler, target, source1, source2, e| { assembler.write_vch(target, source1, source2, e); },
-            Vector::from_u16([0x0000, 0x0001, 0x7FFE, 0x7FFF, 0x8000, 0xFFFE, 0xFFFF, 0x0000]),
-            Vector::from_u16([0x8000, 0xFFFE, 0xFFFF, 0x0000, 0x0000, 0x0001, 0x7FFE, 0x7FFF]),
-            |elements| {
-                let i1 = elements.source1 as i16;
-                let i2 = elements.source2 as i16;
-                elements.vco_low = (i1 ^ i2) < 0;
-                if elements.vco_low {
-                    elements.vcc_high = i1 < 0;
-                    let sum = i1 + i2;
-                    elements.vcc_low = sum <= 0;
-                    elements.vce = sum == -1;
-                    elements.vco_high = sum != 0 && (i1 != !i2);
-                    elements.target = (if elements.vcc_low { -i1 } else { i2 }) as u16;
-                } else {
-                    elements.vcc_low = i1 < 0;
-                    let diff = i2 - i1;
-                    elements.vcc_high = diff >= 0;
-                    elements.vce = false;
-                    elements.vco_high = diff != 0;
-                    elements.target = (if elements.vcc_high { i1 } else { i2 }) as u16;
-                }
+            make_test_case(
+                |assembler, target, source1, source2, e| { assembler.write_vch(target, source1, source2, e); },
+                |elements| {
+                    let i1 = elements.source1 as i16;
+                    let i2 = elements.source2 as i16;
+                    elements.vco_low = (i1 ^ i2) < 0;
+                    if elements.vco_low {
+                        elements.vcc_high = i1 < 0;
+                        let sum = i1 + i2;
+                        elements.vcc_low = sum <= 0;
+                        elements.vce = sum == -1;
+                        elements.vco_high = sum != 0 && (i1 != !i2);
+                        elements.target = (if elements.vcc_low { -i1 } else { i2 }) as u16;
+                    } else {
+                        elements.vcc_low = i1 < 0;
+                        let diff = i2 - i1;
+                        elements.vcc_high = diff >= 0;
+                        elements.vce = false;
+                        elements.vco_high = diff != 0;
+                        elements.target = (if elements.vcc_high { i1 } else { i2 }) as u16;
+                    }
 
-                elements.accum_0_16 = elements.target;
-            })
+                    elements.accum_0_16 = elements.target;
+                }).as_ref(),
+            Vector::from_u16([0x0000, 0x0001, 0x7FFE, 0x7FFF, 0x8000, 0xFFFE, 0xFFFF, 0x0000]),
+            Vector::from_u16([0x8000, 0xFFFE, 0xFFFF, 0x0000, 0x0000, 0x0001, 0x7FFE, 0x7FFF]))
     }
 }
 
@@ -1085,28 +1123,29 @@ impl Test for VCR {
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
         run_test_with_emulation_all_flags_and_elements(
-            &|assembler, target, source1, source2, e| { assembler.write_vcr(target, source1, source2, e); },
-            Vector::from_u16([0x0000, 0x0001, 0x7FFE, 0x7FFF, 0x8000, 0xFFFE, 0xFFFF, 0x0000]),
-            Vector::from_u16([0x8000, 0xFFFE, 0xFFFF, 0x0000, 0x0000, 0x0001, 0x7FFE, 0x7FFF]),
-            |elements| {
-                let i1 = elements.source1 as i16;
-                let i2 = elements.source2 as i16;
-                let high_bit_set = (i1 ^ i2) < 0;
-                if high_bit_set {
-                    elements.vcc_high = i1 < 0;
-                    elements.vcc_low = i1 + i2 < 0;
-                    elements.target = (if elements.vcc_low { !i1 } else { i2 }) as u16;
-                } else {
-                    elements.vcc_low = i1 < 0;
-                    elements.vcc_high = (i2 - i1) >= 0;
-                    elements.target = (if elements.vcc_high { i1 } else { i2 }) as u16;
-                }
+            make_test_case(
+                |assembler, target, source1, source2, e| { assembler.write_vcr(target, source1, source2, e); },
+                |elements| {
+                    let i1 = elements.source1 as i16;
+                    let i2 = elements.source2 as i16;
+                    let high_bit_set = (i1 ^ i2) < 0;
+                    if high_bit_set {
+                        elements.vcc_high = i1 < 0;
+                        elements.vcc_low = i1 + i2 < 0;
+                        elements.target = (if elements.vcc_low { !i1 } else { i2 }) as u16;
+                    } else {
+                        elements.vcc_low = i1 < 0;
+                        elements.vcc_high = (i2 - i1) >= 0;
+                        elements.target = (if elements.vcc_high { i1 } else { i2 }) as u16;
+                    }
 
-                elements.accum_0_16 = elements.target;
-                elements.vco_low = false;
-                elements.vco_high = false;
-                elements.vce = false;
-            })
+                    elements.accum_0_16 = elements.target;
+                    elements.vco_low = false;
+                    elements.vco_high = false;
+                    elements.vce = false;
+                }).as_ref(),
+            Vector::from_u16([0x0000, 0x0001, 0x7FFE, 0x7FFF, 0x8000, 0xFFFE, 0xFFFF, 0x0000]),
+            Vector::from_u16([0x8000, 0xFFFE, 0xFFFF, 0x0000, 0x0000, 0x0001, 0x7FFE, 0x7FFF]))
     }
 }
 
