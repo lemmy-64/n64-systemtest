@@ -1,3 +1,5 @@
+pub mod compares;
+
 use alloc::boxed::Box;
 use alloc::{format, vec};
 use alloc::string::{String, ToString};
@@ -8,7 +10,7 @@ use core::mem::transmute;
 use arbitrary_int::{u2, u5};
 use crate::assembler::{Assembler, FR, GPR};
 use crate::cop0::{Cause, CauseException, preset_cause_to_copindex2, set_status, Status};
-use crate::cop1::{cfc1, ctc1, fcsr, FCSR, FCSRFlags, FCSRRoundingMode, set_fcsr};
+use crate::cop1::{cfc1, ctc1, fcsr, FCSR, FCSRFlags, FCSRRoundingMode, FConst, set_fcsr};
 use crate::exception_handler::expect_exception;
 use crate::tests::{Level, Test};
 use crate::tests::soft_asserts::{soft_assert_eq, soft_assert_eq2, soft_assert_f32_bits, soft_assert_f64_bits};
@@ -37,33 +39,8 @@ const TARGET_REG_DEFAULT_I32: i32 = 0x12345678i32;
 const TARGET_REG_DEFAULT_I64: i64 = 0x12345678i64;
 
 /// This is the NAN value that the COP1 produces
-const COP1_RESULT_NAN_32: f32 = SIGNALLING_NAN_END_32;
-const COP1_RESULT_NAN_64: f64 = SIGNALLING_NAN_END_64;
-
-// Signalling NAN range (taken from https://www.doc.ic.ac.uk/~eedwards/compsys/float/nan.html).
-const SIGNALLING_NAN_START_32: f32 = unsafe { transmute(0x7F800001u32) };
-const SIGNALLING_NAN_END_32: f32 = unsafe { transmute(0x7FBFFFFFu32) };
-const SIGNALLING_NAN_NEGATIVE_START_32: f32 = unsafe { transmute(0xFF800001u32) };
-const SIGNALLING_NAN_NEGATIVE_END_32: f32 = unsafe { transmute(0xFFBFFFFFu32) };
-
-const SIGNALLING_NAN_START_64: f64 = unsafe { transmute(0x7FF0000000000001u64) };
-const SIGNALLING_NAN_END_64: f64 = unsafe { transmute(0x7FF7FFFFFFFFFFFFu64) };
-const SIGNALLING_NAN_NEGATIVE_START_64: f64 = unsafe { transmute(0xFFF0000000000001u64) };
-const SIGNALLING_NAN_NEGATIVE_END_64: f64 = unsafe { transmute(0xFFF7FFFFFFFFFFFFu64) };
-
-// Quiet NAN range. The COP1 doesn't seem to support those at all
-const QUIET_NAN_START_32: f32 = unsafe { transmute(0x7FC00000u32) };
-const QUIET_NAN_END_32: f32 = unsafe { transmute(0x7FFFFFFFu32) };
-const QUIET_NAN_NEGATIVE_START_32: f32 = unsafe { transmute(0xFFC00000u32) };
-const QUIET_NAN_NEGATIVE_END_32: f32 = unsafe { transmute(0xFFFFFFFFu32) };
-
-const QUIET_NAN_START_64: f64 = unsafe { transmute(0x7FF8000000000000u64) };
-const QUIET_NAN_END_64: f64 = unsafe { transmute(0x7FFFFFFFFFFFFFFFu64) };
-const QUIET_NAN_NEGATIVE_START_64: f64 = unsafe { transmute(0xFFF8000000000000u64) };
-const QUIET_NAN_NEGATIVE_END_64: f64 = unsafe { transmute(0xFFFFFFFFFFFFFFFFu64) };
-
-const SUBNORMAL_EXAMPLE_32: f32 = unsafe { transmute::<u32, f32>(0x00400000) };
-const SUBNORMAL_EXAMPLE_64: f64 = unsafe { transmute::<u64, f64>(0x0008000000000000) };
+const COP1_RESULT_NAN_32: f32 = FConst::SIGNALLING_NAN_END_32;
+const COP1_RESULT_NAN_64: f64 = FConst::SIGNALLING_NAN_END_64;
 
 // Some shortcuts so avoid the need for generic descriptions below
 const fn expected_result<F: Copy>(flags: FCSRFlags, result: F) -> Result<(FCSRFlags, F), ()> { Ok((flags, result)) }
@@ -979,8 +956,8 @@ impl Test for DivS {
             Box::new((true, FCSRRoundingMode::PositiveInfinity, f32::MIN_POSITIVE, 2f32, expected_result(FCSRFlags::new().with_underflow(true).with_inexact_operation(true), f32::MIN_POSITIVE))),
 
             // Give a subnormal input but then div 1 will always cause unimplemented
-            Box::new((true, FCSRRoundingMode::Nearest, SUBNORMAL_EXAMPLE_32, 1f32, expected_unimplemented_f32())),
-            Box::new((true, FCSRRoundingMode::Nearest, 1f32, SUBNORMAL_EXAMPLE_32, expected_unimplemented_f32())),
+            Box::new((true, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_EXAMPLE_32, 1f32, expected_unimplemented_f32())),
+            Box::new((true, FCSRRoundingMode::Nearest, 1f32, FConst::SUBNORMAL_EXAMPLE_32, expected_unimplemented_f32())),
 
             // 0/0 gives an invalid operation and produces a specific nan result
             Box::new((false, FCSRRoundingMode::Nearest, 0f32, 0f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
@@ -1006,31 +983,31 @@ impl Test for DivS {
             Box::new((false, FCSRRoundingMode::Nearest, f32::INFINITY, f32::NEG_INFINITY, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
             Box::new((false, FCSRRoundingMode::Nearest, f32::NEG_INFINITY, f32::INFINITY, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
             Box::new((false, FCSRRoundingMode::Nearest, f32::NEG_INFINITY, f32::NEG_INFINITY, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
-            Box::new((false, FCSRRoundingMode::Nearest, f32::INFINITY, QUIET_NAN_START_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, f32::INFINITY, FConst::QUIET_NAN_START_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
 
             // 2/NAN produces another NAN and invalid operation (which is the opposite of what their name implies)
-            Box::new((false, FCSRRoundingMode::Nearest, 2f32, QUIET_NAN_START_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f32, QUIET_NAN_END_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f32, QUIET_NAN_NEGATIVE_START_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f32, QUIET_NAN_NEGATIVE_END_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f32, FConst::QUIET_NAN_START_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f32, FConst::QUIET_NAN_END_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f32, FConst::QUIET_NAN_NEGATIVE_START_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f32, FConst::QUIET_NAN_NEGATIVE_END_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
 
             // Signalling NANs aren't supported and cause unimplemented operation
-            Box::new((false, FCSRRoundingMode::Nearest, 2f32, SIGNALLING_NAN_START_32, expected_unimplemented_f32())),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f32, SIGNALLING_NAN_END_32, expected_unimplemented_f32())),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f32, SIGNALLING_NAN_NEGATIVE_START_32, expected_unimplemented_f32())),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f32, SIGNALLING_NAN_NEGATIVE_END_32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f32, FConst::SIGNALLING_NAN_START_32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f32, FConst::SIGNALLING_NAN_END_32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f32, FConst::SIGNALLING_NAN_NEGATIVE_START_32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f32, FConst::SIGNALLING_NAN_NEGATIVE_END_32, expected_unimplemented_f32())),
 
             // NAN/2 produces another NAN and invalid operation (which is the opposite of what their name implies)
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_START_32, 2f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_END_32, 2f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_NEGATIVE_START_32, 2f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_NEGATIVE_END_32, 2f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_START_32, 2f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_END_32, 2f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_NEGATIVE_START_32, 2f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_NEGATIVE_END_32, 2f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
 
             // Signalling NANs aren't supported and cause unimplemented operation
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_START_32, 2f32, expected_unimplemented_f32())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_END_32, 2f32, expected_unimplemented_f32())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_NEGATIVE_START_32, 2f32, expected_unimplemented_f32())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_NEGATIVE_END_32, 2f32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_START_32, 2f32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_END_32, 2f32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_START_32, 2f32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_END_32, 2f32, expected_unimplemented_f32())),
         }
     }
 
@@ -1083,8 +1060,8 @@ impl Test for DivD {
             Box::new((true, FCSRRoundingMode::PositiveInfinity, f64::MIN_POSITIVE, 2f64, expected_result(FCSRFlags::new().with_underflow(true).with_inexact_operation(true), f64::MIN_POSITIVE))),
 
             // Give a subnormal input but then div 1 will always cause unimplemented
-            Box::new((true, FCSRRoundingMode::Nearest, SUBNORMAL_EXAMPLE_64, 1f64, expected_unimplemented_f64())),
-            Box::new((true, FCSRRoundingMode::Nearest, 1f64, SUBNORMAL_EXAMPLE_64, expected_unimplemented_f64())),
+            Box::new((true, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_EXAMPLE_64, 1f64, expected_unimplemented_f64())),
+            Box::new((true, FCSRRoundingMode::Nearest, 1f64, FConst::SUBNORMAL_EXAMPLE_64, expected_unimplemented_f64())),
 
             // 0/0 gives an invalid operation and produces a specific nan result
             Box::new((false, FCSRRoundingMode::Nearest, 0f64, 0f64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
@@ -1110,31 +1087,31 @@ impl Test for DivD {
             Box::new((false, FCSRRoundingMode::Nearest, f64::INFINITY, f64::NEG_INFINITY, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
             Box::new((false, FCSRRoundingMode::Nearest, f64::NEG_INFINITY, f64::INFINITY, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
             Box::new((false, FCSRRoundingMode::Nearest, f64::NEG_INFINITY, f64::NEG_INFINITY, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
-            Box::new((false, FCSRRoundingMode::Nearest, f64::INFINITY, QUIET_NAN_START_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, f64::INFINITY, FConst::QUIET_NAN_START_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
 
             // 2/NAN produces another NAN and invalid operation (which is the opposite of what their name implies)
-            Box::new((false, FCSRRoundingMode::Nearest, 2f64, QUIET_NAN_START_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f64, QUIET_NAN_END_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f64, QUIET_NAN_NEGATIVE_START_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f64, QUIET_NAN_NEGATIVE_END_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f64, FConst::QUIET_NAN_START_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f64, FConst::QUIET_NAN_END_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f64, FConst::QUIET_NAN_NEGATIVE_START_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f64, FConst::QUIET_NAN_NEGATIVE_END_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
 
             // Signalling NANs aren't supported and cause unimplemented operation
-            Box::new((false, FCSRRoundingMode::Nearest, 2f64, SIGNALLING_NAN_START_64, expected_unimplemented_f64())),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f64, SIGNALLING_NAN_END_64, expected_unimplemented_f64())),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f64, SIGNALLING_NAN_NEGATIVE_START_64, expected_unimplemented_f64())),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f64, SIGNALLING_NAN_NEGATIVE_END_64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f64, FConst::SIGNALLING_NAN_START_64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f64, FConst::SIGNALLING_NAN_END_64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f64, FConst::SIGNALLING_NAN_NEGATIVE_START_64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f64, FConst::SIGNALLING_NAN_NEGATIVE_END_64, expected_unimplemented_f64())),
 
             // NAN/2 produces another NAN and invalid operation (which is the opposite of what their name implies)
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_START_64, 2f64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_END_64, 2f64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_NEGATIVE_START_64, 2f64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_NEGATIVE_END_64, 2f64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_START_64, 2f64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_END_64, 2f64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_NEGATIVE_START_64, 2f64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_NEGATIVE_END_64, 2f64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
 
             // Signalling NANs aren't supported and cause unimplemented operation
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_START_64, 2f64, expected_unimplemented_f64())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_END_64, 2f64, expected_unimplemented_f64())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_NEGATIVE_START_64, 2f64, expected_unimplemented_f64())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_NEGATIVE_END_64, 2f64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_START_64, 2f64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_END_64, 2f64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_START_64, 2f64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_END_64, 2f64, expected_unimplemented_f64())),
         }
     }
 
@@ -1193,7 +1170,7 @@ impl Test for CauseClearing {
         let exception_context = expect_exception(CauseException::FPE, 1, || {
             unsafe {
                 asm!("DIV.S $4, $0, $2",
-                in("$f0") SIGNALLING_NAN_START_32,
+                in("$f0") FConst::SIGNALLING_NAN_START_32,
                 in("$f2") 0.0f32,
                 out("$f4") _,
                 options(nostack))
@@ -1257,8 +1234,8 @@ impl Test for MulS {
             Box::new((true, FCSRRoundingMode::Zero, f32::MIN_POSITIVE, 0.5f32, expected_result(FCSRFlags::new().with_inexact_operation(true).with_underflow(true), 0f32))),
 
             // Give a subnormal input but then add 0, so there's technically no underflow
-            Box::new((true, FCSRRoundingMode::Nearest, SUBNORMAL_EXAMPLE_32, 0f32, expected_unimplemented_f32())),
-            Box::new((true, FCSRRoundingMode::Nearest, 0f32, SUBNORMAL_EXAMPLE_32, expected_unimplemented_f32())),
+            Box::new((true, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_EXAMPLE_32, 0f32, expected_unimplemented_f32())),
+            Box::new((true, FCSRRoundingMode::Nearest, 0f32, FConst::SUBNORMAL_EXAMPLE_32, expected_unimplemented_f32())),
 
             // Experiments with extreme values
             Box::new((false, FCSRRoundingMode::Nearest, f32::MAX, f32::MIN_POSITIVE, expected_result(FCSRFlags::new(), 3.9999998f32))),
@@ -1268,28 +1245,28 @@ impl Test for MulS {
             Box::new((false, FCSRRoundingMode::Nearest, -0f32, 0f32, expected_result(FCSRFlags::new(), -0f32))),
 
             // 2*NAN produces another NAN and invalid operation (which is the opposite of what their name implies)
-            Box::new((false, FCSRRoundingMode::Nearest, 2f32, QUIET_NAN_START_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f32, QUIET_NAN_END_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f32, QUIET_NAN_NEGATIVE_START_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f32, QUIET_NAN_NEGATIVE_END_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f32, FConst::QUIET_NAN_START_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f32, FConst::QUIET_NAN_END_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f32, FConst::QUIET_NAN_NEGATIVE_START_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f32, FConst::QUIET_NAN_NEGATIVE_END_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
 
             // Signalling NANs aren't supported and cause unimplemented operation
-            Box::new((false, FCSRRoundingMode::Nearest, 2f32, SIGNALLING_NAN_START_32, expected_unimplemented_f32())),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f32, SIGNALLING_NAN_END_32, expected_unimplemented_f32())),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f32, SIGNALLING_NAN_NEGATIVE_START_32, expected_unimplemented_f32())),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f32, SIGNALLING_NAN_NEGATIVE_END_32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f32, FConst::SIGNALLING_NAN_START_32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f32, FConst::SIGNALLING_NAN_END_32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f32, FConst::SIGNALLING_NAN_NEGATIVE_START_32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f32, FConst::SIGNALLING_NAN_NEGATIVE_END_32, expected_unimplemented_f32())),
 
             // NAN*2 produces another NAN and invalid operation (which is the opposite of what their name implies)
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_START_32, 2f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_END_32, 2f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_NEGATIVE_START_32, 2f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_NEGATIVE_END_32, 2f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_START_32, 2f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_END_32, 2f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_NEGATIVE_START_32, 2f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_NEGATIVE_END_32, 2f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
 
             // Signalling NANs aren't supported and cause unimplemented operation
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_START_32, 2f32, expected_unimplemented_f32())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_END_32, 2f32, expected_unimplemented_f32())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_NEGATIVE_START_32, 2f32, expected_unimplemented_f32())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_NEGATIVE_END_32, 2f32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_START_32, 2f32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_END_32, 2f32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_START_32, 2f32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_END_32, 2f32, expected_unimplemented_f32())),
         }
     }
 
@@ -1336,8 +1313,8 @@ impl Test for MulD {
             Box::new((true, FCSRRoundingMode::Zero, f64::MIN_POSITIVE, 0.5f64, expected_result(FCSRFlags::new().with_inexact_operation(true).with_underflow(true), 0f64))),
 
             // Give a subnormal input but then add 0, so there's technically no underflow
-            Box::new((true, FCSRRoundingMode::Nearest, SUBNORMAL_EXAMPLE_64, 0f64, expected_unimplemented_f64())),
-            Box::new((true, FCSRRoundingMode::Nearest, 0f64, SUBNORMAL_EXAMPLE_64, expected_unimplemented_f64())),
+            Box::new((true, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_EXAMPLE_64, 0f64, expected_unimplemented_f64())),
+            Box::new((true, FCSRRoundingMode::Nearest, 0f64, FConst::SUBNORMAL_EXAMPLE_64, expected_unimplemented_f64())),
 
             // Experiments with extreme values
             Box::new((false, FCSRRoundingMode::Nearest, f64::MAX, f64::MIN_POSITIVE, expected_result(FCSRFlags::new(), 3.9999999999999996f64))),
@@ -1347,28 +1324,28 @@ impl Test for MulD {
             Box::new((false, FCSRRoundingMode::Nearest, -0f64, 0f64, expected_result(FCSRFlags::new(), -0f64))),
 
             // 2*NAN produces another NAN and invalid operation (which is the opposite of what their name implies)
-            Box::new((false, FCSRRoundingMode::Nearest, 2f64, QUIET_NAN_START_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f64, QUIET_NAN_END_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f64, QUIET_NAN_NEGATIVE_START_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f64, QUIET_NAN_NEGATIVE_END_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f64, FConst::QUIET_NAN_START_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f64, FConst::QUIET_NAN_END_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f64, FConst::QUIET_NAN_NEGATIVE_START_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f64, FConst::QUIET_NAN_NEGATIVE_END_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
 
             // Signalling NANs aren't supported and cause unimplemented operation
-            Box::new((false, FCSRRoundingMode::Nearest, 2f64, SIGNALLING_NAN_START_64, expected_unimplemented_f64())),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f64, SIGNALLING_NAN_END_64, expected_unimplemented_f64())),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f64, SIGNALLING_NAN_NEGATIVE_START_64, expected_unimplemented_f64())),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f64, SIGNALLING_NAN_NEGATIVE_END_64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f64, FConst::SIGNALLING_NAN_START_64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f64, FConst::SIGNALLING_NAN_END_64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f64, FConst::SIGNALLING_NAN_NEGATIVE_START_64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f64, FConst::SIGNALLING_NAN_NEGATIVE_END_64, expected_unimplemented_f64())),
 
             // NAN*2 produces another NAN and invalid operation (which is the opposite of what their name implies)
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_START_64, 2f64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_END_64, 2f64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_NEGATIVE_START_64, 2f64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_NEGATIVE_END_64, 2f64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_START_64, 2f64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_END_64, 2f64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_NEGATIVE_START_64, 2f64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_NEGATIVE_END_64, 2f64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
 
             // Signalling NANs aren't supported and cause unimplemented operation
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_START_64, 2f64, expected_unimplemented_f64())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_END_64, 2f64, expected_unimplemented_f64())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_NEGATIVE_START_64, 2f64, expected_unimplemented_f64())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_NEGATIVE_END_64, 2f64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_START_64, 2f64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_END_64, 2f64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_START_64, 2f64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_END_64, 2f64, expected_unimplemented_f64())),
         }
     }
 
@@ -1429,32 +1406,32 @@ impl Test for AddS {
             Box::new((true, FCSRRoundingMode::NegativeInfinity, 1.5285104e-37f32, -1.5391543e-37f32, expected_result(FCSRFlags::new().with_underflow(true).with_inexact_operation(true), -1.1754944e-38f32))),
 
             // Give a subnormal input but then add 0, so there's technically no underflow
-            Box::new((true, FCSRRoundingMode::Nearest, SUBNORMAL_EXAMPLE_32, 0f32, expected_unimplemented_f32())),
-            Box::new((true, FCSRRoundingMode::Nearest, 0f32, SUBNORMAL_EXAMPLE_32, expected_unimplemented_f32())),
+            Box::new((true, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_EXAMPLE_32, 0f32, expected_unimplemented_f32())),
+            Box::new((true, FCSRRoundingMode::Nearest, 0f32, FConst::SUBNORMAL_EXAMPLE_32, expected_unimplemented_f32())),
 
             // 2+NAN produces another NAN and invalid operation (which is the opposite of what their name implies)
-            Box::new((false, FCSRRoundingMode::Nearest, 2f32, QUIET_NAN_START_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f32, QUIET_NAN_END_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f32, QUIET_NAN_NEGATIVE_START_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f32, QUIET_NAN_NEGATIVE_END_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f32, FConst::QUIET_NAN_START_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f32, FConst::QUIET_NAN_END_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f32, FConst::QUIET_NAN_NEGATIVE_START_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f32, FConst::QUIET_NAN_NEGATIVE_END_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
 
             // Signalling NANs aren't supported and cause unimplemented operation
-            Box::new((false, FCSRRoundingMode::Nearest, 2f32, SIGNALLING_NAN_START_32, expected_unimplemented_f32())),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f32, SIGNALLING_NAN_END_32, expected_unimplemented_f32())),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f32, SIGNALLING_NAN_NEGATIVE_START_32, expected_unimplemented_f32())),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f32, SIGNALLING_NAN_NEGATIVE_END_32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f32, FConst::SIGNALLING_NAN_START_32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f32, FConst::SIGNALLING_NAN_END_32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f32, FConst::SIGNALLING_NAN_NEGATIVE_START_32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f32, FConst::SIGNALLING_NAN_NEGATIVE_END_32, expected_unimplemented_f32())),
 
             // NAN+2 produces another NAN and invalid operation (which is the opposite of what their name implies)
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_START_32, 2f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_END_32, 2f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_NEGATIVE_START_32, 2f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_NEGATIVE_END_32, 2f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_START_32, 2f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_END_32, 2f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_NEGATIVE_START_32, 2f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_NEGATIVE_END_32, 2f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
 
             // Signalling NANs aren't supported and cause unimplemented operation
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_START_32, 2f32, expected_unimplemented_f32())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_END_32, 2f32, expected_unimplemented_f32())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_NEGATIVE_START_32, 2f32, expected_unimplemented_f32())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_NEGATIVE_END_32, 2f32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_START_32, 2f32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_END_32, 2f32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_START_32, 2f32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_END_32, 2f32, expected_unimplemented_f32())),
         }
     }
 
@@ -1515,32 +1492,32 @@ impl Test for AddD {
             Box::new((true, FCSRRoundingMode::PositiveInfinity, 3.18021e-307f64, -3.1622e-307f64, expected_result(FCSRFlags::new().with_underflow(true).with_inexact_operation(true), f64::MIN_POSITIVE))),
 
             // Give a subnormal input but then add 0, so there's technically no underflow
-            Box::new((true, FCSRRoundingMode::Nearest, SUBNORMAL_EXAMPLE_64, 0f64, expected_unimplemented_f64())),
-            Box::new((true, FCSRRoundingMode::Nearest, 0f64, SUBNORMAL_EXAMPLE_64, expected_unimplemented_f64())),
+            Box::new((true, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_EXAMPLE_64, 0f64, expected_unimplemented_f64())),
+            Box::new((true, FCSRRoundingMode::Nearest, 0f64, FConst::SUBNORMAL_EXAMPLE_64, expected_unimplemented_f64())),
 
             // 2+NAN produces another NAN and invalid operation (which is the opposite of what their name implies)
-            Box::new((false, FCSRRoundingMode::Nearest, 2f64, QUIET_NAN_START_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f64, QUIET_NAN_END_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f64, QUIET_NAN_NEGATIVE_START_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f64, QUIET_NAN_NEGATIVE_END_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f64, FConst::QUIET_NAN_START_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f64, FConst::QUIET_NAN_END_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f64, FConst::QUIET_NAN_NEGATIVE_START_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f64, FConst::QUIET_NAN_NEGATIVE_END_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
 
             // Signalling NANs aren't supported and cause unimplemented operation
-            Box::new((false, FCSRRoundingMode::Nearest, 2f64, SIGNALLING_NAN_START_64, expected_unimplemented_f64())),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f64, SIGNALLING_NAN_END_64, expected_unimplemented_f64())),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f64, SIGNALLING_NAN_NEGATIVE_START_64, expected_unimplemented_f64())),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f64, SIGNALLING_NAN_NEGATIVE_END_64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f64, FConst::SIGNALLING_NAN_START_64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f64, FConst::SIGNALLING_NAN_END_64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f64, FConst::SIGNALLING_NAN_NEGATIVE_START_64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f64, FConst::SIGNALLING_NAN_NEGATIVE_END_64, expected_unimplemented_f64())),
 
             // NAN+2 produces another NAN and invalid operation (which is the opposite of what their name implies)
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_START_64, 2f64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_END_64, 2f64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_NEGATIVE_START_64, 2f64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_NEGATIVE_END_64, 2f64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_START_64, 2f64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_END_64, 2f64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_NEGATIVE_START_64, 2f64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_NEGATIVE_END_64, 2f64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
 
             // Signalling NANs aren't supported and cause unimplemented operation
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_START_64, 2f64, expected_unimplemented_f64())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_END_64, 2f64, expected_unimplemented_f64())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_NEGATIVE_START_64, 2f64, expected_unimplemented_f64())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_NEGATIVE_END_64, 2f64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_START_64, 2f64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_END_64, 2f64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_START_64, 2f64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_END_64, 2f64, expected_unimplemented_f64())),
         }
     }
 
@@ -1601,32 +1578,32 @@ impl Test for SubS {
             Box::new((true, FCSRRoundingMode::NegativeInfinity, 1.5285104e-37f32, 1.5391543e-37f32, expected_result(FCSRFlags::new().with_underflow(true).with_inexact_operation(true), -1.1754944e-38f32))),
 
             // Give a subnormal input but then sub 0, so there's technically no underflow
-            Box::new((true, FCSRRoundingMode::Nearest, SUBNORMAL_EXAMPLE_32, 0f32, expected_unimplemented_f32())),
-            Box::new((true, FCSRRoundingMode::Nearest, 0f32, SUBNORMAL_EXAMPLE_32, expected_unimplemented_f32())),
+            Box::new((true, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_EXAMPLE_32, 0f32, expected_unimplemented_f32())),
+            Box::new((true, FCSRRoundingMode::Nearest, 0f32, FConst::SUBNORMAL_EXAMPLE_32, expected_unimplemented_f32())),
 
             // 2+NAN produces another NAN and invalid operation (which is the opposite of what their name implies)
-            Box::new((false, FCSRRoundingMode::Nearest, 2f32, QUIET_NAN_START_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f32, QUIET_NAN_END_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f32, QUIET_NAN_NEGATIVE_START_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f32, QUIET_NAN_NEGATIVE_END_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f32, FConst::QUIET_NAN_START_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f32, FConst::QUIET_NAN_END_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f32, FConst::QUIET_NAN_NEGATIVE_START_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f32, FConst::QUIET_NAN_NEGATIVE_END_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
 
             // Signalling NANs aren't supported and cause unimplemented operation
-            Box::new((false, FCSRRoundingMode::Nearest, 2f32, SIGNALLING_NAN_START_32, expected_unimplemented_f32())),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f32, SIGNALLING_NAN_END_32, expected_unimplemented_f32())),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f32, SIGNALLING_NAN_NEGATIVE_START_32, expected_unimplemented_f32())),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f32, SIGNALLING_NAN_NEGATIVE_END_32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f32, FConst::SIGNALLING_NAN_START_32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f32, FConst::SIGNALLING_NAN_END_32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f32, FConst::SIGNALLING_NAN_NEGATIVE_START_32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f32, FConst::SIGNALLING_NAN_NEGATIVE_END_32, expected_unimplemented_f32())),
 
             // NAN+2 produces another NAN and invalid operation (which is the opposite of what their name implies)
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_START_32, 2f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_END_32, 2f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_NEGATIVE_START_32, 2f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_NEGATIVE_END_32, 2f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_START_32, 2f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_END_32, 2f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_NEGATIVE_START_32, 2f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_NEGATIVE_END_32, 2f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
 
             // Signalling NANs aren't supported and cause unimplemented operation
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_START_32, 2f32, expected_unimplemented_f32())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_END_32, 2f32, expected_unimplemented_f32())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_NEGATIVE_START_32, 2f32, expected_unimplemented_f32())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_NEGATIVE_END_32, 2f32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_START_32, 2f32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_END_32, 2f32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_START_32, 2f32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_END_32, 2f32, expected_unimplemented_f32())),
         }
     }
 
@@ -1687,32 +1664,32 @@ impl Test for SubD {
             Box::new((true, FCSRRoundingMode::PositiveInfinity, 3.18021e-307f64, 3.1622e-307f64, expected_result(FCSRFlags::new().with_underflow(true).with_inexact_operation(true), f64::MIN_POSITIVE))),
 
             // Give a subnormal input but then add 0, so there's technically no underflow
-            Box::new((true, FCSRRoundingMode::Nearest, SUBNORMAL_EXAMPLE_64, 0f64, expected_unimplemented_f64())),
-            Box::new((true, FCSRRoundingMode::Nearest, 0f64, SUBNORMAL_EXAMPLE_64, expected_unimplemented_f64())),
+            Box::new((true, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_EXAMPLE_64, 0f64, expected_unimplemented_f64())),
+            Box::new((true, FCSRRoundingMode::Nearest, 0f64, FConst::SUBNORMAL_EXAMPLE_64, expected_unimplemented_f64())),
 
             // 2+NAN produces another NAN and invalid operation (which is the opposite of what their name implies)
-            Box::new((false, FCSRRoundingMode::Nearest, 2f64, QUIET_NAN_START_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f64, QUIET_NAN_END_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f64, QUIET_NAN_NEGATIVE_START_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f64, QUIET_NAN_NEGATIVE_END_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f64, FConst::QUIET_NAN_START_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f64, FConst::QUIET_NAN_END_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f64, FConst::QUIET_NAN_NEGATIVE_START_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f64, FConst::QUIET_NAN_NEGATIVE_END_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
 
             // Signalling NANs aren't supported and cause unimplemented operation
-            Box::new((false, FCSRRoundingMode::Nearest, 2f64, SIGNALLING_NAN_START_64, expected_unimplemented_f64())),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f64, SIGNALLING_NAN_END_64, expected_unimplemented_f64())),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f64, SIGNALLING_NAN_NEGATIVE_START_64, expected_unimplemented_f64())),
-            Box::new((false, FCSRRoundingMode::Nearest, 2f64, SIGNALLING_NAN_NEGATIVE_END_64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f64, FConst::SIGNALLING_NAN_START_64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f64, FConst::SIGNALLING_NAN_END_64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f64, FConst::SIGNALLING_NAN_NEGATIVE_START_64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, 2f64, FConst::SIGNALLING_NAN_NEGATIVE_END_64, expected_unimplemented_f64())),
 
             // NAN+2 produces another NAN and invalid operation (which is the opposite of what their name implies)
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_START_64, 2f64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_END_64, 2f64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_NEGATIVE_START_64, 2f64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_NEGATIVE_END_64, 2f64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_START_64, 2f64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_END_64, 2f64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_NEGATIVE_START_64, 2f64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_NEGATIVE_END_64, 2f64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
 
             // Signalling NANs aren't supported and cause unimplemented operation
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_START_64, 2f64, expected_unimplemented_f64())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_END_64, 2f64, expected_unimplemented_f64())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_NEGATIVE_START_64, 2f64, expected_unimplemented_f64())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_NEGATIVE_END_64, 2f64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_START_64, 2f64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_END_64, 2f64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_START_64, 2f64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_END_64, 2f64, expected_unimplemented_f64())),
         }
     }
 
@@ -1749,19 +1726,19 @@ impl Test for AbsS {
             Box::new((false, FCSRRoundingMode::Nearest, f32::NEG_INFINITY, expected_result(FCSRFlags::new(), f32::INFINITY))),
 
             // ABS(NAN) produces another NAN and invalid operation (which is the opposite of what their name implies)
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_START_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_END_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_NEGATIVE_START_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_NEGATIVE_END_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_START_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_END_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_NEGATIVE_START_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_NEGATIVE_END_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
 
             // Signalling NANs aren't supported and cause unimplemented operation
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_START_32, expected_unimplemented_f32())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_END_32, expected_unimplemented_f32())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_NEGATIVE_START_32, expected_unimplemented_f32())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_NEGATIVE_END_32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_START_32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_END_32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_START_32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_END_32, expected_unimplemented_f32())),
 
             // Subnormal also causes unimplemented
-            Box::new((false, FCSRRoundingMode::Nearest, SUBNORMAL_EXAMPLE_32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_EXAMPLE_32, expected_unimplemented_f32())),
         }
     }
 
@@ -1798,19 +1775,19 @@ impl Test for AbsD {
             Box::new((false, FCSRRoundingMode::Nearest, f64::NEG_INFINITY, expected_result(FCSRFlags::new(), f64::INFINITY))),
 
             // ABS(NAN) produces another NAN and invalid operation (which is the opposite of what their name implies)
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_START_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_END_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_NEGATIVE_START_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_NEGATIVE_END_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_START_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_END_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_NEGATIVE_START_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_NEGATIVE_END_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
 
             // Signalling NANs aren't supported and cause unimplemented operation
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_START_64, expected_unimplemented_f64())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_END_64, expected_unimplemented_f64())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_NEGATIVE_START_64, expected_unimplemented_f64())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_NEGATIVE_END_64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_START_64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_END_64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_START_64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_END_64, expected_unimplemented_f64())),
 
             // Subnormal also causes unimplemented
-            Box::new((false, FCSRRoundingMode::Nearest, SUBNORMAL_EXAMPLE_64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_EXAMPLE_64, expected_unimplemented_f64())),
         }
     }
 
@@ -1847,19 +1824,19 @@ impl Test for NegS {
             Box::new((false, FCSRRoundingMode::Nearest, f32::NEG_INFINITY, expected_result(FCSRFlags::new(), f32::INFINITY))),
 
             // ABS(NAN) produces another NAN and invalid operation (which is the opposite of what their name implies)
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_START_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_END_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_NEGATIVE_START_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_NEGATIVE_END_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_START_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_END_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_NEGATIVE_START_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_NEGATIVE_END_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
 
             // Signalling NANs aren't supported and cause unimplemented operation
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_START_32, expected_unimplemented_f32())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_END_32, expected_unimplemented_f32())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_NEGATIVE_START_32, expected_unimplemented_f32())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_NEGATIVE_END_32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_START_32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_END_32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_START_32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_END_32, expected_unimplemented_f32())),
 
             // Subnormal also causes unimplemented
-            Box::new((false, FCSRRoundingMode::Nearest, SUBNORMAL_EXAMPLE_32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_EXAMPLE_32, expected_unimplemented_f32())),
         }
     }
 
@@ -1896,19 +1873,19 @@ impl Test for NegD {
             Box::new((false, FCSRRoundingMode::Nearest, f64::NEG_INFINITY, expected_result(FCSRFlags::new(), f64::INFINITY))),
 
             // ABS(NAN) produces another NAN and invalid operation (which is the opposite of what their name implies)
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_START_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_END_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_NEGATIVE_START_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_NEGATIVE_END_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_START_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_END_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_NEGATIVE_START_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_NEGATIVE_END_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
 
             // Signalling NANs aren't supported and cause unimplemented operation
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_START_64, expected_unimplemented_f64())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_END_64, expected_unimplemented_f64())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_NEGATIVE_START_64, expected_unimplemented_f64())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_NEGATIVE_END_64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_START_64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_END_64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_START_64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_END_64, expected_unimplemented_f64())),
 
             // Subnormal also causes unimplemented
-            Box::new((false, FCSRRoundingMode::Nearest, SUBNORMAL_EXAMPLE_64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_EXAMPLE_64, expected_unimplemented_f64())),
         }
     }
 
@@ -1936,9 +1913,9 @@ impl Test for MovS {
             Box::new((false, FCSRRoundingMode::Nearest, 0f32, expected_result(FCSRFlags::new(), 0f32))),
             Box::new((false, FCSRRoundingMode::Nearest, f32::MIN, expected_result(FCSRFlags::new(), f32::MIN))),
             Box::new((false, FCSRRoundingMode::Nearest, f32::MAX, expected_result(FCSRFlags::new(), f32::MAX))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_START_32, expected_result(FCSRFlags::new(), QUIET_NAN_START_32))),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_START_32, expected_result(FCSRFlags::new(), SIGNALLING_NAN_START_32))),
-            Box::new((false, FCSRRoundingMode::Nearest, SUBNORMAL_EXAMPLE_32, expected_result(FCSRFlags::new(), SUBNORMAL_EXAMPLE_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_START_32, expected_result(FCSRFlags::new(), FConst::QUIET_NAN_START_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_START_32, expected_result(FCSRFlags::new(), FConst::SIGNALLING_NAN_START_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_EXAMPLE_32, expected_result(FCSRFlags::new(), FConst::SUBNORMAL_EXAMPLE_32))),
         }
     }
 
@@ -1966,9 +1943,9 @@ impl Test for MovD {
             Box::new((false, FCSRRoundingMode::Nearest, 0f64, expected_result(FCSRFlags::new(), 0f64))),
             Box::new((false, FCSRRoundingMode::Nearest, f64::MIN, expected_result(FCSRFlags::new(), f64::MIN))),
             Box::new((false, FCSRRoundingMode::Nearest, f64::MAX, expected_result(FCSRFlags::new(), f64::MAX))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_START_64, expected_result(FCSRFlags::new(), QUIET_NAN_START_64))),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_START_64, expected_result(FCSRFlags::new(), SIGNALLING_NAN_START_64))),
-            Box::new((false, FCSRRoundingMode::Nearest, SUBNORMAL_EXAMPLE_64, expected_result(FCSRFlags::new(), SUBNORMAL_EXAMPLE_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_START_64, expected_result(FCSRFlags::new(), FConst::QUIET_NAN_START_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_START_64, expected_result(FCSRFlags::new(), FConst::SIGNALLING_NAN_START_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_EXAMPLE_64, expected_result(FCSRFlags::new(), FConst::SUBNORMAL_EXAMPLE_64))),
         }
     }
 
@@ -2006,19 +1983,19 @@ impl Test for SqrtS {
             Box::new((false, FCSRRoundingMode::Nearest, f32::INFINITY, expected_result(FCSRFlags::new(), f32::INFINITY))),
 
             // Sqrt(NAN) produces another NAN and invalid operation (which is the opposite of what their name implies)
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_START_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_END_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_NEGATIVE_START_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_NEGATIVE_END_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_START_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_END_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_NEGATIVE_START_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_NEGATIVE_END_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
 
             // Signalling NANs aren't supported and cause unimplemented operation
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_START_32, expected_unimplemented_f32())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_END_32, expected_unimplemented_f32())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_NEGATIVE_START_32, expected_unimplemented_f32())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_NEGATIVE_END_32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_START_32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_END_32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_START_32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_END_32, expected_unimplemented_f32())),
 
             // Subnormal also causes unimplemented
-            Box::new((false, FCSRRoundingMode::Nearest, SUBNORMAL_EXAMPLE_32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_EXAMPLE_32, expected_unimplemented_f32())),
         }
     }
 
@@ -2056,19 +2033,19 @@ impl Test for SqrtD {
             Box::new((false, FCSRRoundingMode::Nearest, f64::INFINITY, expected_result(FCSRFlags::new(), f64::INFINITY))),
 
             // Sqrt(NAN) produces another NAN and invalid operation (which is the opposite of what their name implies)
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_START_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_END_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_NEGATIVE_START_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_NEGATIVE_END_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_START_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_END_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_NEGATIVE_START_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_NEGATIVE_END_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
 
             // Signalling NANs aren't supported and cause unimplemented operation
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_START_64, expected_unimplemented_f64())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_END_64, expected_unimplemented_f64())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_NEGATIVE_START_64, expected_unimplemented_f64())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_NEGATIVE_END_64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_START_64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_END_64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_START_64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_END_64, expected_unimplemented_f64())),
 
             // Subnormal also causes unimplemented
-            Box::new((false, FCSRRoundingMode::Nearest, SUBNORMAL_EXAMPLE_64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_EXAMPLE_64, expected_unimplemented_f64())),
         }
     }
 
@@ -2119,19 +2096,19 @@ impl Test for CvtS {
             Box::new((true, FCSRRoundingMode::PositiveInfinity, f64::MIN_POSITIVE, expected_result(FCSRFlags::new().with_underflow(true).with_inexact_operation(true), f32::MIN_POSITIVE))),
 
             // CVT(NAN) produces another NAN and invalid operation (which is the opposite of what their name implies)
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_START_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_END_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_NEGATIVE_START_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_NEGATIVE_END_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_START_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_END_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_NEGATIVE_START_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_NEGATIVE_END_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
 
             // Signalling NANs aren't supported and cause unimplemented operation
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_START_64, expected_unimplemented_f32())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_END_64, expected_unimplemented_f32())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_NEGATIVE_START_64, expected_unimplemented_f32())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_NEGATIVE_END_64, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_START_64, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_END_64, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_START_64, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_END_64, expected_unimplemented_f32())),
 
             // Subnormal also causes unimplemented
-            Box::new((false, FCSRRoundingMode::Nearest, SUBNORMAL_EXAMPLE_64, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_EXAMPLE_64, expected_unimplemented_f32())),
 
             // W => S
             Box::new((false, FCSRRoundingMode::Nearest, 9i32, expected_result(FCSRFlags::new(), 9f32))),
@@ -2208,19 +2185,19 @@ impl Test for CvtD {
             Box::new((false, FCSRRoundingMode::Nearest, f32::NEG_INFINITY, expected_result(FCSRFlags::new(), f64::NEG_INFINITY))),
 
             // CVT(NAN) produces another NAN and invalid operation (which is the opposite of what their name implies)
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_START_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_END_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_NEGATIVE_START_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
-            Box::new((false, FCSRRoundingMode::Nearest, QUIET_NAN_NEGATIVE_END_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_START_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_END_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_NEGATIVE_START_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_NEGATIVE_END_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
 
             // Signalling NANs aren't supported and cause unimplemented operation
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_START_32, expected_unimplemented_f64())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_END_32, expected_unimplemented_f64())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_NEGATIVE_START_32, expected_unimplemented_f64())),
-            Box::new((false, FCSRRoundingMode::Nearest, SIGNALLING_NAN_NEGATIVE_END_32, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_START_32, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_END_32, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_START_32, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_END_32, expected_unimplemented_f64())),
 
             // Subnormal also causes unimplemented
-            Box::new((false, FCSRRoundingMode::Nearest, SUBNORMAL_EXAMPLE_32, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_EXAMPLE_32, expected_unimplemented_f64())),
 
             // D => D (which doesn't exist)
             Box::new((false, FCSRRoundingMode::Nearest, 4f64, expected_unimplemented_f64())),
@@ -2324,19 +2301,19 @@ impl Test for ConvertToW {
             Box::new((f32::NEG_INFINITY, expected_unimplemented_i32())),
 
             // CVT(NAN) produces another NAN and invalid operation (which is the opposite of what their name implies)
-            Box::new((QUIET_NAN_START_32, expected_unimplemented_i32())),
-            Box::new((QUIET_NAN_END_32, expected_unimplemented_i32())),
-            Box::new((QUIET_NAN_NEGATIVE_START_32, expected_unimplemented_i32())),
-            Box::new((QUIET_NAN_NEGATIVE_END_32, expected_unimplemented_i32())),
+            Box::new((FConst::QUIET_NAN_START_32, expected_unimplemented_i32())),
+            Box::new((FConst::QUIET_NAN_END_32, expected_unimplemented_i32())),
+            Box::new((FConst::QUIET_NAN_NEGATIVE_START_32, expected_unimplemented_i32())),
+            Box::new((FConst::QUIET_NAN_NEGATIVE_END_32, expected_unimplemented_i32())),
 
             // Signalling NANs aren't supported and cause unimplemented operation
-            Box::new((SIGNALLING_NAN_START_32, expected_unimplemented_i32())),
-            Box::new((SIGNALLING_NAN_END_32, expected_unimplemented_i32())),
-            Box::new((SIGNALLING_NAN_NEGATIVE_START_32, expected_unimplemented_i32())),
-            Box::new((SIGNALLING_NAN_NEGATIVE_END_32, expected_unimplemented_i32())),
+            Box::new((FConst::SIGNALLING_NAN_START_32, expected_unimplemented_i32())),
+            Box::new((FConst::SIGNALLING_NAN_END_32, expected_unimplemented_i32())),
+            Box::new((FConst::SIGNALLING_NAN_NEGATIVE_START_32, expected_unimplemented_i32())),
+            Box::new((FConst::SIGNALLING_NAN_NEGATIVE_END_32, expected_unimplemented_i32())),
 
             // Subnormal also causes unimplemented
-            Box::new((SUBNORMAL_EXAMPLE_32, expected_unimplemented_i32())),
+            Box::new((FConst::SUBNORMAL_EXAMPLE_32, expected_unimplemented_i32())),
 
             // D => W
             Box::new((4f64, expected_result(FCSRFlags::new(), 4i32))),
@@ -2370,19 +2347,19 @@ impl Test for ConvertToW {
             Box::new((f64::NEG_INFINITY, expected_unimplemented_i32())),
 
             // CVT(NAN) produces another NAN and invalid operation (which is the opposite of what their name implies)
-            Box::new((QUIET_NAN_START_64, expected_unimplemented_i32())),
-            Box::new((QUIET_NAN_END_64, expected_unimplemented_i32())),
-            Box::new((QUIET_NAN_NEGATIVE_START_64, expected_unimplemented_i32())),
-            Box::new((QUIET_NAN_NEGATIVE_END_64, expected_unimplemented_i32())),
+            Box::new((FConst::QUIET_NAN_START_64, expected_unimplemented_i32())),
+            Box::new((FConst::QUIET_NAN_END_64, expected_unimplemented_i32())),
+            Box::new((FConst::QUIET_NAN_NEGATIVE_START_64, expected_unimplemented_i32())),
+            Box::new((FConst::QUIET_NAN_NEGATIVE_END_64, expected_unimplemented_i32())),
 
             // Signalling NANs aren't supported and cause unimplemented operation
-            Box::new((SIGNALLING_NAN_START_64, expected_unimplemented_i32())),
-            Box::new((SIGNALLING_NAN_END_64, expected_unimplemented_i32())),
-            Box::new((SIGNALLING_NAN_NEGATIVE_START_64, expected_unimplemented_i32())),
-            Box::new((SIGNALLING_NAN_NEGATIVE_END_64, expected_unimplemented_i32())),
+            Box::new((FConst::SIGNALLING_NAN_START_64, expected_unimplemented_i32())),
+            Box::new((FConst::SIGNALLING_NAN_END_64, expected_unimplemented_i32())),
+            Box::new((FConst::SIGNALLING_NAN_NEGATIVE_START_64, expected_unimplemented_i32())),
+            Box::new((FConst::SIGNALLING_NAN_NEGATIVE_END_64, expected_unimplemented_i32())),
 
             // Subnormal also causes unimplemented
-            Box::new((SUBNORMAL_EXAMPLE_32, expected_unimplemented_i32())),
+            Box::new((FConst::SUBNORMAL_EXAMPLE_32, expected_unimplemented_i32())),
 
             // W => W (which doesn't exist)
             Box::new((4i32, expected_unimplemented_i32())),
@@ -2548,19 +2525,19 @@ impl Test for ConvertToL {
             Box::new((f32::NEG_INFINITY, expected_unimplemented_i64())),
 
             // CVT(NAN) produces another NAN and invalid operation (which is the opposite of what their name implies)
-            Box::new((QUIET_NAN_START_32, expected_unimplemented_i64())),
-            Box::new((QUIET_NAN_END_32, expected_unimplemented_i64())),
-            Box::new((QUIET_NAN_NEGATIVE_START_32, expected_unimplemented_i64())),
-            Box::new((QUIET_NAN_NEGATIVE_END_32, expected_unimplemented_i64())),
+            Box::new((FConst::QUIET_NAN_START_32, expected_unimplemented_i64())),
+            Box::new((FConst::QUIET_NAN_END_32, expected_unimplemented_i64())),
+            Box::new((FConst::QUIET_NAN_NEGATIVE_START_32, expected_unimplemented_i64())),
+            Box::new((FConst::QUIET_NAN_NEGATIVE_END_32, expected_unimplemented_i64())),
 
             // Signalling NANs aren't supported and cause unimplemented operation
-            Box::new((SIGNALLING_NAN_START_32, expected_unimplemented_i64())),
-            Box::new((SIGNALLING_NAN_END_32, expected_unimplemented_i64())),
-            Box::new((SIGNALLING_NAN_NEGATIVE_START_32, expected_unimplemented_i64())),
-            Box::new((SIGNALLING_NAN_NEGATIVE_END_32, expected_unimplemented_i64())),
+            Box::new((FConst::SIGNALLING_NAN_START_32, expected_unimplemented_i64())),
+            Box::new((FConst::SIGNALLING_NAN_END_32, expected_unimplemented_i64())),
+            Box::new((FConst::SIGNALLING_NAN_NEGATIVE_START_32, expected_unimplemented_i64())),
+            Box::new((FConst::SIGNALLING_NAN_NEGATIVE_END_32, expected_unimplemented_i64())),
 
             // Subnormal also causes unimplemented
-            Box::new((SUBNORMAL_EXAMPLE_32, expected_unimplemented_i64())),
+            Box::new((FConst::SUBNORMAL_EXAMPLE_32, expected_unimplemented_i64())),
 
             // D => L
             Box::new((4f64, expected_result(FCSRFlags::new(), 4i64))),
@@ -2607,19 +2584,19 @@ impl Test for ConvertToL {
             Box::new((f64::NEG_INFINITY, expected_unimplemented_i64())),
 
             // CVT(NAN) produces another NAN and invalid operation (which is the opposite of what their name implies)
-            Box::new((QUIET_NAN_START_64, expected_unimplemented_i64())),
-            Box::new((QUIET_NAN_END_64, expected_unimplemented_i64())),
-            Box::new((QUIET_NAN_NEGATIVE_START_64, expected_unimplemented_i64())),
-            Box::new((QUIET_NAN_NEGATIVE_END_64, expected_unimplemented_i64())),
+            Box::new((FConst::QUIET_NAN_START_64, expected_unimplemented_i64())),
+            Box::new((FConst::QUIET_NAN_END_64, expected_unimplemented_i64())),
+            Box::new((FConst::QUIET_NAN_NEGATIVE_START_64, expected_unimplemented_i64())),
+            Box::new((FConst::QUIET_NAN_NEGATIVE_END_64, expected_unimplemented_i64())),
 
             // Signalling NANs aren't supported and cause unimplemented operation
-            Box::new((SIGNALLING_NAN_START_64, expected_unimplemented_i64())),
-            Box::new((SIGNALLING_NAN_END_64, expected_unimplemented_i64())),
-            Box::new((SIGNALLING_NAN_NEGATIVE_START_64, expected_unimplemented_i64())),
-            Box::new((SIGNALLING_NAN_NEGATIVE_END_64, expected_unimplemented_i64())),
+            Box::new((FConst::SIGNALLING_NAN_START_64, expected_unimplemented_i64())),
+            Box::new((FConst::SIGNALLING_NAN_END_64, expected_unimplemented_i64())),
+            Box::new((FConst::SIGNALLING_NAN_NEGATIVE_START_64, expected_unimplemented_i64())),
+            Box::new((FConst::SIGNALLING_NAN_NEGATIVE_END_64, expected_unimplemented_i64())),
 
             // Subnormal also causes unimplemented
-            Box::new((SUBNORMAL_EXAMPLE_32, expected_unimplemented_i64())),
+            Box::new((FConst::SUBNORMAL_EXAMPLE_32, expected_unimplemented_i64())),
 
             // W => L (which doesn't exist)
             Box::new((4i64, expected_unimplemented_i64())),

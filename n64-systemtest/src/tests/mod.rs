@@ -3,7 +3,7 @@ use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::any::Any;
-use core::cmp::min;
+use core::cmp::{min, Ordering};
 use arbitrary_int::{u2, u27, u5};
 
 use crate::cop0::{set_status, Status};
@@ -11,6 +11,7 @@ use crate::exception_handler::drain_seen_exception;
 use crate::{print, println};
 use crate::cop1::{FCSR, FCSRFlags, FCSRRoundingMode, set_fcsr};
 use crate::isviewer::text_out;
+use crate::tests::cop1::compares::FPUSpecialNumber;
 use crate::tests::traps::Immediate;
 
 mod arithmetic;
@@ -233,6 +234,10 @@ pub fn run() {
                 None => {}
             }
             match (*value).downcast_ref::<(bool, FCSRRoundingMode, f64, f64, Result<(FCSRFlags, f64), ()>)>() {
+                Some(v) => return format!(" with '{:x?}'", v),
+                None => {}
+            }
+            match (*value).downcast_ref::<(f32, f32, Ordering, FPUSpecialNumber)>() {
                 Some(v) => return format!(" with '{:x?}'", v),
                 None => {}
             }
