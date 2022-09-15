@@ -10,6 +10,8 @@
 #![feature(naked_functions)]
 #![feature(type_name_of_val)]
 #![feature(step_trait)]
+#![feature(const_option)]
+#![feature(const_result_drop)]
 #![deny(unsafe_op_in_unsafe_fn)]
 #![allow(rustdoc::private_intra_doc_links)]
 #![no_main]

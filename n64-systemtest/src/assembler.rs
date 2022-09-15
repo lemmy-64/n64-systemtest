@@ -232,6 +232,7 @@ pub enum Cop1Opcode {
     L = 21,
 }
 
+#[bitenum(u6, exhaustive: false)]
 #[allow(non_camel_case_types)]
 #[allow(dead_code)]
 pub enum Cop1FloatInstruction {
@@ -271,6 +272,29 @@ pub enum Cop1FloatInstruction {
     C_NGE = 61,
     C_LE = 62,
     C_NGT = 63,
+}
+
+#[bitenum(u6, exhaustive: false)]
+#[allow(non_camel_case_types)]
+#[allow(dead_code)]
+#[derive(Eq, PartialEq)]
+pub enum Cop1Condition {
+    F = 48,
+    UN = 49,
+    EQ = 50,
+    UEQ = 51,
+    OLT = 52,
+    ULT = 53,
+    OLE = 54,
+    ULE = 55,
+    SF = 56,
+    NGLE = 57,
+    SEQ = 58,
+    NGL = 59,
+    LT = 60,
+    NGE = 61,
+    LE = 62,
+    NGT = 63,
 }
 
 #[allow(dead_code)]
@@ -380,6 +404,14 @@ impl Assembler {
 
     pub const fn make_beq(rt: GPR, rs: GPR, offset_as_instruction_count: i16) -> u32 {
         Self::make_main_immediate(Opcode::BEQ, rt, rs, offset_as_instruction_count as u16)
+    }
+
+    pub const fn make_c_cond_s(condition: Cop1Condition, fs: FR, ft: FR) -> u32 {
+        Self::make_cop1_single_instruction(Cop1FloatInstruction::new_with_raw_value(condition.raw_value()).ok().unwrap(), FR::F0, fs, ft)
+    }
+
+    pub const fn make_c_cond_d(condition: Cop1Condition, fs: FR, ft: FR) -> u32 {
+        Self::make_cop1_double_instruction(Cop1FloatInstruction::new_with_raw_value(condition.raw_value()).ok().unwrap(), FR::F0, fs, ft)
     }
 
     pub const fn make_cfc1(rt: GPR, rd: u5) -> u32 {

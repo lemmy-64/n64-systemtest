@@ -2,8 +2,43 @@ use alloc::format;
 use alloc::string::String;
 use core::arch::asm;
 use core::fmt::{Debug, Formatter};
+use core::mem::transmute;
 use bitbybit::{bitenum, bitfield};
 use crate::cop1::FCSRRoundingMode::{NegativeInfinity, PositiveInfinity};
+
+pub struct FConst { }
+
+impl FConst {
+    // Signalling NAN range (taken from https://www.doc.ic.ac.uk/~eedwards/compsys/float/nan.html).
+    pub const SIGNALLING_NAN_START_32: f32 = unsafe { transmute(0x7F800001u32) };
+    pub const SIGNALLING_NAN_END_32: f32 = unsafe { transmute(0x7FBFFFFFu32) };
+    pub const SIGNALLING_NAN_NEGATIVE_START_32: f32 = unsafe { transmute(0xFF800001u32) };
+    pub const SIGNALLING_NAN_NEGATIVE_END_32: f32 = unsafe { transmute(0xFFBFFFFFu32) };
+
+    pub const SIGNALLING_NAN_START_64: f64 = unsafe { transmute(0x7FF0000000000001u64) };
+    pub const SIGNALLING_NAN_END_64: f64 = unsafe { transmute(0x7FF7FFFFFFFFFFFFu64) };
+    pub const SIGNALLING_NAN_NEGATIVE_START_64: f64 = unsafe { transmute(0xFFF0000000000001u64) };
+    pub const SIGNALLING_NAN_NEGATIVE_END_64: f64 = unsafe { transmute(0xFFF7FFFFFFFFFFFFu64) };
+
+    // Quiet NAN range. The COP1 doesn't seem to support those at all
+    pub const QUIET_NAN_START_32: f32 = unsafe { transmute(0x7FC00000u32) };
+    pub const QUIET_NAN_END_32: f32 = unsafe { transmute(0x7FFFFFFFu32) };
+    pub const QUIET_NAN_NEGATIVE_START_32: f32 = unsafe { transmute(0xFFC00000u32) };
+    pub const QUIET_NAN_NEGATIVE_END_32: f32 = unsafe { transmute(0xFFFFFFFFu32) };
+
+    pub const QUIET_NAN_START_64: f64 = unsafe { transmute(0x7FF8000000000000u64) };
+    pub const QUIET_NAN_END_64: f64 = unsafe { transmute(0x7FFFFFFFFFFFFFFFu64) };
+    pub const QUIET_NAN_NEGATIVE_START_64: f64 = unsafe { transmute(0xFFF8000000000000u64) };
+    pub const QUIET_NAN_NEGATIVE_END_64: f64 = unsafe { transmute(0xFFFFFFFFFFFFFFFFu64) };
+
+    pub const SUBNORMAL_MIN_POSITIVE_32: f32 = unsafe { transmute::<u32, f32>(0x00000001) };
+    pub const SUBNORMAL_MAX_POSITIVE_32: f32 = unsafe { transmute::<u32, f32>(0x007fffff) };
+    pub const SUBNORMAL_MIN_NEGATIVE_32: f32 = unsafe { transmute::<u32, f32>(0x80000001) };
+    pub const SUBNORMAL_MAX_NEGATIVE_32: f32 = unsafe { transmute::<u32, f32>(0x807fffff) };
+
+    pub const SUBNORMAL_EXAMPLE_32: f32 = unsafe { transmute::<u32, f32>(0x00400000) };
+    pub const SUBNORMAL_EXAMPLE_64: f64 = unsafe { transmute::<u64, f64>(0x0008000000000000) };
+}
 
 #[bitenum(u2, exhaustive: true)]
 #[derive(PartialEq, Eq, Debug)]
@@ -175,6 +210,7 @@ impl Debug for FCSR {
         let cause = cause_tmp.trim_end();
 
         f.debug_struct("FCSR")
+            .field("condition", &self.condition())
             .field("rounding_mode", &self.rounding_mode())
             .field("flush_denorm_to_zero", &self.flush_denorm_to_zero())
             .field("flags", &self.flags())

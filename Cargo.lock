@@ -244,7 +244,7 @@ dependencies = [
 
 [[package]]
 name = "n64-systemtest"
-version = "1.0.17"
+version = "1.0.18"
 dependencies = [
  "arbitrary-int",
  "arrayref",
