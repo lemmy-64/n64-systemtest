@@ -14,7 +14,7 @@ use crate::tests::{Level, Test};
 use crate::tests::soft_asserts::{soft_assert_eq, soft_assert_eq2, soft_assert_f32_bits, soft_assert_f64_bits};
 
 // Lessons learned:
-// - CFC1 for 0 returns a constent. CTC1 to 0 is ignored.
+// - CFC1 for 0 returns a constant. CTC1 to 0 is ignored.
 // - CFC1 for 1 returns random garbage that seems to contain the original value of the register as well
 //   no test for those
 // - Untested, but we're assuming that 2..=30 behave the same way
@@ -25,7 +25,6 @@ use crate::tests::soft_asserts::{soft_assert_eq, soft_assert_eq2, soft_assert_f3
 // - FPU exception can simply be set via software, by CTC1'ing the bits
 // - When an FPU exception fires, the NEXT instruction defines what the value of Cause.copindex is
 //   (if it's for example a MFC1, it will be 1. For NOP, it will be 0).
-// ADD, MUL, DIV:
 // - Underflow happens if flush-denorm is set. If flush-denorm is false OR if underflow exceptions are actually enabled,
 //   UnimplementedOperationException is fired instead
 // - Signalling NANs don't work at all. If either one of the inputs has this value, UnimplementedOperationException is fired
@@ -66,6 +65,7 @@ const QUIET_NAN_NEGATIVE_END_64: f64 = unsafe { transmute(0xFFFFFFFFFFFFFFFFu64)
 const SUBNORMAL_EXAMPLE_32: f32 = unsafe { transmute::<u32, f32>(0x00400000) };
 const SUBNORMAL_EXAMPLE_64: f64 = unsafe { transmute::<u64, f64>(0x0008000000000000) };
 
+// Some shortcuts so avoid the need for generic descriptions below
 const fn expected_result<F: Copy>(flags: FCSRFlags, result: F) -> Result<(FCSRFlags, F), ()> { Ok((flags, result)) }
 const fn expected_unimplemented_f32() -> Result<(FCSRFlags, f32), ()> { Err(()) }
 const fn expected_unimplemented_f64() -> Result<(FCSRFlags, f64), ()> { Err(()) }
