@@ -3,10 +3,10 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::any::Any;
 use core::arch::asm;
+use arbitrary_int::{u31, u41};
 use crate::cop0;
-use crate::cop0::CauseException;
+use crate::cop0::{CauseException, Context, XContext};
 use crate::exception_handler::expect_exception;
-use crate::memory_map::MemoryMap;
 
 use crate::tests::{Level, Test};
 use crate::tests::soft_asserts::soft_assert_eq;
@@ -29,8 +29,9 @@ impl Test for UnalignedLW {
     fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
-        // Use a pointer after a HEAP. This way we can guarantee constant pointers (allowing us to verify context, badvaddr against constants below)
-        let p = (MemoryMap::HEAP_END_VIRTUAL_CACHED + 12345) as *mut u32;
+        let a = 0x12345678u32;
+        // Make unaligned pointer
+        let p = &a as *const u32 as isize + 2;
 
         unsafe { cop0::set_context_64(0); }
         unsafe { cop0::set_xcontext_64(0); }
@@ -48,11 +49,11 @@ impl Test for UnalignedLW {
         soft_assert_eq(exception_context.k0_exception_vector, 0xFFFFFFFF_80000180, "Exception Vector")?;
         soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
         soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32) }, 0x8C600000, "ExceptPC points to wrong instruction")?;
-        soft_assert_eq(exception_context.badvaddr, p as isize as u64, "BadVAddr during AdEL exception")?;
+        soft_assert_eq(exception_context.badvaddr, p as u64, "BadVAddr during AdEL exception")?;
         soft_assert_eq(exception_context.cause.raw_value(), 0x10, "Cause during AdEL exception")?;
         soft_assert_eq(exception_context.status, 0x24000002, "Status during AdEL exception")?;
-        soft_assert_eq(exception_context.context, 0x401410, "Context during AdEL exception")?;
-        soft_assert_eq(exception_context.xcontext, 0x1_FFC01410, "XContext during AdEL exception")?;
+        soft_assert_eq(exception_context.context, Context::from_virtual_address(p as u64), "Context during AdEL exception")?;
+        soft_assert_eq(exception_context.xcontext, XContext::from_virtual_address(p as u64), "XContext during AdEL exception")?;
 
         Ok(())
     }
@@ -68,8 +69,9 @@ impl Test for UnalignedLW2 {
     fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
-        // Use a pointer after a HEAP. This way we can guarantee constant pointers (allowing us to verify context, badvaddr against constants below)
-        let p = (MemoryMap::HEAP_END_VIRTUAL_CACHED + 22345) as *mut u32;
+        let a = 0x12345678u32;
+        // Make unaligned pointer
+        let p = &a as *const u32 as isize + 3;
 
         unsafe { cop0::set_context_64(0xFFFFFFFF_FFFFFFFF); }
         unsafe { cop0::set_xcontext_64(0xFFFFFFFF_FFFFFFFF); }
@@ -90,8 +92,8 @@ impl Test for UnalignedLW2 {
         soft_assert_eq(exception_context.badvaddr, p as isize as u64, "BadVAddr during AdEL exception")?;
         soft_assert_eq(exception_context.cause.raw_value(), 0x10, "Cause during AdEL exception")?;
         soft_assert_eq(exception_context.status, 0x24000002, "Status during AdEL exception")?;
-        soft_assert_eq(exception_context.context, 0xFFFFFFFF_FFC01420, "Context during AdEL exception")?;
-        soft_assert_eq(exception_context.xcontext, 0xFFFFFFFF_FFC01420, "XContext during AdEL exception")?;
+        soft_assert_eq(exception_context.context, Context::from_virtual_address(p as u64).with_pte_base(u41::MAX), "Context during AdEL exception")?;
+        soft_assert_eq(exception_context.xcontext, XContext::from_virtual_address(p as u64).with_pte_base(u31::MAX), "XContext during AdEL exception")?;
 
         Ok(())
     }
@@ -107,8 +109,9 @@ impl Test for UnalignedLWDelay {
     fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
-        // Use a pointer after a HEAP. This way we can guarantee constant pointers (allowing us to verify context, badvaddr against constants below)
-        let p = (MemoryMap::HEAP_END_VIRTUAL_CACHED + 12345) as *mut u32;
+        let a = 0x12345678u32;
+        // Make unaligned pointer
+        let p = &a as *const u32 as isize + 1;
 
         unsafe { cop0::set_context_64(0); }
         unsafe { cop0::set_xcontext_64(0); }
@@ -134,8 +137,8 @@ impl Test for UnalignedLWDelay {
         soft_assert_eq(exception_context.badvaddr, p as isize as u64, "BadVAddr during AdEL exception")?;
         soft_assert_eq(exception_context.cause.raw_value(), 0x80000010, "Cause during AdEL exception")?;
         soft_assert_eq(exception_context.status, 0x24000002, "Status during AdEL exception")?;
-        soft_assert_eq(exception_context.context, 0x401410, "Context during AdEL exception")?;
-        soft_assert_eq(exception_context.xcontext, 0x1_FFC01410, "XContext during AdEL exception")?;
+        soft_assert_eq(exception_context.context, Context::from_virtual_address(p as u64), "Context during AdEL exception")?;
+        soft_assert_eq(exception_context.xcontext, XContext::from_virtual_address(p as u64), "XContext during AdEL exception")?;
 
         Ok(())
     }
@@ -151,7 +154,9 @@ impl Test for UnalignedSW {
     fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
-        let p = (MemoryMap::HEAP_END_VIRTUAL_CACHED + 32345) as *mut u32;
+        let a = 0x12345678u32;
+        // Make unaligned pointer
+        let p = &a as *const u32 as isize + 2;
 
         unsafe { cop0::set_context_64(0); }
         unsafe { cop0::set_xcontext_64(0); }
@@ -172,8 +177,8 @@ impl Test for UnalignedSW {
         soft_assert_eq(exception_context.badvaddr, p as isize as u64, "BadVAddr during AdES exception")?;
         soft_assert_eq(exception_context.cause.raw_value(), 0x14, "Cause during AdES exception")?;
         soft_assert_eq(exception_context.status, 0x24000002, "Status during AdES exception")?;
-        soft_assert_eq(exception_context.context, 0x401430, "Context during AdES exception")?;
-        soft_assert_eq(exception_context.xcontext, 0x1ffc01430, "XContext during AdES exception")?;
+        soft_assert_eq(exception_context.context, Context::from_virtual_address(p as u64), "Context during AdEL exception")?;
+        soft_assert_eq(exception_context.xcontext, XContext::from_virtual_address(p as u64), "XContext during AdEL exception")?;
 
         Ok(())
     }
@@ -189,7 +194,8 @@ impl Test for LWAddressNotSignExtended {
     fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
-        let p = (MemoryMap::HEAP_END_VIRTUAL_CACHED + 0x1234) as *mut u32;
+        let a = 0x12345678u32;
+        let p = &a as *const u32 as u32;
         // Load from 0x00000000_80xxxxxx causes AdEL, as upper bits are 0
         unsafe { cop0::set_context_64(0); }
         unsafe { cop0::set_xcontext_64(0); }
@@ -213,8 +219,8 @@ impl Test for LWAddressNotSignExtended {
         soft_assert_eq(exception_context.badvaddr, p as u64 & 0xFFFFFFFF, "BadVAddr")?;
         soft_assert_eq(exception_context.cause.raw_value(), 0x10, "Cause")?;
         soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
-        soft_assert_eq(exception_context.context, 0x401400, "Context")?;
-        soft_assert_eq(exception_context.xcontext, 0x401400, "XContext")?;
+        soft_assert_eq(exception_context.context, Context::from_virtual_address(p as u64), "Context during AdEL exception")?;
+        soft_assert_eq(exception_context.xcontext, XContext::from_virtual_address(p as u64), "XContext during AdEL exception")?;
 
         Ok(())
     }
@@ -231,7 +237,8 @@ impl Test for SWAddressNotSignExtended {
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
         // Store into 0x00000000_80xxxxxx causes AdES, as upper bits are 0
-        let p = (MemoryMap::HEAP_END_VIRTUAL_CACHED + 0x1234) as *mut u32;
+        let a = 0x12345678u32;
+        let p = &a as *const u32 as u32;
         unsafe { cop0::set_context_64(0); }
         unsafe { cop0::set_xcontext_64(0); }
         let exception_context = expect_exception(CauseException::AdES, 1, || {
@@ -254,8 +261,8 @@ impl Test for SWAddressNotSignExtended {
         soft_assert_eq(exception_context.badvaddr, p as u64 & 0xFFFFFFFF, "BadVAddr")?;
         soft_assert_eq(exception_context.cause.raw_value(), 0x14, "Cause")?;
         soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
-        soft_assert_eq(exception_context.context, 0x401400, "Context")?;
-        soft_assert_eq(exception_context.xcontext, 0x401400, "XContext")?;
+        soft_assert_eq(exception_context.context, Context::from_virtual_address(p as u64), "Context during AdEL exception")?;
+        soft_assert_eq(exception_context.xcontext, XContext::from_virtual_address(p as u64), "XContext during AdEL exception")?;
 
         Ok(())
     }

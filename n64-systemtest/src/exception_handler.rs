@@ -4,7 +4,7 @@ use core::ops::{Deref, DerefMut};
 
 use spinning_top::Spinlock;
 
-use crate::cop0::{Cause, CauseException};
+use crate::cop0::{Cause, CauseException, Context, XContext};
 use crate::cop1::FCSR;
 use crate::graphics::color::Color;
 use crate::graphics::cursor::Cursor;
@@ -19,7 +19,7 @@ static EXCEPTION_SKIP: Spinlock<Option<u64>> = Spinlock::new(None);
 
 /// Once an exception is seen, this is set to the exception context, along with 1. If another
 /// exception comes in, the counter is incremented and its Context is lost)
-static SEEN_EXCEPTION: Spinlock<Option<(Context, u32)>> = Spinlock::new(None);
+static SEEN_EXCEPTION: Spinlock<Option<(ExceptionContext, u32)>> = Spinlock::new(None);
 
 // TODO: named labels (like exception_handler_000_start) raise a warning. Our usage should be fine,
 // as we only use them to calculate a delta and as we only use it within [naked] functions.
@@ -223,14 +223,14 @@ extern "C" fn exception_handler_generic() {
         EntryHiRegisterIndex = const cop0::RegisterIndex::EntryHi as u32,
         CauseRegisterIndex = const cop0::RegisterIndex::Cause as u32,
         StatusRegisterIndex = const cop0::RegisterIndex::Status as u32,
-        CONTEXT_SIZE = const Context::SIZE, options(noreturn));
+        CONTEXT_SIZE = const ExceptionContext::SIZE, options(noreturn));
     }
 }
 
 extern "C" fn exception_handler_compiled(stackpointer: usize) -> usize {
     let avoid_bluescreen = true;
 
-    let context = unsafe { &mut *(stackpointer as *mut Context) };
+    let context = unsafe { &mut *(stackpointer as *mut ExceptionContext) };
 
     let mut guard = SEEN_EXCEPTION.lock();
     let skip_guard = EXCEPTION_SKIP.lock();
@@ -259,14 +259,14 @@ extern "C" fn exception_handler_compiled(stackpointer: usize) -> usize {
     show_bluescreen_of_death(context);
 }
 
-pub fn drain_seen_exception() -> Option<(Context, u32)> {
+pub fn drain_seen_exception() -> Option<(ExceptionContext, u32)> {
     let mut guard = SEEN_EXCEPTION.lock();
     let result = *guard.deref();
     *guard.deref_mut() = None;
     result
 }
 
-pub fn expect_exception<F>(code: CauseException, skip_instructions_on_hit: u64, f: F) -> Result<Context, alloc::string::String>
+pub fn expect_exception<F>(code: CauseException, skip_instructions_on_hit: u64, f: F) -> Result<ExceptionContext, alloc::string::String>
     where F: FnOnce() -> Result<(), &'static str> {
     let guard = SEEN_EXCEPTION.lock();
     if guard.is_some() {
@@ -370,7 +370,7 @@ fn invalidate_data_cache(start: *const u32, bytes: usize) {
 }
 
 /// Attempts to take over video and show various cop0 registers.
-fn show_bluescreen_of_death(context: &Context) -> ! {
+fn show_bluescreen_of_death(context: &ExceptionContext) -> ! {
     let font = &Font::from_data(&FONT_GENEVA_9).unwrap();
     let mut cursor = Cursor::new_with_font(font, PixelType::WHITE);
     // Not sure why this has to be in a loop, but if we only create a single framebuffer image
@@ -409,11 +409,11 @@ fn show_bluescreen_of_death(context: &Context) -> ! {
         cursor.draw_text(backbuffer, "BadVAddr: ");
         cursor.draw_hex_u64(backbuffer, context.badvaddr);
         cursor.draw_text(backbuffer, ", Context: ");
-        cursor.draw_hex_u64(backbuffer, context.context);
+        cursor.draw_hex_u64(backbuffer, context.context.raw_value());
         cursor.x = 32;
         cursor.y += 16;
         cursor.draw_text(backbuffer, "XContext: ");
-        cursor.draw_hex_u64(backbuffer, context.xcontext);
+        cursor.draw_hex_u64(backbuffer, context.xcontext.raw_value());
         cursor.x = 32;
         cursor.y += 16;
         cursor.draw_text(backbuffer, "EntryLo0: ");
@@ -431,7 +431,7 @@ fn show_bluescreen_of_death(context: &Context) -> ! {
 
 #[repr(C)]
 #[derive(Copy, Clone)]
-pub struct Context {
+pub struct ExceptionContext {
     pub at: u64,
     pub v0: u64,
     pub v1: u64,
@@ -468,8 +468,8 @@ pub struct Context {
 
     pub exceptpc: u64,
     pub errorepc: u64,
-    pub context: u64,
-    pub xcontext: u64,
+    pub context: Context,
+    pub xcontext: XContext,
     pub badvaddr: u64,
     pub entry_lo0: u64,
     pub entry_lo1: u64,
@@ -483,6 +483,6 @@ pub struct Context {
     padding: u32,  // used to pad to 64 bit - feel free to use going forward
 }
 
-impl Context {
+impl ExceptionContext {
     pub const SIZE: usize = 344;
 }

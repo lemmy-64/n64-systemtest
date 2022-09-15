@@ -7,7 +7,7 @@ use core::arch::asm;
 use arbitrary_int::{u2, u5};
 use crate::assembler::{Assembler, FR, GPR};
 use crate::cop0;
-use crate::cop0::{badvaddr, Cause, CauseException, context_64, set_context_64, set_xcontext_64, Status, xcontext_64};
+use crate::cop0::{badvaddr, Cause, CauseException, context, set_context_64, set_xcontext_64, Status, xcontext};
 use crate::cop1::{FCSR, set_fcsr};
 use crate::exception_handler::expect_exception;
 use crate::tests::{Level, Test};
@@ -144,8 +144,8 @@ fn test_instruction_causes_unusable<const INSTRUCTION: u32>(cop_index: u2, usabl
         set_context_64(0x01234567_ABCDEFFE);
         set_xcontext_64(0x01234567_ABCDEFFE);
     }
-    let xcontext_before = xcontext_64();
-    let context_before = context_64();
+    let xcontext_before = xcontext();
+    let context_before = context();
     let badvaddr_before = badvaddr();
 
     // Try calling instruction while the COP is enabled

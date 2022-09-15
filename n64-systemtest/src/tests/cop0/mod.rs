@@ -233,11 +233,11 @@ impl Test for ContextMasking {
     fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
-        let previous = cop0::context_64();
+        let previous = cop0::context();
         for value in [0, 1, 5, 15, 30, 31, 32, 63, 64, 64, 1020, 63102, 0x0F000000, 0xFFFF0002, 0xFFFFFFFF, 0xF2345678_0000000, 0xFFFFFFFF_FFFFFFFF, 0] {
             unsafe { cop0::set_context_64(value); }
-            let expected = (value & 0xFFFFFFFF_FF800000) | (previous & 0x7FFFFF);
-            let readback = cop0::context_64();
+            let expected = (value & 0xFFFFFFFF_FF800000) | (previous.raw_value() & 0x7FFFFF);
+            let readback = cop0::context().raw_value();
             soft_assert_eq(readback, expected, format!("Context was written as {:x}", value).as_str())?;
         }
         Ok(())

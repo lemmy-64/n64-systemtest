@@ -56,8 +56,8 @@ pub fn test_miss_exception<F>(pagemask: u32, offset: u32, valid: bool, dirty: bo
     soft_assert_eq(exception_context.badvaddr, (virtual_page_base + offset) as u64, "BadVAddr during TLB exception")?;
     soft_assert_eq(exception_context.cause, Cause::new().with_exception(code).with_branch_delay(delay), "Cause during TLB exception")?;
     soft_assert_eq(exception_context.status, 0x24000002, "Status during TLB exception")?;
-    soft_assert_eq(exception_context.context, expected_context, "Context during TLB exception")?;
-    soft_assert_eq(exception_context.xcontext, expected_context, "XContext during TLB exception")?;
+    soft_assert_eq(exception_context.context.raw_value(), expected_context, "Context during TLB exception")?;
+    soft_assert_eq(exception_context.xcontext.raw_value(), expected_context, "XContext during TLB exception")?;
     if check_entry_hi {
         // The docs say that asid on exception is the asid of the TLB entry, but test don't confirm that. It seems to stay unchanged
         soft_assert_eq(exception_context.entry_hi, make_entry_hi(1, u27::extract_u64(virtual_page_base as u32 as u64, 13), u2::new(0)), "EntryHi during TLB exception")?;
@@ -310,8 +310,8 @@ impl Test for ExecuteTLBMappedMiss {
         soft_assert_eq(exception_context.badvaddr, fault_address as u64, "BadVAddr during TLB exception")?;
         soft_assert_eq(exception_context.cause, Cause::new().with_exception(CauseException::TLBL), "Cause during TLB exception")?;
         soft_assert_eq(exception_context.status, 0x24000002, "Status during TLB exception")?;
-        soft_assert_eq(exception_context.context, expected_context, "Context during TLB exception")?;
-        soft_assert_eq(exception_context.xcontext, expected_context, "XContext during TLB exception")?;
+        soft_assert_eq(exception_context.context.raw_value(), expected_context, "Context during TLB exception")?;
+        soft_assert_eq(exception_context.xcontext.raw_value(), expected_context, "XContext during TLB exception")?;
         Ok(())
     }
 }
@@ -372,8 +372,8 @@ impl Test for ExecuteTLBMappedMissInDelay {
         soft_assert_eq(exception_context.badvaddr, fault_address as u64, "BadVAddr during TLB exception")?;
         soft_assert_eq(exception_context.cause.raw_value(), 0x80000008, "Cause during TLB exception")?;
         soft_assert_eq(exception_context.status, 0x24000002, "Status during TLB exception")?;
-        soft_assert_eq(exception_context.context, expected_context, "Context during TLB exception")?;
-        soft_assert_eq(exception_context.xcontext, expected_context, "XContext during TLB exception")?;
+        soft_assert_eq(exception_context.context.raw_value(), expected_context, "Context during TLB exception")?;
+        soft_assert_eq(exception_context.xcontext.raw_value(), expected_context, "XContext during TLB exception")?;
         Ok(())
     }
 }
@@ -512,8 +512,8 @@ impl Test for LWTLBMissTest32 {
         soft_assert_eq(exception_context.badvaddr, 0x00000000_00201234, "BadVAddr")?;
         soft_assert_eq(exception_context.cause.raw_value(), 0x8, "Cause")?;
         soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
-        soft_assert_eq(exception_context.context, 0x1000, "Context")?;
-        soft_assert_eq(exception_context.xcontext, 0x1000, "XContext")?;
+        soft_assert_eq(exception_context.context.raw_value(), 0x1000, "Context")?;
+        soft_assert_eq(exception_context.xcontext.raw_value(), 0x1000, "XContext")?;
 
         Ok(())
     }
