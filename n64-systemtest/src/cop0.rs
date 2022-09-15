@@ -1,6 +1,6 @@
 use alloc::string::{String, ToString};
 use core::arch::asm;
-use arbitrary_int::{u2, u27};
+use arbitrary_int::{u19, u2, u27, u31, u41};
 use bitbybit::{bitenum, bitfield};
 use crate::exception_handler::expect_exception;
 
@@ -153,6 +153,44 @@ impl Status {
     pub const ADDRESSING_MODE_64_BIT: Status = Self::DEFAULT.with_kx(true).with_sx(true).with_ux(true);
 }
 
+#[bitfield(u64, default: 0)]
+#[derive(Debug, Eq, PartialEq)]
+pub struct Context {
+    #[bits(23..=63, rw)]
+    pte_base: u41,
+
+    #[bits(4..=22, rw)]
+    bad_vpn2: u19,
+}
+
+impl Context {
+    pub fn from_virtual_address(a: u64) -> Self {
+        Self::new().with_bad_vpn2(u19::extract_u64(a, 13))
+    }
+}
+
+#[bitfield(u64, default: 0)]
+#[derive(Debug, Eq, PartialEq)]
+pub struct XContext {
+    #[bits(33..=63, rw)]
+    pte_base: u31,
+
+    #[bits(31..=32, rw)]
+    r: u2,
+
+    #[bits(4..=30, rw)]
+    bad_vpn2: u27,
+}
+
+impl XContext {
+    pub fn from_virtual_address(a: u64) -> Self {
+        Self::new()
+            .with_bad_vpn2(u27::extract_u64(a, 13))
+            .with_r(u2::extract_u64(a, 62))
+    }
+}
+
+
 #[bitenum(u5, exhaustive: false)]
 #[derive(PartialEq, Eq, Debug)]
 pub enum CauseException {
@@ -292,9 +330,13 @@ pub unsafe fn set_entry_lo1_64(value: u64) {
     unsafe { write_cop0_64::<INDEX>(value) }
 }
 
-pub fn context_64() -> u64 {
+pub fn context() -> Context {
     const INDEX: u32 = RegisterIndex::Context as u32;
-    unsafe { read_cop0_64::<INDEX>() }
+    Context::new_with_raw_value(unsafe { read_cop0_64::<INDEX>() })
+}
+
+pub fn context_64() -> u64 {
+    context().raw_value()
 }
 
 pub unsafe fn set_context_64(value: u64) {
@@ -412,9 +454,13 @@ pub unsafe fn set_lladdr(value: u64) {
     unsafe { write_cop0_64::<INDEX>(value) }
 }
 
-pub fn xcontext_64() -> u64 {
+pub fn xcontext() -> XContext {
     const INDEX: u32 = RegisterIndex::XContext as u32;
-    unsafe { read_cop0_64::<INDEX>() }
+    XContext::new_with_raw_value(unsafe { read_cop0_64::<INDEX>() })
+}
+
+pub fn xcontext_64() -> u64 {
+    xcontext().raw_value()
 }
 
 pub unsafe fn set_xcontext_64(value: u64) {
