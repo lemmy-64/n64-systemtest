@@ -1,5 +1,5 @@
 // Memory map:
-// 0x8000_0000 to (as much as needed): bss
+// 0x8000_0000 to (as much as needed): bss, text, data, rodata
 // until 3.0mb: heap (including the framebuffer)
 // growing down from the end: stack
 
