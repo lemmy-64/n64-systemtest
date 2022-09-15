@@ -210,6 +210,7 @@ unsafe fn write_cop0<const INDEX: u32>(value: u32) {
         .set noat
         mtc0 {gpr}, ${cop0reg}
         nop
+        nop
     ", gpr = in(reg) value, cop0reg = const INDEX)
     }
 }
