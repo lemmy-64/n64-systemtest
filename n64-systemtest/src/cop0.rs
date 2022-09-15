@@ -407,6 +407,27 @@ pub fn lladdr() -> u64 {
     unsafe { read_cop0_64::<INDEX>() }
 }
 
+pub fn clear_llbit() {
+    unsafe {
+        asm!("
+            .set noat
+            .set noreorder
+            DADD $2, $0, $31         // stash $31
+            JAL 1f                   // Figure out current PC
+            NOP
+            1:
+            DADDIU $31, $31, 20      // increment PC to hit one of the NOPs below
+            DMTC0 $31, ${ExceptPCRegisterIndex}
+            DADD $31, $0, $2         // restore $31
+            NOP
+            ERET                     // clear LLBit
+            NOP
+            NOP                      // this is the ERET target
+            NOP",
+        ExceptPCRegisterIndex = const crate::cop0::RegisterIndex::ExceptPC as u32, out("$2") _);
+    }
+}
+
 pub unsafe fn set_lladdr(value: u64) {
     const INDEX: u32 = RegisterIndex::LLAddr as u32;
     unsafe { write_cop0_64::<INDEX>(value) }

@@ -13,6 +13,7 @@ use crate::isviewer::text_out;
 use crate::tests::traps::Immediate;
 
 mod arithmetic;
+mod memory_instructions;
 mod address_error_exception;
 mod cart_memory;
 mod cop_unusable;
