@@ -718,7 +718,6 @@ fn test_floating_point<FIn: Copy, FOut: Copy, FAsmBlock: Fn(FIn, FIn) -> FOut, F
     Ok(())
 }
 
-#[inline(never)]
 fn test_floating_point_f32<const INSTRUCTION: u32>(context: &str, flush_denorm_to_zero: bool, rounding_mode: FCSRRoundingMode, value1: f32, value2: f32, expected: Result<(FCSRFlags, f32), ()>) -> Result<(), String> {
     const BEQ_INSTRUCTION: u32 = Assembler::make_beq(GPR::R0, GPR::R0, 1);
 
@@ -733,7 +732,6 @@ fn test_floating_point_f32<const INSTRUCTION: u32>(context: &str, flush_denorm_t
         flush_denorm_to_zero, rounding_mode, value1, value2, expected)
 }
 
-#[inline(never)]
 fn test_floating_point_f32tof64<const INSTRUCTION: u32>(context: &str, flush_denorm_to_zero: bool, rounding_mode: FCSRRoundingMode, value1: f32, value2: f32, expected: Result<(FCSRFlags, f64), ()>) -> Result<(), String> {
     const BEQ_INSTRUCTION: u32 = Assembler::make_beq(GPR::R0, GPR::R0, 1);
 
@@ -748,7 +746,6 @@ fn test_floating_point_f32tof64<const INSTRUCTION: u32>(context: &str, flush_den
         flush_denorm_to_zero, rounding_mode, value1, value2, expected)
 }
 
-#[inline(never)]
 fn test_floating_point_f32toi32<const INSTRUCTION: u32>(context: &str, flush_denorm_to_zero: bool, rounding_mode: FCSRRoundingMode, value1: f32, value2: f32, expected: Result<(FCSRFlags, i32), ()>) -> Result<(), String> {
     const BEQ_INSTRUCTION: u32 = Assembler::make_beq(GPR::R0, GPR::R0, 1);
 
@@ -763,7 +760,6 @@ fn test_floating_point_f32toi32<const INSTRUCTION: u32>(context: &str, flush_den
         flush_denorm_to_zero, rounding_mode, value1, value2, expected)
 }
 
-#[inline(never)]
 fn test_floating_point_f32toi64<const INSTRUCTION: u32>(context: &str, flush_denorm_to_zero: bool, rounding_mode: FCSRRoundingMode, value1: f32, value2: f32, expected: Result<(FCSRFlags, i64), ()>) -> Result<(), String> {
     const BEQ_INSTRUCTION: u32 = Assembler::make_beq(GPR::R0, GPR::R0, 1);
 
@@ -778,7 +774,6 @@ fn test_floating_point_f32toi64<const INSTRUCTION: u32>(context: &str, flush_den
         flush_denorm_to_zero, rounding_mode, value1, value2, expected)
 }
 
-#[inline(never)]
 fn test_floating_point_f64<const INSTRUCTION: u32>(context: &str, flush_denorm_to_zero: bool, rounding_mode: FCSRRoundingMode, value1: f64, value2: f64, expected: Result<(FCSRFlags, f64), ()>) -> Result<(), String> {
     const BEQ_INSTRUCTION: u32 = Assembler::make_beq(GPR::R0, GPR::R0, 1);
 
@@ -793,7 +788,6 @@ fn test_floating_point_f64<const INSTRUCTION: u32>(context: &str, flush_denorm_t
         flush_denorm_to_zero, rounding_mode, value1, value2, expected)
 }
 
-#[inline(never)]
 fn test_floating_point_f64tof32<const INSTRUCTION: u32>(context: &str, flush_denorm_to_zero: bool, rounding_mode: FCSRRoundingMode, value1: f64, value2: f64, expected: Result<(FCSRFlags, f32), ()>) -> Result<(), String> {
     const BEQ_INSTRUCTION: u32 = Assembler::make_beq(GPR::R0, GPR::R0, 1);
 
@@ -808,7 +802,6 @@ fn test_floating_point_f64tof32<const INSTRUCTION: u32>(context: &str, flush_den
         flush_denorm_to_zero, rounding_mode, value1, value2, expected)
 }
 
-#[inline(never)]
 fn test_floating_point_f64toi32<const INSTRUCTION: u32>(context: &str, flush_denorm_to_zero: bool, rounding_mode: FCSRRoundingMode, value1: f64, value2: f64, expected: Result<(FCSRFlags, i32), ()>) -> Result<(), String> {
     const BEQ_INSTRUCTION: u32 = Assembler::make_beq(GPR::R0, GPR::R0, 1);
 
@@ -823,7 +816,6 @@ fn test_floating_point_f64toi32<const INSTRUCTION: u32>(context: &str, flush_den
         flush_denorm_to_zero, rounding_mode, value1, value2, expected)
 }
 
-#[inline(never)]
 fn test_floating_point_f64toi64<const INSTRUCTION: u32>(context: &str, flush_denorm_to_zero: bool, rounding_mode: FCSRRoundingMode, value1: f64, value2: f64, expected: Result<(FCSRFlags, i64), ()>) -> Result<(), String> {
     const BEQ_INSTRUCTION: u32 = Assembler::make_beq(GPR::R0, GPR::R0, 1);
 
@@ -838,7 +830,6 @@ fn test_floating_point_f64toi64<const INSTRUCTION: u32>(context: &str, flush_den
         flush_denorm_to_zero, rounding_mode, value1, value2, expected)
 }
 
-#[inline(never)]
 fn test_floating_point_i32tof32<const INSTRUCTION: u32>(context: &str, flush_denorm_to_zero: bool, rounding_mode: FCSRRoundingMode, value1: i32, value2: i32, expected: Result<(FCSRFlags, f32), ()>) -> Result<(), String> {
     const BEQ_INSTRUCTION: u32 = Assembler::make_beq(GPR::R0, GPR::R0, 1);
 
@@ -853,7 +844,6 @@ fn test_floating_point_i32tof32<const INSTRUCTION: u32>(context: &str, flush_den
         flush_denorm_to_zero, rounding_mode, value1, value2, expected)
 }
 
-#[inline(never)]
 fn test_floating_point_i32toi32<const INSTRUCTION: u32>(context: &str, flush_denorm_to_zero: bool, rounding_mode: FCSRRoundingMode, value1: i32, value2: i32, expected: Result<(FCSRFlags, i32), ()>) -> Result<(), String> {
     const BEQ_INSTRUCTION: u32 = Assembler::make_beq(GPR::R0, GPR::R0, 1);
 
@@ -868,7 +858,6 @@ fn test_floating_point_i32toi32<const INSTRUCTION: u32>(context: &str, flush_den
         flush_denorm_to_zero, rounding_mode, value1, value2, expected)
 }
 
-#[inline(never)]
 fn test_floating_point_i32toi64<const INSTRUCTION: u32>(context: &str, flush_denorm_to_zero: bool, rounding_mode: FCSRRoundingMode, value1: i32, value2: i32, expected: Result<(FCSRFlags, i64), ()>) -> Result<(), String> {
     const BEQ_INSTRUCTION: u32 = Assembler::make_beq(GPR::R0, GPR::R0, 1);
 
@@ -883,7 +872,6 @@ fn test_floating_point_i32toi64<const INSTRUCTION: u32>(context: &str, flush_den
         flush_denorm_to_zero, rounding_mode, value1, value2, expected)
 }
 
-#[inline(never)]
 fn test_floating_point_i32tof64<const INSTRUCTION: u32>(context: &str, flush_denorm_to_zero: bool, rounding_mode: FCSRRoundingMode, value1: i32, value2: i32, expected: Result<(FCSRFlags, f64), ()>) -> Result<(), String> {
     const BEQ_INSTRUCTION: u32 = Assembler::make_beq(GPR::R0, GPR::R0, 1);
 
@@ -898,7 +886,6 @@ fn test_floating_point_i32tof64<const INSTRUCTION: u32>(context: &str, flush_den
         flush_denorm_to_zero, rounding_mode, value1, value2, expected)
 }
 
-#[inline(never)]
 fn test_floating_point_i64tof32<const INSTRUCTION: u32>(context: &str, flush_denorm_to_zero: bool, rounding_mode: FCSRRoundingMode, value1: i64, value2: i64, expected: Result<(FCSRFlags, f32), ()>) -> Result<(), String> {
     const BEQ_INSTRUCTION: u32 = Assembler::make_beq(GPR::R0, GPR::R0, 1);
 
@@ -913,7 +900,6 @@ fn test_floating_point_i64tof32<const INSTRUCTION: u32>(context: &str, flush_den
         flush_denorm_to_zero, rounding_mode, value1, value2, expected)
 }
 
-#[inline(never)]
 fn test_floating_point_i64tof64<const INSTRUCTION: u32>(context: &str, flush_denorm_to_zero: bool, rounding_mode: FCSRRoundingMode, value1: i64, value2: i64, expected: Result<(FCSRFlags, f64), ()>) -> Result<(), String> {
     const BEQ_INSTRUCTION: u32 = Assembler::make_beq(GPR::R0, GPR::R0, 1);
 
@@ -928,7 +914,6 @@ fn test_floating_point_i64tof64<const INSTRUCTION: u32>(context: &str, flush_den
         flush_denorm_to_zero, rounding_mode, value1, value2, expected)
 }
 
-#[inline(never)]
 fn test_floating_point_i64toi32<const INSTRUCTION: u32>(context: &str, flush_denorm_to_zero: bool, rounding_mode: FCSRRoundingMode, value1: i64, value2: i64, expected: Result<(FCSRFlags, i32), ()>) -> Result<(), String> {
     const BEQ_INSTRUCTION: u32 = Assembler::make_beq(GPR::R0, GPR::R0, 1);
 
@@ -943,7 +928,6 @@ fn test_floating_point_i64toi32<const INSTRUCTION: u32>(context: &str, flush_den
         flush_denorm_to_zero, rounding_mode, value1, value2, expected)
 }
 
-#[inline(never)]
 fn test_floating_point_i64toi64<const INSTRUCTION: u32>(context: &str, flush_denorm_to_zero: bool, rounding_mode: FCSRRoundingMode, value1: i64, value2: i64, expected: Result<(FCSRFlags, i64), ()>) -> Result<(), String> {
     const BEQ_INSTRUCTION: u32 = Assembler::make_beq(GPR::R0, GPR::R0, 1);
 
@@ -2245,6 +2229,8 @@ impl Test for CvtD {
             Box::new((false, FCSRRoundingMode::Nearest, 9i32, expected_result(FCSRFlags::new(), 9f64))),
             Box::new((false, FCSRRoundingMode::Zero, 1234567891i32, expected_result(FCSRFlags::new(), 1234567891f64))),
             Box::new((false, FCSRRoundingMode::Zero, -1234567891i32, expected_result(FCSRFlags::new(), -1234567891f64))),
+            Box::new((false, FCSRRoundingMode::PositiveInfinity, -1234567891i32, expected_result(FCSRFlags::new(), -1234567891f64))),
+            Box::new((false, FCSRRoundingMode::NegativeInfinity, -1234567891i32, expected_result(FCSRFlags::new(), -1234567891f64))),
 
             // L => D
             Box::new((false, FCSRRoundingMode::Nearest, 9i64, expected_result(FCSRFlags::new(), 9f64))),
@@ -2409,15 +2395,17 @@ impl Test for ConvertToW {
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
         match (*value).downcast_ref::<(bool, FCSRRoundingMode, f32, Result<(FCSRFlags, i32), ()>)>() {
             Some((flush_denorm_to_zero, rounding_mode, value1, expected)) => {
+                // Call CVT
                 const INSTRUCTION: u32 = Assembler::make_cvt_w_s(FR::F4, FR::F0);
                 test_floating_point_f32toi32::<INSTRUCTION>("CVT.W.S", *flush_denorm_to_zero, *rounding_mode, *value1, 0f32, *expected)?;
 
+                // Call ROUND/TRUNC/CEIL/FLOOR while the wrong rounding mode is set
                 const ROUND_INSTRUCTION: u32 = Assembler::make_round_w_s(FR::F4, FR::F0);
                 const TRUNC_INSTRUCTION: u32 = Assembler::make_trunc_w_s(FR::F4, FR::F0);
                 const FLOOR_INSTRUCTION: u32 = Assembler::make_floor_w_s(FR::F4, FR::F0);
                 const CEIL_INSTRUCTION: u32 = Assembler::make_ceil_w_s(FR::F4, FR::F0);
 
-                for dummy_rounding_mode in FCSRRoundingMode::ALL {
+                for dummy_rounding_mode in [FCSRRoundingMode::PositiveInfinity, FCSRRoundingMode::NegativeInfinity] {
                     match *rounding_mode {
                         FCSRRoundingMode::Nearest => test_floating_point_f32toi32::<ROUND_INSTRUCTION>("ROUND.W.S", *flush_denorm_to_zero, dummy_rounding_mode, *value1, 0f32, *expected)?,
                         FCSRRoundingMode::Zero => test_floating_point_f32toi32::<TRUNC_INSTRUCTION>("TRUNC.W.S", *flush_denorm_to_zero, dummy_rounding_mode, *value1, 0f32, *expected)?,
@@ -2431,15 +2419,17 @@ impl Test for ConvertToW {
         }
         match (*value).downcast_ref::<(bool, FCSRRoundingMode, f64, Result<(FCSRFlags, i32), ()>)>() {
             Some((flush_denorm_to_zero, rounding_mode, value1, expected)) => {
+                // Call CVT
                 const INSTRUCTION: u32 = Assembler::make_cvt_w_d(FR::F4, FR::F0);
                 test_floating_point_f64toi32::<INSTRUCTION>("CVT.W.D", *flush_denorm_to_zero, *rounding_mode, *value1, 0f64, *expected)?;
 
+                // Call ROUND/TRUNC/CEIL/FLOOR while the wrong rounding mode is set
                 const ROUND_INSTRUCTION: u32 = Assembler::make_round_w_d(FR::F4, FR::F0);
                 const TRUNC_INSTRUCTION: u32 = Assembler::make_trunc_w_d(FR::F4, FR::F0);
                 const FLOOR_INSTRUCTION: u32 = Assembler::make_floor_w_d(FR::F4, FR::F0);
                 const CEIL_INSTRUCTION: u32 = Assembler::make_ceil_w_d(FR::F4, FR::F0);
 
-                for dummy_rounding_mode in FCSRRoundingMode::ALL {
+                for dummy_rounding_mode in [FCSRRoundingMode::PositiveInfinity, FCSRRoundingMode::NegativeInfinity] {
                     match *rounding_mode {
                         FCSRRoundingMode::Nearest => test_floating_point_f64toi32::<ROUND_INSTRUCTION>("ROUND.W.D", *flush_denorm_to_zero, dummy_rounding_mode, *value1, 0f64, *expected)?,
                         FCSRRoundingMode::Zero => test_floating_point_f64toi32::<TRUNC_INSTRUCTION>("TRUNC.W.D", *flush_denorm_to_zero, dummy_rounding_mode, *value1, 0f64, *expected)?,
@@ -2453,18 +2443,10 @@ impl Test for ConvertToW {
         }
         match (*value).downcast_ref::<(f32, Result<(FCSRFlags, i32), ()>)>() {
             Some((value1, expected)) => {
+                // No rounding mode specified. Make a recursive call with all four possible ones
                 for rounding_mode in FCSRRoundingMode::ALL {
-                    const INSTRUCTION: u32 = Assembler::make_cvt_w_s(FR::F4, FR::F0);
-                    test_floating_point_f32toi32::<INSTRUCTION>("CVT.W.S", false, rounding_mode, *value1, 0f32, *expected)?;
-
-                    const INSTRUCTION2: u32 = Assembler::make_round_w_s(FR::F4, FR::F0);
-                    test_floating_point_f32toi32::<INSTRUCTION2>("ROUND.W.S", false, rounding_mode, *value1, 0f32, *expected)?;
-                    const INSTRUCTION3: u32 = Assembler::make_trunc_w_s(FR::F4, FR::F0);
-                    test_floating_point_f32toi32::<INSTRUCTION3>("TRUNC.W.S", false, rounding_mode, *value1, 0f32, *expected)?;
-                    const INSTRUCTION4: u32 = Assembler::make_ceil_w_s(FR::F4, FR::F0);
-                    test_floating_point_f32toi32::<INSTRUCTION4>("CEIL.W.S", false, rounding_mode, *value1, 0f32, *expected)?;
-                    const INSTRUCTION5: u32 = Assembler::make_floor_w_s(FR::F4, FR::F0);
-                    test_floating_point_f32toi32::<INSTRUCTION5>("FLOOR.W.S", false, rounding_mode, *value1, 0f32, *expected)?;
+                    let data: Box<dyn Any> = Box::new((false, rounding_mode, *value1, *expected));
+                    self.run(&data)?;
                 }
                 return Ok(())
             }
@@ -2472,18 +2454,10 @@ impl Test for ConvertToW {
         }
         match (*value).downcast_ref::<(f64, Result<(FCSRFlags, i32), ()>)>() {
             Some((value1, expected)) => {
+                // No rounding mode specified. Make a recursive call with all four possible ones
                 for rounding_mode in FCSRRoundingMode::ALL {
-                    const INSTRUCTION: u32 = Assembler::make_cvt_w_d(FR::F4, FR::F0);
-                    test_floating_point_f64toi32::<INSTRUCTION>("CVT.W.D", false, rounding_mode, *value1, 0f64, *expected)?;
-
-                    const INSTRUCTION2: u32 = Assembler::make_round_w_d(FR::F4, FR::F0);
-                    test_floating_point_f64toi32::<INSTRUCTION2>("ROUND.W.D", false, rounding_mode, *value1, 0f64, *expected)?;
-                    const INSTRUCTION3: u32 = Assembler::make_trunc_w_d(FR::F4, FR::F0);
-                    test_floating_point_f64toi32::<INSTRUCTION3>("TRUNC.W.D", false, rounding_mode, *value1, 0f64, *expected)?;
-                    const INSTRUCTION4: u32 = Assembler::make_ceil_w_d(FR::F4, FR::F0);
-                    test_floating_point_f64toi32::<INSTRUCTION4>("CEIL.W.D", false, rounding_mode, *value1, 0f64, *expected)?;
-                    const INSTRUCTION5: u32 = Assembler::make_floor_w_d(FR::F4, FR::F0);
-                    test_floating_point_f64toi32::<INSTRUCTION5>("FLOOR.W.D", false, rounding_mode, *value1, 0f64, *expected)?;
+                    let data: Box<dyn Any> = Box::new((false, rounding_mode, *value1, *expected));
+                    self.run(&data)?;
                 }
                 return Ok(())
             }
@@ -2658,6 +2632,7 @@ impl Test for ConvertToL {
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
         match (*value).downcast_ref::<(bool, FCSRRoundingMode, f32, Result<(FCSRFlags, i64), ()>)>() {
             Some((flush_denorm_to_zero, rounding_mode, value1, expected)) => {
+                // Call CVT
                 const INSTRUCTION: u32 = Assembler::make_cvt_l_s(FR::F4, FR::F0);
                 test_floating_point_f32toi64::<INSTRUCTION>("CVT.L.S", *flush_denorm_to_zero, *rounding_mode, *value1, 0f32, *expected)?;
 
@@ -2666,7 +2641,7 @@ impl Test for ConvertToL {
                 const FLOOR_INSTRUCTION: u32 = Assembler::make_floor_l_s(FR::F4, FR::F0);
                 const CEIL_INSTRUCTION: u32 = Assembler::make_ceil_l_s(FR::F4, FR::F0);
 
-                for dummy_rounding_mode in FCSRRoundingMode::ALL {
+                for dummy_rounding_mode in [FCSRRoundingMode::PositiveInfinity, FCSRRoundingMode::NegativeInfinity] {
                     match *rounding_mode {
                         FCSRRoundingMode::Nearest => test_floating_point_f32toi64::<ROUND_INSTRUCTION>("ROUND.L.S", *flush_denorm_to_zero, dummy_rounding_mode, *value1, 0f32, *expected)?,
                         FCSRRoundingMode::Zero => test_floating_point_f32toi64::<TRUNC_INSTRUCTION>("TRUNC.L.S", *flush_denorm_to_zero, dummy_rounding_mode, *value1, 0f32, *expected)?,
@@ -2680,15 +2655,17 @@ impl Test for ConvertToL {
         }
         match (*value).downcast_ref::<(bool, FCSRRoundingMode, f64, Result<(FCSRFlags, i64), ()>)>() {
             Some((flush_denorm_to_zero, rounding_mode, value1, expected)) => {
+                // Call CVT
                 const INSTRUCTION: u32 = Assembler::make_cvt_l_d(FR::F4, FR::F0);
                 test_floating_point_f64toi64::<INSTRUCTION>("CVT.L.D", *flush_denorm_to_zero, *rounding_mode, *value1, 0f64, *expected)?;
 
+                // Call ROUND/TRUNC/CEIL/FLOOR while the wrong rounding mode is set
                 const ROUND_INSTRUCTION: u32 = Assembler::make_round_l_d(FR::F4, FR::F0);
                 const TRUNC_INSTRUCTION: u32 = Assembler::make_trunc_l_d(FR::F4, FR::F0);
                 const FLOOR_INSTRUCTION: u32 = Assembler::make_floor_l_d(FR::F4, FR::F0);
                 const CEIL_INSTRUCTION: u32 = Assembler::make_ceil_l_d(FR::F4, FR::F0);
 
-                for dummy_rounding_mode in FCSRRoundingMode::ALL {
+                for dummy_rounding_mode in [FCSRRoundingMode::PositiveInfinity, FCSRRoundingMode::NegativeInfinity] {
                     match *rounding_mode {
                         FCSRRoundingMode::Nearest => test_floating_point_f64toi64::<ROUND_INSTRUCTION>("ROUND.L.D", *flush_denorm_to_zero, dummy_rounding_mode, *value1, 0f64, *expected)?,
                         FCSRRoundingMode::Zero => test_floating_point_f64toi64::<TRUNC_INSTRUCTION>("TRUNC.L.D", *flush_denorm_to_zero, dummy_rounding_mode, *value1, 0f64, *expected)?,
@@ -2702,18 +2679,10 @@ impl Test for ConvertToL {
         }
         match (*value).downcast_ref::<(f32, Result<(FCSRFlags, i64), ()>)>() {
             Some((value1, expected)) => {
+                // No rounding mode specified. Make a recursive call with all four possible ones
                 for rounding_mode in FCSRRoundingMode::ALL {
-                    const INSTRUCTION: u32 = Assembler::make_cvt_l_s(FR::F4, FR::F0);
-                    test_floating_point_f32toi64::<INSTRUCTION>("CVT.L.S", false, rounding_mode, *value1, 0f32, *expected)?;
-
-                    const INSTRUCTION2: u32 = Assembler::make_round_l_s(FR::F4, FR::F0);
-                    test_floating_point_f32toi64::<INSTRUCTION2>("ROUND.L.S", false, rounding_mode, *value1, 0f32, *expected)?;
-                    const INSTRUCTION3: u32 = Assembler::make_trunc_l_s(FR::F4, FR::F0);
-                    test_floating_point_f32toi64::<INSTRUCTION3>("TRUNC.L.S", false, rounding_mode, *value1, 0f32, *expected)?;
-                    const INSTRUCTION4: u32 = Assembler::make_ceil_l_s(FR::F4, FR::F0);
-                    test_floating_point_f32toi64::<INSTRUCTION4>("CEIL.L.S", false, rounding_mode, *value1, 0f32, *expected)?;
-                    const INSTRUCTION5: u32 = Assembler::make_trunc_l_s(FR::F4, FR::F0);
-                    test_floating_point_f32toi64::<INSTRUCTION5>("FLOOR.L.S", false, rounding_mode, *value1, 0f32, *expected)?;
+                    let data: Box<dyn Any> = Box::new((false, rounding_mode, *value1, *expected));
+                    self.run(&data)?;
                 }
                 return Ok(())
             }
@@ -2721,18 +2690,10 @@ impl Test for ConvertToL {
         }
         match (*value).downcast_ref::<(f64, Result<(FCSRFlags, i64), ()>)>() {
             Some((value1, expected)) => {
+                // No rounding mode specified. Make a recursive call with all four possible ones
                 for rounding_mode in FCSRRoundingMode::ALL {
-                    const INSTRUCTION: u32 = Assembler::make_cvt_l_d(FR::F4, FR::F0);
-                    test_floating_point_f64toi64::<INSTRUCTION>("CVT.L.D", false, rounding_mode, *value1, 0f64, *expected)?;
-
-                    const INSTRUCTION2: u32 = Assembler::make_round_l_d(FR::F4, FR::F0);
-                    test_floating_point_f64toi64::<INSTRUCTION2>("ROUND.L.D", false, rounding_mode, *value1, 0f64, *expected)?;
-                    const INSTRUCTION3: u32 = Assembler::make_trunc_l_d(FR::F4, FR::F0);
-                    test_floating_point_f64toi64::<INSTRUCTION3>("TRUNC.L.D", false, rounding_mode, *value1, 0f64, *expected)?;
-                    const INSTRUCTION4: u32 = Assembler::make_ceil_l_d(FR::F4, FR::F0);
-                    test_floating_point_f64toi64::<INSTRUCTION4>("CEIL.L.D", false, rounding_mode, *value1, 0f64, *expected)?;
-                    const INSTRUCTION5: u32 = Assembler::make_floor_l_d(FR::F4, FR::F0);
-                    test_floating_point_f64toi64::<INSTRUCTION5>("FLOOR.L.D", false, rounding_mode, *value1, 0f64, *expected)?;
+                    let data: Box<dyn Any> = Box::new((false, rounding_mode, *value1, *expected));
+                    self.run(&data)?;
                 }
                 return Ok(())
             }
