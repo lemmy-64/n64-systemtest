@@ -22,6 +22,7 @@ extern crate alloc;
 use core::arch::global_asm;
 
 use spinning_top::Spinlock;
+use crate::graphics::framebuffer_console::FramebufferConsole;
 
 use crate::graphics::vi::Video;
 use crate::memory_map::MemoryMap;
@@ -46,7 +47,7 @@ mod uncached_memory;
 
 global_asm!(include_str!("boot.s"));
 
-static VIDEO: Spinlock<Video> = Spinlock::new(graphics::vi::Video::new());
+static VIDEO: Spinlock<Video> = Spinlock::new(Video::new());
 
 #[no_mangle]
 unsafe extern "C" fn rust_entrypoint() -> ! {
@@ -67,6 +68,6 @@ fn main() {
     tests::run();
 
     let v = VIDEO.lock();
-    graphics::framebuffer_console::INSTANCE.lock().render(v.framebuffers().backbuffer().lock().as_mut().unwrap());
+    FramebufferConsole::instance().lock().render(v.framebuffers().backbuffer().lock().as_mut().unwrap());
     v.swap_buffers();
 }

@@ -8,7 +8,7 @@ use arbitrary_int::{u2, u27, u5};
 
 use crate::cop0::{set_status, Status};
 use crate::exception_handler::drain_seen_exception;
-use crate::{print, println};
+use crate::{FramebufferConsole, print, println};
 use crate::cop1::{FCSR, FCSRFlags, FCSRRoundingMode, set_fcsr};
 use crate::isviewer::text_out;
 use crate::tests::cop1::compares::FPUSpecialNumber;
@@ -313,7 +313,12 @@ pub fn run() {
     if (failed + succeeded) == 0 {
         println!("Done, but no tests were executed");
     } else {
-        println!("Finished in {:0.2}s. Tests: {}. Failed: {}. Success rate: {}%. Skipped {} tests.", cycles_to_seconds(counter_after - counter_before), failed + succeeded, failed, succeeded * 100 / (failed + succeeded), skipped);
+        let debug_msg = format!("Finished in {:0.2}s. Tests: {}. Failed: {}. Success rate: {}%. Skipped {} tests.\n\n", cycles_to_seconds(counter_after - counter_before), failed + succeeded, failed, succeeded * 100 / (failed + succeeded), skipped);
+        // Print to the console, at the end
+        text_out(&debug_msg);
+
+        // For the on-screen console, prepend it. This way it's visible even if there are a lot of failed tests
+        FramebufferConsole::instance().lock().prepend(&debug_msg);
     }
 
     test_times.sort_by(|(_, a), (_, b)| { a.cmp(b).reverse() });
