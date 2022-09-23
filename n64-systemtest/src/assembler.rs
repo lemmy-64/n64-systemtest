@@ -317,6 +317,23 @@ pub enum Cop3Opcode {
     DMTC3 = 5,
 }
 
+pub struct FPUFloatInstruction {
+    value: u32
+}
+
+impl FPUFloatInstruction {
+    const fn new(value: u32) -> Self {
+        assert!((value >> 21) & 0b11111 == 0);
+
+        Self { value }
+    }
+
+    pub const fn s(&self) -> u32 { self.value | ((Cop1Opcode::S as u32) << 21) }
+    pub const fn d(&self) -> u32 { self.value | ((Cop1Opcode::D as u32) << 21) }
+    pub const fn w(&self) -> u32 { self.value | ((Cop1Opcode::W as u32) << 21) }
+    pub const fn l(&self) -> u32 { self.value | ((Cop1Opcode::L as u32) << 21) }
+}
+
 pub struct Assembler {}
 
 impl Assembler {
@@ -366,52 +383,21 @@ impl Assembler {
             ((Opcode::COP3 as u32) << 26)
     }
 
-    const fn make_cop1_double_instruction(instruction: Cop1FloatInstruction, fd: FR, fs: FR, ft: FR) -> u32 {
-        (instruction as u32) |
-            ((fd.raw_value().value() as u32) << 6) |
-            ((fs.raw_value().value() as u32) << 11) |
-            ((ft.raw_value().value() as u32) << 16) |
-            ((Cop1Opcode::D as u32) << 21) |
-            ((Opcode::COP1 as u32) << 26)
-    }
-
-    const fn make_cop1_long_instruction(instruction: Cop1FloatInstruction, fd: FR, fs: FR, ft: FR) -> u32 {
-        (instruction as u32) |
-            ((fd.raw_value().value() as u32) << 6) |
-            ((fs.raw_value().value() as u32) << 11) |
-            ((ft.raw_value().value() as u32) << 16) |
-            ((Cop1Opcode::L as u32) << 21) |
-            ((Opcode::COP1 as u32) << 26)
-    }
-
-    const fn make_cop1_single_instruction(instruction: Cop1FloatInstruction, fd: FR, fs: FR, ft: FR) -> u32 {
-        (instruction as u32) |
-            ((fd.raw_value().value() as u32) << 6) |
-            ((fs.raw_value().value() as u32) << 11) |
-            ((ft.raw_value().value() as u32) << 16) |
-            ((Cop1Opcode::S as u32) << 21) |
-            ((Opcode::COP1 as u32) << 26)
-    }
-
-    const fn make_cop1_word_instruction(instruction: Cop1FloatInstruction, fd: FR, fs: FR, ft: FR) -> u32 {
-        (instruction as u32) |
-            ((fd.raw_value().value() as u32) << 6) |
-            ((fs.raw_value().value() as u32) << 11) |
-            ((ft.raw_value().value() as u32) << 16) |
-            ((Cop1Opcode::W as u32) << 21) |
-            ((Opcode::COP1 as u32) << 26)
+    const fn make_cop1_float_instruction(instruction: Cop1FloatInstruction, fd: FR, fs: FR, ft: FR) -> FPUFloatInstruction {
+        FPUFloatInstruction::new(
+            (instruction as u32) |
+                ((fd.raw_value().value() as u32) << 6) |
+                ((fs.raw_value().value() as u32) << 11) |
+                ((ft.raw_value().value() as u32) << 16) |
+                ((Opcode::COP1 as u32) << 26))
     }
 
     pub const fn make_beq(rt: GPR, rs: GPR, offset_as_instruction_count: i16) -> u32 {
         Self::make_main_immediate(Opcode::BEQ, rt, rs, offset_as_instruction_count as u16)
     }
 
-    pub const fn make_c_cond_s(condition: Cop1Condition, fs: FR, ft: FR) -> u32 {
-        Self::make_cop1_single_instruction(Cop1FloatInstruction::new_with_raw_value(condition.raw_value()).ok().unwrap(), FR::F0, fs, ft)
-    }
-
-    pub const fn make_c_cond_d(condition: Cop1Condition, fs: FR, ft: FR) -> u32 {
-        Self::make_cop1_double_instruction(Cop1FloatInstruction::new_with_raw_value(condition.raw_value()).ok().unwrap(), FR::F0, fs, ft)
+    pub const fn make_c_cond(condition: Cop1Condition, fs: FR, ft: FR) -> FPUFloatInstruction {
+        Self::make_cop1_float_instruction(Cop1FloatInstruction::new_with_raw_value(condition.raw_value()).ok().unwrap(), FR::F0, fs, ft)
     }
 
     pub const fn make_cfc1(rt: GPR, rd: u5) -> u32 {
@@ -430,280 +416,84 @@ impl Assembler {
         Self::make_cop1instruction(Cop1Opcode::_DCTC1, rt.raw_value(), rd)
     }
 
-    pub const fn make_abs_d(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_double_instruction(Cop1FloatInstruction::ABS, fd, fs, FR::F0)
+    pub const fn make_abs(fd: FR, fs: FR) -> FPUFloatInstruction {
+        Self::make_cop1_float_instruction(Cop1FloatInstruction::ABS, fd, fs, FR::F0)
     }
 
-    pub const fn make_abs_s(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_single_instruction(Cop1FloatInstruction::ABS, fd, fs, FR::F0)
+    pub const fn make_add(fd: FR, fs: FR, ft: FR) -> FPUFloatInstruction {
+        Self::make_cop1_float_instruction(Cop1FloatInstruction::ADD, fd, fs, ft)
     }
 
-    pub const fn make_add_d(fd: FR, fs: FR, ft: FR) -> u32 {
-        Self::make_cop1_double_instruction(Cop1FloatInstruction::ADD, fd, fs, ft)
+    pub const fn make_cvt_d(fd: FR, fs: FR) -> FPUFloatInstruction {
+        Self::make_cop1_float_instruction(Cop1FloatInstruction::CVT_D, fd, fs, FR::F0)
     }
 
-    pub const fn make_add_s(fd: FR, fs: FR, ft: FR) -> u32 {
-        Self::make_cop1_single_instruction(Cop1FloatInstruction::ADD, fd, fs, ft)
+    pub const fn make_cvt_l(fd: FR, fs: FR) -> FPUFloatInstruction {
+        Self::make_cop1_float_instruction(Cop1FloatInstruction::CVT_L, fd, fs, FR::F0)
     }
 
-    /// This is not a valid instruction
-    pub const fn make_cvt_d_d(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_double_instruction(Cop1FloatInstruction::CVT_D, fd, fs, FR::F0)
+    pub const fn make_cvt_s(fd: FR, fs: FR) -> FPUFloatInstruction {
+        Self::make_cop1_float_instruction(Cop1FloatInstruction::CVT_S, fd, fs, FR::F0)
     }
 
-    pub const fn make_cvt_d_l(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_long_instruction(Cop1FloatInstruction::CVT_D, fd, fs, FR::F0)
+    pub const fn make_cvt_w(fd: FR, fs: FR) -> FPUFloatInstruction {
+        Self::make_cop1_float_instruction(Cop1FloatInstruction::CVT_W, fd, fs, FR::F0)
     }
 
-    pub const fn make_cvt_d_s(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_single_instruction(Cop1FloatInstruction::CVT_D, fd, fs, FR::F0)
+    pub const fn make_round_w(fd: FR, fs: FR) -> FPUFloatInstruction {
+        Self::make_cop1_float_instruction(Cop1FloatInstruction::ROUND_W, fd, fs, FR::F0)
     }
 
-    pub const fn make_cvt_d_w(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_word_instruction(Cop1FloatInstruction::CVT_D, fd, fs, FR::F0)
+    pub const fn make_round_l(fd: FR, fs: FR) -> FPUFloatInstruction {
+        Self::make_cop1_float_instruction(Cop1FloatInstruction::ROUND_L, fd, fs, FR::F0)
     }
 
-    pub const fn make_cvt_l_d(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_double_instruction(Cop1FloatInstruction::CVT_L, fd, fs, FR::F0)
+    pub const fn make_trunc_w(fd: FR, fs: FR) -> FPUFloatInstruction {
+        Self::make_cop1_float_instruction(Cop1FloatInstruction::TRUNC_W, fd, fs, FR::F0)
     }
 
-    /// This is not a valid instruction
-    pub const fn make_cvt_l_l(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_long_instruction(Cop1FloatInstruction::CVT_L, fd, fs, FR::F0)
+    pub const fn make_trunc_l(fd: FR, fs: FR) -> FPUFloatInstruction {
+        Self::make_cop1_float_instruction(Cop1FloatInstruction::TRUNC_L, fd, fs, FR::F0)
     }
 
-    pub const fn make_cvt_l_s(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_single_instruction(Cop1FloatInstruction::CVT_L, fd, fs, FR::F0)
+    pub const fn make_floor_w(fd: FR, fs: FR) -> FPUFloatInstruction {
+        Self::make_cop1_float_instruction(Cop1FloatInstruction::FLOOR_W, fd, fs, FR::F0)
     }
 
-    pub const fn make_cvt_l_w(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_word_instruction(Cop1FloatInstruction::CVT_L, fd, fs, FR::F0)
+    pub const fn make_floor_l(fd: FR, fs: FR) -> FPUFloatInstruction {
+        Self::make_cop1_float_instruction(Cop1FloatInstruction::FLOOR_L, fd, fs, FR::F0)
     }
 
-    pub const fn make_cvt_s_d(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_double_instruction(Cop1FloatInstruction::CVT_S, fd, fs, FR::F0)
+    pub const fn make_ceil_w(fd: FR, fs: FR) -> FPUFloatInstruction {
+        Self::make_cop1_float_instruction(Cop1FloatInstruction::CEIL_W, fd, fs, FR::F0)
     }
 
-    pub const fn make_cvt_s_l(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_long_instruction(Cop1FloatInstruction::CVT_S, fd, fs, FR::F0)
+    pub const fn make_ceil_l(fd: FR, fs: FR) -> FPUFloatInstruction {
+        Self::make_cop1_float_instruction(Cop1FloatInstruction::CEIL_L, fd, fs, FR::F0)
     }
 
-    /// This is not a valid instruction
-    pub const fn make_cvt_s_s(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_single_instruction(Cop1FloatInstruction::CVT_S, fd, fs, FR::F0)
+    pub const fn make_div(fd: FR, fs: FR, ft: FR) -> FPUFloatInstruction {
+        Self::make_cop1_float_instruction(Cop1FloatInstruction::DIV, fd, fs, ft)
     }
 
-    pub const fn make_cvt_s_w(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_word_instruction(Cop1FloatInstruction::CVT_S, fd, fs, FR::F0)
+    pub const fn make_mov(fd: FR, fs: FR) -> FPUFloatInstruction {
+        Self::make_cop1_float_instruction(Cop1FloatInstruction::MOV, fd, fs, FR::F0)
     }
 
-    pub const fn make_cvt_w_d(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_double_instruction(Cop1FloatInstruction::CVT_W, fd, fs, FR::F0)
+    pub const fn make_mul(fd: FR, fs: FR, ft: FR) -> FPUFloatInstruction {
+        Self::make_cop1_float_instruction(Cop1FloatInstruction::MUL, fd, fs, ft)
     }
 
-    pub const fn make_cvt_w_l(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_long_instruction(Cop1FloatInstruction::CVT_W, fd, fs, FR::F0)
+    pub const fn make_neg(fd: FR, fs: FR) -> FPUFloatInstruction {
+        Self::make_cop1_float_instruction(Cop1FloatInstruction::NEG, fd, fs, FR::F0)
     }
 
-    pub const fn make_cvt_w_s(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_single_instruction(Cop1FloatInstruction::CVT_W, fd, fs, FR::F0)
+    pub const fn make_sqrt(fd: FR, fs: FR) -> FPUFloatInstruction {
+        Self::make_cop1_float_instruction(Cop1FloatInstruction::SQRT, fd, fs, FR::F0)
     }
 
-    /// This is not a valid instruction
-    pub const fn make_cvt_w_w(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_word_instruction(Cop1FloatInstruction::CVT_W, fd, fs, FR::F0)
-    }
-
-    pub const fn make_round_w_d(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_double_instruction(Cop1FloatInstruction::ROUND_W, fd, fs, FR::F0)
-    }
-
-    pub const fn make_round_w_l(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_long_instruction(Cop1FloatInstruction::ROUND_W, fd, fs, FR::F0)
-    }
-
-    /// This is not a valid instruction
-    pub const fn make_round_w_s(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_single_instruction(Cop1FloatInstruction::ROUND_W, fd, fs, FR::F0)
-    }
-
-    /// This is not a valid instruction
-    pub const fn make_round_w_w(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_word_instruction(Cop1FloatInstruction::ROUND_W, fd, fs, FR::F0)
-    }
-
-    pub const fn make_round_l_d(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_double_instruction(Cop1FloatInstruction::ROUND_L, fd, fs, FR::F0)
-    }
-
-    pub const fn make_round_l_l(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_long_instruction(Cop1FloatInstruction::ROUND_L, fd, fs, FR::F0)
-    }
-
-    /// This is not a valid instruction
-    pub const fn make_round_l_s(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_single_instruction(Cop1FloatInstruction::ROUND_L, fd, fs, FR::F0)
-    }
-
-    /// This is not a valid instruction
-    pub const fn make_round_l_w(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_word_instruction(Cop1FloatInstruction::ROUND_L, fd, fs, FR::F0)
-    }
-
-    pub const fn make_trunc_w_d(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_double_instruction(Cop1FloatInstruction::TRUNC_W, fd, fs, FR::F0)
-    }
-
-    pub const fn make_trunc_w_l(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_long_instruction(Cop1FloatInstruction::TRUNC_W, fd, fs, FR::F0)
-    }
-
-    /// This is not a valid instruction
-    pub const fn make_trunc_w_s(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_single_instruction(Cop1FloatInstruction::TRUNC_W, fd, fs, FR::F0)
-    }
-
-    /// This is not a valid instruction
-    pub const fn make_trunc_w_w(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_word_instruction(Cop1FloatInstruction::TRUNC_W, fd, fs, FR::F0)
-    }
-
-    pub const fn make_trunc_l_d(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_double_instruction(Cop1FloatInstruction::TRUNC_L, fd, fs, FR::F0)
-    }
-
-    pub const fn make_trunc_l_l(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_long_instruction(Cop1FloatInstruction::TRUNC_L, fd, fs, FR::F0)
-    }
-
-    /// This is not a valid instruction
-    pub const fn make_trunc_l_s(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_single_instruction(Cop1FloatInstruction::TRUNC_L, fd, fs, FR::F0)
-    }
-
-    /// This is not a valid instruction
-    pub const fn make_trunc_l_w(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_word_instruction(Cop1FloatInstruction::TRUNC_L, fd, fs, FR::F0)
-    }
-
-    pub const fn make_floor_w_d(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_double_instruction(Cop1FloatInstruction::FLOOR_W, fd, fs, FR::F0)
-    }
-
-    pub const fn make_floor_w_l(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_long_instruction(Cop1FloatInstruction::FLOOR_W, fd, fs, FR::F0)
-    }
-
-    /// This is not a valid instruction
-    pub const fn make_floor_w_s(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_single_instruction(Cop1FloatInstruction::FLOOR_W, fd, fs, FR::F0)
-    }
-
-    /// This is not a valid instruction
-    pub const fn make_floor_w_w(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_word_instruction(Cop1FloatInstruction::FLOOR_W, fd, fs, FR::F0)
-    }
-
-    pub const fn make_floor_l_d(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_double_instruction(Cop1FloatInstruction::FLOOR_L, fd, fs, FR::F0)
-    }
-
-    pub const fn make_floor_l_l(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_long_instruction(Cop1FloatInstruction::FLOOR_L, fd, fs, FR::F0)
-    }
-
-    /// This is not a valid instruction
-    pub const fn make_floor_l_s(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_single_instruction(Cop1FloatInstruction::FLOOR_L, fd, fs, FR::F0)
-    }
-
-    /// This is not a valid instruction
-    pub const fn make_floor_l_w(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_word_instruction(Cop1FloatInstruction::FLOOR_L, fd, fs, FR::F0)
-    }
-
-    pub const fn make_ceil_w_d(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_double_instruction(Cop1FloatInstruction::CEIL_W, fd, fs, FR::F0)
-    }
-
-    pub const fn make_ceil_w_l(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_long_instruction(Cop1FloatInstruction::CEIL_W, fd, fs, FR::F0)
-    }
-
-    /// This is not a valid instruction
-    pub const fn make_ceil_w_s(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_single_instruction(Cop1FloatInstruction::CEIL_W, fd, fs, FR::F0)
-    }
-
-    /// This is not a valid instruction
-    pub const fn make_ceil_w_w(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_word_instruction(Cop1FloatInstruction::CEIL_W, fd, fs, FR::F0)
-    }
-
-    pub const fn make_ceil_l_d(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_double_instruction(Cop1FloatInstruction::CEIL_L, fd, fs, FR::F0)
-    }
-
-    pub const fn make_ceil_l_l(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_long_instruction(Cop1FloatInstruction::CEIL_L, fd, fs, FR::F0)
-    }
-
-    /// This is not a valid instruction
-    pub const fn make_ceil_l_s(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_single_instruction(Cop1FloatInstruction::CEIL_L, fd, fs, FR::F0)
-    }
-
-    /// This is not a valid instruction
-    pub const fn make_ceil_l_w(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_word_instruction(Cop1FloatInstruction::CEIL_L, fd, fs, FR::F0)
-    }
-
-    pub const fn make_div_d(fd: FR, fs: FR, ft: FR) -> u32 {
-        Self::make_cop1_double_instruction(Cop1FloatInstruction::DIV, fd, fs, ft)
-    }
-
-    pub const fn make_div_s(fd: FR, fs: FR, ft: FR) -> u32 {
-        Self::make_cop1_single_instruction(Cop1FloatInstruction::DIV, fd, fs, ft)
-    }
-
-    pub const fn make_mov_d(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_double_instruction(Cop1FloatInstruction::MOV, fd, fs, FR::F0)
-    }
-
-    pub const fn make_mov_s(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_single_instruction(Cop1FloatInstruction::MOV, fd, fs, FR::F0)
-    }
-
-    pub const fn make_mul_d(fd: FR, fs: FR, ft: FR) -> u32 {
-        Self::make_cop1_double_instruction(Cop1FloatInstruction::MUL, fd, fs, ft)
-    }
-
-    pub const fn make_mul_s(fd: FR, fs: FR, ft: FR) -> u32 {
-        Self::make_cop1_single_instruction(Cop1FloatInstruction::MUL, fd, fs, ft)
-    }
-
-    pub const fn make_neg_d(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_double_instruction(Cop1FloatInstruction::NEG, fd, fs, FR::F0)
-    }
-
-    pub const fn make_neg_s(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_single_instruction(Cop1FloatInstruction::NEG, fd, fs, FR::F0)
-    }
-
-    pub const fn make_sqrt_d(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_double_instruction(Cop1FloatInstruction::SQRT, fd, fs, FR::F0)
-    }
-
-    pub const fn make_sqrt_s(fd: FR, fs: FR) -> u32 {
-        Self::make_cop1_single_instruction(Cop1FloatInstruction::SQRT, fd, fs, FR::F0)
-    }
-
-    pub const fn make_sub_d(fd: FR, fs: FR, ft: FR) -> u32 {
-        Self::make_cop1_double_instruction(Cop1FloatInstruction::SUB, fd, fs, ft)
-    }
-
-    pub const fn make_sub_s(fd: FR, fs: FR, ft: FR) -> u32 {
-        Self::make_cop1_single_instruction(Cop1FloatInstruction::SUB, fd, fs, ft)
+    pub const fn make_sub(fd: FR, fs: FR, ft: FR) -> FPUFloatInstruction {
+        Self::make_cop1_float_instruction(Cop1FloatInstruction::SUB, fd, fs, ft)
     }
 
     pub const fn make_sd(rt: GPR, offset: i16, base: GPR) -> u32 {
