@@ -1012,7 +1012,7 @@ impl Test for DivS {
     }
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
-        const INSTRUCTION: u32 = Assembler::make_div_s(FR::F4, FR::F0, FR::F2);
+        const INSTRUCTION: u32 = Assembler::make_div(FR::F4, FR::F0, FR::F2).s();
         match (*value).downcast_ref::<(bool, FCSRRoundingMode, f32, f32, Result<(FCSRFlags, f32), ()>)>() {
             Some((flush_denorm_to_zero, rounding_mode, value1, value2, expected)) => {
                 test_floating_point_f32::<INSTRUCTION>("DIV.S", *flush_denorm_to_zero, *rounding_mode, *value1, *value2, *expected)?
@@ -1116,7 +1116,7 @@ impl Test for DivD {
     }
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
-        const INSTRUCTION: u32 = Assembler::make_div_d(FR::F4, FR::F0, FR::F2);
+        const INSTRUCTION: u32 = Assembler::make_div(FR::F4, FR::F0, FR::F2).d();
         match (*value).downcast_ref::<(bool, FCSRRoundingMode, f64, f64, Result<(FCSRFlags, f64), ()>)>() {
             Some((flush_denorm_to_zero, rounding_mode, value1, value2, expected)) => {
                 test_floating_point_f64::<INSTRUCTION>("DIV.D", *flush_denorm_to_zero, *rounding_mode, *value1, *value2, *expected)?
@@ -1271,7 +1271,7 @@ impl Test for MulS {
     }
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
-        const INSTRUCTION: u32 = Assembler::make_mul_s(FR::F4, FR::F0, FR::F2);
+        const INSTRUCTION: u32 = Assembler::make_mul(FR::F4, FR::F0, FR::F2).s();
         match (*value).downcast_ref::<(bool, FCSRRoundingMode, f32, f32, Result<(FCSRFlags, f32), ()>)>() {
             Some((flush_denorm_to_zero, rounding_mode, value1, value2, expected)) => {
                 test_floating_point_f32::<INSTRUCTION>("MUL.S", *flush_denorm_to_zero, *rounding_mode, *value1, *value2, *expected)?
@@ -1350,7 +1350,7 @@ impl Test for MulD {
     }
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
-        const INSTRUCTION: u32 = Assembler::make_mul_d(FR::F4, FR::F0, FR::F2);
+        const INSTRUCTION: u32 = Assembler::make_mul(FR::F4, FR::F0, FR::F2).d();
         match (*value).downcast_ref::<(bool, FCSRRoundingMode, f64, f64, Result<(FCSRFlags, f64), ()>)>() {
             Some((flush_denorm_to_zero, rounding_mode, value1, value2, expected)) => {
                 test_floating_point_f64::<INSTRUCTION>("MUL.D", *flush_denorm_to_zero, *rounding_mode, *value1, *value2, *expected)?
@@ -1436,7 +1436,7 @@ impl Test for AddS {
     }
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
-        const INSTRUCTION: u32 = Assembler::make_add_s(FR::F4, FR::F0, FR::F2);
+        const INSTRUCTION: u32 = Assembler::make_add(FR::F4, FR::F0, FR::F2).s();
         match (*value).downcast_ref::<(bool, FCSRRoundingMode, f32, f32, Result<(FCSRFlags, f32), ()>)>() {
             Some((flush_denorm_to_zero, rounding_mode, value1, value2, expected)) => {
                 test_floating_point_f32::<INSTRUCTION>("ADD.S", *flush_denorm_to_zero, *rounding_mode, *value1, *value2, *expected)?
@@ -1522,7 +1522,7 @@ impl Test for AddD {
     }
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
-        const INSTRUCTION: u32 = Assembler::make_add_d(FR::F4, FR::F0, FR::F2);
+        const INSTRUCTION: u32 = Assembler::make_add(FR::F4, FR::F0, FR::F2).d();
         match (*value).downcast_ref::<(bool, FCSRRoundingMode, f64, f64, Result<(FCSRFlags, f64), ()>)>() {
             Some((flush_denorm_to_zero, rounding_mode, value1, value2, expected)) => {
                 test_floating_point_f64::<INSTRUCTION>("ADD.D", *flush_denorm_to_zero, *rounding_mode, *value1, *value2, *expected)?
@@ -1608,7 +1608,7 @@ impl Test for SubS {
     }
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
-        const INSTRUCTION: u32 = Assembler::make_sub_s(FR::F4, FR::F0, FR::F2);
+        const INSTRUCTION: u32 = Assembler::make_sub(FR::F4, FR::F0, FR::F2).s();
         match (*value).downcast_ref::<(bool, FCSRRoundingMode, f32, f32, Result<(FCSRFlags, f32), ()>)>() {
             Some((flush_denorm_to_zero, rounding_mode, value1, value2, expected)) => {
                 test_floating_point_f32::<INSTRUCTION>("SUB.S", *flush_denorm_to_zero, *rounding_mode, *value1, *value2, *expected)?
@@ -1694,7 +1694,7 @@ impl Test for SubD {
     }
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
-        const INSTRUCTION: u32 = Assembler::make_sub_d(FR::F4, FR::F0, FR::F2);
+        const INSTRUCTION: u32 = Assembler::make_sub(FR::F4, FR::F0, FR::F2).d();
         match (*value).downcast_ref::<(bool, FCSRRoundingMode, f64, f64, Result<(FCSRFlags, f64), ()>)>() {
             Some((flush_denorm_to_zero, rounding_mode, value1, value2, expected)) => {
                 test_floating_point_f64::<INSTRUCTION>("SUB.D", *flush_denorm_to_zero, *rounding_mode, *value1, *value2, *expected)?
@@ -1743,7 +1743,7 @@ impl Test for AbsS {
     }
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
-        const INSTRUCTION: u32 = Assembler::make_abs_s(FR::F4, FR::F0);
+        const INSTRUCTION: u32 = Assembler::make_abs(FR::F4, FR::F0).s();
         match (*value).downcast_ref::<(bool, FCSRRoundingMode, f32, Result<(FCSRFlags, f32), ()>)>() {
             Some((flush_denorm_to_zero, rounding_mode, value1, expected)) => {
                 test_floating_point_f32::<INSTRUCTION>("ABS.S", *flush_denorm_to_zero, *rounding_mode, *value1, 0f32, *expected)?
@@ -1792,7 +1792,7 @@ impl Test for AbsD {
     }
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
-        const INSTRUCTION: u32 = Assembler::make_abs_d(FR::F4, FR::F0);
+        const INSTRUCTION: u32 = Assembler::make_abs(FR::F4, FR::F0).d();
         match (*value).downcast_ref::<(bool, FCSRRoundingMode, f64, Result<(FCSRFlags, f64), ()>)>() {
             Some((flush_denorm_to_zero, rounding_mode, value1, expected)) => {
                 test_floating_point_f64::<INSTRUCTION>("ABS.D", *flush_denorm_to_zero, *rounding_mode, *value1, 0f64, *expected)?
@@ -1841,7 +1841,7 @@ impl Test for NegS {
     }
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
-        const INSTRUCTION: u32 = Assembler::make_neg_s(FR::F4, FR::F0);
+        const INSTRUCTION: u32 = Assembler::make_neg(FR::F4, FR::F0).s();
         match (*value).downcast_ref::<(bool, FCSRRoundingMode, f32, Result<(FCSRFlags, f32), ()>)>() {
             Some((flush_denorm_to_zero, rounding_mode, value1, expected)) => {
                 test_floating_point_f32::<INSTRUCTION>("NEG.S", *flush_denorm_to_zero, *rounding_mode, *value1, 0f32, *expected)?
@@ -1890,7 +1890,7 @@ impl Test for NegD {
     }
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
-        const INSTRUCTION: u32 = Assembler::make_neg_d(FR::F4, FR::F0);
+        const INSTRUCTION: u32 = Assembler::make_neg(FR::F4, FR::F0).d();
         match (*value).downcast_ref::<(bool, FCSRRoundingMode, f64, Result<(FCSRFlags, f64), ()>)>() {
             Some((flush_denorm_to_zero, rounding_mode, value1, expected)) => {
                 test_floating_point_f64::<INSTRUCTION>("NEG.D", *flush_denorm_to_zero, *rounding_mode, *value1, 0f64, *expected)?
@@ -1920,7 +1920,7 @@ impl Test for MovS {
     }
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
-        const INSTRUCTION: u32 = Assembler::make_mov_s(FR::F4, FR::F0);
+        const INSTRUCTION: u32 = Assembler::make_mov(FR::F4, FR::F0).s();
         match (*value).downcast_ref::<(bool, FCSRRoundingMode, f32, Result<(FCSRFlags, f32), ()>)>() {
             Some((flush_denorm_to_zero, rounding_mode, value1, expected)) => {
                 test_floating_point_f32::<INSTRUCTION>("MOV.S", *flush_denorm_to_zero, *rounding_mode, *value1, 0f32, *expected)?
@@ -1950,7 +1950,7 @@ impl Test for MovD {
     }
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
-        const INSTRUCTION: u32 = Assembler::make_mov_d(FR::F4, FR::F0);
+        const INSTRUCTION: u32 = Assembler::make_mov(FR::F4, FR::F0).d();
         match (*value).downcast_ref::<(bool, FCSRRoundingMode, f64, Result<(FCSRFlags, f64), ()>)>() {
             Some((flush_denorm_to_zero, rounding_mode, value1, expected)) => {
                 test_floating_point_f64::<INSTRUCTION>("MOV.D", *flush_denorm_to_zero, *rounding_mode, *value1, 0f64, *expected)?
@@ -2000,7 +2000,7 @@ impl Test for SqrtS {
     }
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
-        const INSTRUCTION: u32 = Assembler::make_sqrt_s(FR::F4, FR::F0);
+        const INSTRUCTION: u32 = Assembler::make_sqrt(FR::F4, FR::F0).s();
         match (*value).downcast_ref::<(bool, FCSRRoundingMode, f32, Result<(FCSRFlags, f32), ()>)>() {
             Some((flush_denorm_to_zero, rounding_mode, value1, expected)) => {
                 test_floating_point_f32::<INSTRUCTION>("SQRT.S", *flush_denorm_to_zero, *rounding_mode, *value1, 0f32, *expected)?
@@ -2050,7 +2050,7 @@ impl Test for SqrtD {
     }
 
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
-        const INSTRUCTION: u32 = Assembler::make_sqrt_d(FR::F4, FR::F0);
+        const INSTRUCTION: u32 = Assembler::make_sqrt(FR::F4, FR::F0).d();
         match (*value).downcast_ref::<(bool, FCSRRoundingMode, f64, Result<(FCSRFlags, f64), ()>)>() {
             Some((flush_denorm_to_zero, rounding_mode, value1, expected)) => {
                 test_floating_point_f64::<INSTRUCTION>("SQRT.D", *flush_denorm_to_zero, *rounding_mode, *value1, 0f64, *expected)?
@@ -2135,7 +2135,7 @@ impl Test for CvtS {
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
         match (*value).downcast_ref::<(bool, FCSRRoundingMode, f32, Result<(FCSRFlags, f32), ()>)>() {
             Some((flush_denorm_to_zero, rounding_mode, value1, expected)) => {
-                const INSTRUCTION: u32 = Assembler::make_cvt_s_s(FR::F4, FR::F0);
+                const INSTRUCTION: u32 = Assembler::make_cvt_s(FR::F4, FR::F0).s();
                 test_floating_point_f32::<INSTRUCTION>("CVT.S.S", *flush_denorm_to_zero, *rounding_mode, *value1, 0f32, *expected)?;
                 return Ok(())
             }
@@ -2143,7 +2143,7 @@ impl Test for CvtS {
         }
         match (*value).downcast_ref::<(bool, FCSRRoundingMode, f64, Result<(FCSRFlags, f32), ()>)>() {
             Some((flush_denorm_to_zero, rounding_mode, value1, expected)) => {
-                const INSTRUCTION: u32 = Assembler::make_cvt_s_d(FR::F4, FR::F0);
+                const INSTRUCTION: u32 = Assembler::make_cvt_s(FR::F4, FR::F0).d();
                 test_floating_point_f64tof32::<INSTRUCTION>("CVT.S.D", *flush_denorm_to_zero, *rounding_mode, *value1, 0f64, *expected)?;
                 return Ok(())
             }
@@ -2151,7 +2151,7 @@ impl Test for CvtS {
         }
         match (*value).downcast_ref::<(bool, FCSRRoundingMode, i32, Result<(FCSRFlags, f32), ()>)>() {
             Some((flush_denorm_to_zero, rounding_mode, value1, expected)) => {
-                const INSTRUCTION: u32 = Assembler::make_cvt_s_w(FR::F4, FR::F0);
+                const INSTRUCTION: u32 = Assembler::make_cvt_s(FR::F4, FR::F0).w();
                 test_floating_point_i32tof32::<INSTRUCTION>("CVT.S.W", *flush_denorm_to_zero, *rounding_mode, *value1, 0, *expected)?;
                 return Ok(())
             }
@@ -2159,7 +2159,7 @@ impl Test for CvtS {
         }
         match (*value).downcast_ref::<(bool, FCSRRoundingMode, i64, Result<(FCSRFlags, f32), ()>)>() {
             Some((flush_denorm_to_zero, rounding_mode, value1, expected)) => {
-                const INSTRUCTION: u32 = Assembler::make_cvt_s_l(FR::F4, FR::F0);
+                const INSTRUCTION: u32 = Assembler::make_cvt_s(FR::F4, FR::F0).l();
                 test_floating_point_i64tof32::<INSTRUCTION>("CVT.S.L", *flush_denorm_to_zero, *rounding_mode, *value1, 0, *expected)?;
                 return Ok(())
             }
@@ -2227,7 +2227,7 @@ impl Test for CvtD {
     fn run(&self, value: &Box<dyn Any>) -> Result<(), String> {
         match (*value).downcast_ref::<(bool, FCSRRoundingMode, f32, Result<(FCSRFlags, f64), ()>)>() {
             Some((flush_denorm_to_zero, rounding_mode, value1, expected)) => {
-                const INSTRUCTION: u32 = Assembler::make_cvt_d_s(FR::F4, FR::F0);
+                const INSTRUCTION: u32 = Assembler::make_cvt_d(FR::F4, FR::F0).s();
                 test_floating_point_f32tof64::<INSTRUCTION>("CVT.D.S", *flush_denorm_to_zero, *rounding_mode, *value1, 0f32, *expected)?;
                 return Ok(())
             }
@@ -2235,7 +2235,7 @@ impl Test for CvtD {
         }
         match (*value).downcast_ref::<(bool, FCSRRoundingMode, f64, Result<(FCSRFlags, f64), ()>)>() {
             Some((flush_denorm_to_zero, rounding_mode, value1, expected)) => {
-                const INSTRUCTION: u32 = Assembler::make_cvt_d_d(FR::F4, FR::F0);
+                const INSTRUCTION: u32 = Assembler::make_cvt_d(FR::F4, FR::F0).d();
                 test_floating_point_f64::<INSTRUCTION>("CVT.D.D", *flush_denorm_to_zero, *rounding_mode, *value1, 0f64, *expected)?;
                 return Ok(())
             }
@@ -2243,7 +2243,7 @@ impl Test for CvtD {
         }
         match (*value).downcast_ref::<(bool, FCSRRoundingMode, i32, Result<(FCSRFlags, f64), ()>)>() {
             Some((flush_denorm_to_zero, rounding_mode, value1, expected)) => {
-                const INSTRUCTION: u32 = Assembler::make_cvt_d_w(FR::F4, FR::F0);
+                const INSTRUCTION: u32 = Assembler::make_cvt_d(FR::F4, FR::F0).w();
                 test_floating_point_i32tof64::<INSTRUCTION>("CVT.D.W", *flush_denorm_to_zero, *rounding_mode, *value1, 0, *expected)?;
                 return Ok(())
             }
@@ -2251,7 +2251,7 @@ impl Test for CvtD {
         }
         match (*value).downcast_ref::<(bool, FCSRRoundingMode, i64, Result<(FCSRFlags, f64), ()>)>() {
             Some((flush_denorm_to_zero, rounding_mode, value1, expected)) => {
-                const INSTRUCTION: u32 = Assembler::make_cvt_d_l(FR::F4, FR::F0);
+                const INSTRUCTION: u32 = Assembler::make_cvt_d(FR::F4, FR::F0).l();
                 test_floating_point_i64tof64::<INSTRUCTION>("CVT.D.L", *flush_denorm_to_zero, *rounding_mode, *value1, 0, *expected)?;
                 return Ok(())
             }
@@ -2373,14 +2373,14 @@ impl Test for ConvertToW {
         match (*value).downcast_ref::<(bool, FCSRRoundingMode, f32, Result<(FCSRFlags, i32), ()>)>() {
             Some((flush_denorm_to_zero, rounding_mode, value1, expected)) => {
                 // Call CVT
-                const INSTRUCTION: u32 = Assembler::make_cvt_w_s(FR::F4, FR::F0);
+                const INSTRUCTION: u32 = Assembler::make_cvt_w(FR::F4, FR::F0).s();
                 test_floating_point_f32toi32::<INSTRUCTION>("CVT.W.S", *flush_denorm_to_zero, *rounding_mode, *value1, 0f32, *expected)?;
 
                 // Call ROUND/TRUNC/CEIL/FLOOR while the wrong rounding mode is set
-                const ROUND_INSTRUCTION: u32 = Assembler::make_round_w_s(FR::F4, FR::F0);
-                const TRUNC_INSTRUCTION: u32 = Assembler::make_trunc_w_s(FR::F4, FR::F0);
-                const FLOOR_INSTRUCTION: u32 = Assembler::make_floor_w_s(FR::F4, FR::F0);
-                const CEIL_INSTRUCTION: u32 = Assembler::make_ceil_w_s(FR::F4, FR::F0);
+                const ROUND_INSTRUCTION: u32 = Assembler::make_round_w(FR::F4, FR::F0).s();
+                const TRUNC_INSTRUCTION: u32 = Assembler::make_trunc_w(FR::F4, FR::F0).s();
+                const FLOOR_INSTRUCTION: u32 = Assembler::make_floor_w(FR::F4, FR::F0).s();
+                const CEIL_INSTRUCTION: u32 = Assembler::make_ceil_w(FR::F4, FR::F0).s();
 
                 for dummy_rounding_mode in [FCSRRoundingMode::PositiveInfinity, FCSRRoundingMode::NegativeInfinity] {
                     match *rounding_mode {
@@ -2397,14 +2397,14 @@ impl Test for ConvertToW {
         match (*value).downcast_ref::<(bool, FCSRRoundingMode, f64, Result<(FCSRFlags, i32), ()>)>() {
             Some((flush_denorm_to_zero, rounding_mode, value1, expected)) => {
                 // Call CVT
-                const INSTRUCTION: u32 = Assembler::make_cvt_w_d(FR::F4, FR::F0);
+                const INSTRUCTION: u32 = Assembler::make_cvt_w(FR::F4, FR::F0).d();
                 test_floating_point_f64toi32::<INSTRUCTION>("CVT.W.D", *flush_denorm_to_zero, *rounding_mode, *value1, 0f64, *expected)?;
 
                 // Call ROUND/TRUNC/CEIL/FLOOR while the wrong rounding mode is set
-                const ROUND_INSTRUCTION: u32 = Assembler::make_round_w_d(FR::F4, FR::F0);
-                const TRUNC_INSTRUCTION: u32 = Assembler::make_trunc_w_d(FR::F4, FR::F0);
-                const FLOOR_INSTRUCTION: u32 = Assembler::make_floor_w_d(FR::F4, FR::F0);
-                const CEIL_INSTRUCTION: u32 = Assembler::make_ceil_w_d(FR::F4, FR::F0);
+                const ROUND_INSTRUCTION: u32 = Assembler::make_round_w(FR::F4, FR::F0).d();
+                const TRUNC_INSTRUCTION: u32 = Assembler::make_trunc_w(FR::F4, FR::F0).d();
+                const FLOOR_INSTRUCTION: u32 = Assembler::make_floor_w(FR::F4, FR::F0).d();
+                const CEIL_INSTRUCTION: u32 = Assembler::make_ceil_w(FR::F4, FR::F0).d();
 
                 for dummy_rounding_mode in [FCSRRoundingMode::PositiveInfinity, FCSRRoundingMode::NegativeInfinity] {
                     match *rounding_mode {
@@ -2443,16 +2443,16 @@ impl Test for ConvertToW {
         match (*value).downcast_ref::<(i32, Result<(FCSRFlags, i32), ()>)>() {
             Some((value1, expected)) => {
                 for rounding_mode in FCSRRoundingMode::ALL {
-                    const INSTRUCTION: u32 = Assembler::make_cvt_w_w(FR::F4, FR::F0);
+                    const INSTRUCTION: u32 = Assembler::make_cvt_w(FR::F4, FR::F0).w();
                     test_floating_point_i32toi32::<INSTRUCTION>("CVT.W.W", false, rounding_mode, *value1, 0, *expected)?;
 
-                    const INSTRUCTION2: u32 = Assembler::make_round_w_w(FR::F4, FR::F0);
+                    const INSTRUCTION2: u32 = Assembler::make_round_w(FR::F4, FR::F0).w();
                     test_floating_point_i32toi32::<INSTRUCTION2>("ROUND.W.W", false, rounding_mode, *value1, 0, *expected)?;
-                    const INSTRUCTION3: u32 = Assembler::make_trunc_w_w(FR::F4, FR::F0);
+                    const INSTRUCTION3: u32 = Assembler::make_trunc_w(FR::F4, FR::F0).w();
                     test_floating_point_i32toi32::<INSTRUCTION3>("TRUNC.W.W", false, rounding_mode, *value1, 0, *expected)?;
-                    const INSTRUCTION4: u32 = Assembler::make_ceil_w_w(FR::F4, FR::F0);
+                    const INSTRUCTION4: u32 = Assembler::make_ceil_w(FR::F4, FR::F0).w();
                     test_floating_point_i32toi32::<INSTRUCTION4>("CEIL.W.W", false, rounding_mode, *value1, 0, *expected)?;
-                    const INSTRUCTION5: u32 = Assembler::make_floor_w_w(FR::F4, FR::F0);
+                    const INSTRUCTION5: u32 = Assembler::make_floor_w(FR::F4, FR::F0).w();
                     test_floating_point_i32toi32::<INSTRUCTION5>("FLOOR.W.W", false, rounding_mode, *value1, 0, *expected)?;
                 }
                 return Ok(())
@@ -2462,16 +2462,16 @@ impl Test for ConvertToW {
         match (*value).downcast_ref::<(i64, Result<(FCSRFlags, i32), ()>)>() {
             Some((value1, expected)) => {
                 for rounding_mode in FCSRRoundingMode::ALL {
-                    const INSTRUCTION: u32 = Assembler::make_cvt_w_l(FR::F4, FR::F0);
+                    const INSTRUCTION: u32 = Assembler::make_cvt_w(FR::F4, FR::F0).l();
                     test_floating_point_i64toi32::<INSTRUCTION>("CVT.W.L", false, rounding_mode, *value1, 0, *expected)?;
 
-                    const INSTRUCTION2: u32 = Assembler::make_round_w_l(FR::F4, FR::F0);
+                    const INSTRUCTION2: u32 = Assembler::make_round_w(FR::F4, FR::F0).l();
                     test_floating_point_i64toi32::<INSTRUCTION2>("ROUND.W.L", false, rounding_mode, *value1, 0, *expected)?;
-                    const INSTRUCTION3: u32 = Assembler::make_trunc_w_l(FR::F4, FR::F0);
+                    const INSTRUCTION3: u32 = Assembler::make_trunc_w(FR::F4, FR::F0).l();
                     test_floating_point_i64toi32::<INSTRUCTION3>("TRUNC.W.L", false, rounding_mode, *value1, 0, *expected)?;
-                    const INSTRUCTION4: u32 = Assembler::make_ceil_w_l(FR::F4, FR::F0);
+                    const INSTRUCTION4: u32 = Assembler::make_ceil_w(FR::F4, FR::F0).l();
                     test_floating_point_i64toi32::<INSTRUCTION4>("CEIL.W.L", false, rounding_mode, *value1, 0, *expected)?;
-                    const INSTRUCTION5: u32 = Assembler::make_floor_w_l(FR::F4, FR::F0);
+                    const INSTRUCTION5: u32 = Assembler::make_floor_w(FR::F4, FR::F0).l();
                     test_floating_point_i64toi32::<INSTRUCTION5>("FLOOR.W.L", false, rounding_mode, *value1, 0, *expected)?;
                 }
                 return Ok(())
@@ -2610,13 +2610,13 @@ impl Test for ConvertToL {
         match (*value).downcast_ref::<(bool, FCSRRoundingMode, f32, Result<(FCSRFlags, i64), ()>)>() {
             Some((flush_denorm_to_zero, rounding_mode, value1, expected)) => {
                 // Call CVT
-                const INSTRUCTION: u32 = Assembler::make_cvt_l_s(FR::F4, FR::F0);
+                const INSTRUCTION: u32 = Assembler::make_cvt_l(FR::F4, FR::F0).s();
                 test_floating_point_f32toi64::<INSTRUCTION>("CVT.L.S", *flush_denorm_to_zero, *rounding_mode, *value1, 0f32, *expected)?;
 
-                const ROUND_INSTRUCTION: u32 = Assembler::make_round_l_s(FR::F4, FR::F0);
-                const TRUNC_INSTRUCTION: u32 = Assembler::make_trunc_l_s(FR::F4, FR::F0);
-                const FLOOR_INSTRUCTION: u32 = Assembler::make_floor_l_s(FR::F4, FR::F0);
-                const CEIL_INSTRUCTION: u32 = Assembler::make_ceil_l_s(FR::F4, FR::F0);
+                const ROUND_INSTRUCTION: u32 = Assembler::make_round_l(FR::F4, FR::F0).s();
+                const TRUNC_INSTRUCTION: u32 = Assembler::make_trunc_l(FR::F4, FR::F0).s();
+                const FLOOR_INSTRUCTION: u32 = Assembler::make_floor_l(FR::F4, FR::F0).s();
+                const CEIL_INSTRUCTION: u32 = Assembler::make_ceil_l(FR::F4, FR::F0).s();
 
                 for dummy_rounding_mode in [FCSRRoundingMode::PositiveInfinity, FCSRRoundingMode::NegativeInfinity] {
                     match *rounding_mode {
@@ -2633,14 +2633,14 @@ impl Test for ConvertToL {
         match (*value).downcast_ref::<(bool, FCSRRoundingMode, f64, Result<(FCSRFlags, i64), ()>)>() {
             Some((flush_denorm_to_zero, rounding_mode, value1, expected)) => {
                 // Call CVT
-                const INSTRUCTION: u32 = Assembler::make_cvt_l_d(FR::F4, FR::F0);
+                const INSTRUCTION: u32 = Assembler::make_cvt_l(FR::F4, FR::F0).d();
                 test_floating_point_f64toi64::<INSTRUCTION>("CVT.L.D", *flush_denorm_to_zero, *rounding_mode, *value1, 0f64, *expected)?;
 
                 // Call ROUND/TRUNC/CEIL/FLOOR while the wrong rounding mode is set
-                const ROUND_INSTRUCTION: u32 = Assembler::make_round_l_d(FR::F4, FR::F0);
-                const TRUNC_INSTRUCTION: u32 = Assembler::make_trunc_l_d(FR::F4, FR::F0);
-                const FLOOR_INSTRUCTION: u32 = Assembler::make_floor_l_d(FR::F4, FR::F0);
-                const CEIL_INSTRUCTION: u32 = Assembler::make_ceil_l_d(FR::F4, FR::F0);
+                const ROUND_INSTRUCTION: u32 = Assembler::make_round_l(FR::F4, FR::F0).d();
+                const TRUNC_INSTRUCTION: u32 = Assembler::make_trunc_l(FR::F4, FR::F0).d();
+                const FLOOR_INSTRUCTION: u32 = Assembler::make_floor_l(FR::F4, FR::F0).d();
+                const CEIL_INSTRUCTION: u32 = Assembler::make_ceil_l(FR::F4, FR::F0).d();
 
                 for dummy_rounding_mode in [FCSRRoundingMode::PositiveInfinity, FCSRRoundingMode::NegativeInfinity] {
                     match *rounding_mode {
@@ -2679,16 +2679,16 @@ impl Test for ConvertToL {
         match (*value).downcast_ref::<(i32, Result<(FCSRFlags, i64), ()>)>() {
             Some((value1, expected)) => {
                 for rounding_mode in FCSRRoundingMode::ALL {
-                    const INSTRUCTION: u32 = Assembler::make_cvt_l_w(FR::F4, FR::F0);
+                    const INSTRUCTION: u32 = Assembler::make_cvt_l(FR::F4, FR::F0).w();
                     test_floating_point_i32toi64::<INSTRUCTION>("CVT.L.W", false, rounding_mode, *value1, 0, *expected)?;
 
-                    const INSTRUCTION2: u32 = Assembler::make_round_l_w(FR::F4, FR::F0);
+                    const INSTRUCTION2: u32 = Assembler::make_round_l(FR::F4, FR::F0).w();
                     test_floating_point_i32toi64::<INSTRUCTION2>("ROUND.L.W", false, rounding_mode, *value1, 0, *expected)?;
-                    const INSTRUCTION3: u32 = Assembler::make_trunc_l_w(FR::F4, FR::F0);
+                    const INSTRUCTION3: u32 = Assembler::make_trunc_l(FR::F4, FR::F0).w();
                     test_floating_point_i32toi64::<INSTRUCTION3>("TRUNC.L.W", false, rounding_mode, *value1, 0, *expected)?;
-                    const INSTRUCTION4: u32 = Assembler::make_ceil_l_w(FR::F4, FR::F0);
+                    const INSTRUCTION4: u32 = Assembler::make_ceil_l(FR::F4, FR::F0).w();
                     test_floating_point_i32toi64::<INSTRUCTION4>("CEIL.L.W", false, rounding_mode, *value1, 0, *expected)?;
-                    const INSTRUCTION5: u32 = Assembler::make_floor_l_w(FR::F4, FR::F0);
+                    const INSTRUCTION5: u32 = Assembler::make_floor_l(FR::F4, FR::F0).w();
                     test_floating_point_i32toi64::<INSTRUCTION5>("FLOOR.L.W", false, rounding_mode, *value1, 0, *expected)?;
                 }
                 return Ok(())
@@ -2698,16 +2698,16 @@ impl Test for ConvertToL {
         match (*value).downcast_ref::<(i64, Result<(FCSRFlags, i64), ()>)>() {
             Some((value1, expected)) => {
                 for rounding_mode in FCSRRoundingMode::ALL {
-                    const INSTRUCTION: u32 = Assembler::make_cvt_l_l(FR::F4, FR::F0);
+                    const INSTRUCTION: u32 = Assembler::make_cvt_l(FR::F4, FR::F0).l();
                     test_floating_point_i64toi64::<INSTRUCTION>("CVT.L.L", false, rounding_mode, *value1, 0, *expected)?;
 
-                    const INSTRUCTION2: u32 = Assembler::make_round_l_l(FR::F4, FR::F0);
+                    const INSTRUCTION2: u32 = Assembler::make_round_l(FR::F4, FR::F0).l();
                     test_floating_point_i64toi64::<INSTRUCTION2>("ROUND.L.L", false, rounding_mode, *value1, 0, *expected)?;
-                    const INSTRUCTION3: u32 = Assembler::make_trunc_l_l(FR::F4, FR::F0);
+                    const INSTRUCTION3: u32 = Assembler::make_trunc_l(FR::F4, FR::F0).l();
                     test_floating_point_i64toi64::<INSTRUCTION3>("TRUNC.L.L", false, rounding_mode, *value1, 0, *expected)?;
-                    const INSTRUCTION4: u32 = Assembler::make_ceil_l_l(FR::F4, FR::F0);
+                    const INSTRUCTION4: u32 = Assembler::make_ceil_l(FR::F4, FR::F0).l();
                     test_floating_point_i64toi64::<INSTRUCTION4>("CEIL.L.L", false, rounding_mode, *value1, 0, *expected)?;
-                    const INSTRUCTION5: u32 = Assembler::make_floor_l_l(FR::F4, FR::F0);
+                    const INSTRUCTION5: u32 = Assembler::make_floor_l(FR::F4, FR::F0).l();
                     test_floating_point_i64toi64::<INSTRUCTION5>("FLOOR.L.L", false, rounding_mode, *value1, 0, *expected)?;
                 }
                 return Ok(())
