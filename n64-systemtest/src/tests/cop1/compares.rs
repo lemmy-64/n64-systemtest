@@ -138,6 +138,7 @@ pub enum FPUSpecialNumber {
 
 fn test_values() -> Vec<Box<dyn Any>> {
     vec! {
+        // Singles
         Box::new((1f32, 2f32, Ordering::Less, FPUSpecialNumber::Nope)),
         Box::new((1f32, -1f32, Ordering::Greater, FPUSpecialNumber::Nope)),
         Box::new((1f32, f32::INFINITY, Ordering::Less, FPUSpecialNumber::Nope)),
@@ -186,8 +187,55 @@ fn test_values() -> Vec<Box<dyn Any>> {
 
         Box::new((FConst::QUIET_NAN_START_32, FConst::SUBNORMAL_MAX_POSITIVE_32, Ordering::Equal, FPUSpecialNumber::QuietNANAndSubnormal)),
 
-        // TODO: Do the same with doubles
+        // Doubles
         Box::new((1f64, 2f64, Ordering::Less, FPUSpecialNumber::Nope)),
+        Box::new((1f64, -1f64, Ordering::Greater, FPUSpecialNumber::Nope)),
+        Box::new((1f64, f64::INFINITY, Ordering::Less, FPUSpecialNumber::Nope)),
+        Box::new((1f64, f64::NEG_INFINITY, Ordering::Greater, FPUSpecialNumber::Nope)),
+        Box::new((f64::INFINITY, f64::NEG_INFINITY, Ordering::Greater, FPUSpecialNumber::Nope)),
+
+        Box::new((0f64, 0f64, Ordering::Equal, FPUSpecialNumber::Nope)),
+        Box::new((0f64, -0f64, Ordering::Equal, FPUSpecialNumber::Nope)),
+        Box::new((-0f64, 0f64, Ordering::Equal, FPUSpecialNumber::Nope)),
+        Box::new((f64::INFINITY, f64::INFINITY, Ordering::Equal, FPUSpecialNumber::Nope)),
+        Box::new((f64::MIN_POSITIVE, f64::MIN_POSITIVE, Ordering::Equal, FPUSpecialNumber::Nope)),
+        Box::new((f64::NEG_INFINITY, f64::NEG_INFINITY, Ordering::Equal, FPUSpecialNumber::Nope)),
+
+        Box::new((FConst::QUIET_NAN_START_64, 0f64, Ordering::Equal, FPUSpecialNumber::QuietNAN)),
+        Box::new((FConst::QUIET_NAN_END_64, 0f64, Ordering::Equal, FPUSpecialNumber::QuietNAN)),
+        Box::new((FConst::QUIET_NAN_NEGATIVE_START_64, 0f64, Ordering::Equal, FPUSpecialNumber::QuietNAN)),
+        Box::new((FConst::QUIET_NAN_NEGATIVE_END_64, 0f64, Ordering::Equal, FPUSpecialNumber::QuietNAN)),
+        Box::new((1f64, FConst::QUIET_NAN_START_64, Ordering::Equal, FPUSpecialNumber::QuietNAN)),
+        Box::new((1f64, FConst::QUIET_NAN_END_64, Ordering::Equal, FPUSpecialNumber::QuietNAN)),
+        Box::new((1f64, FConst::QUIET_NAN_NEGATIVE_START_64, Ordering::Equal, FPUSpecialNumber::QuietNAN)),
+        Box::new((1f64, FConst::QUIET_NAN_NEGATIVE_END_64, Ordering::Equal, FPUSpecialNumber::QuietNAN)),
+        Box::new((FConst::QUIET_NAN_START_64, FConst::QUIET_NAN_START_64, Ordering::Equal, FPUSpecialNumber::QuietNAN)),
+        Box::new((FConst::QUIET_NAN_START_64, FConst::QUIET_NAN_END_64, Ordering::Equal, FPUSpecialNumber::QuietNAN)),
+
+        Box::new((FConst::SIGNALLING_NAN_START_64, 0f64, Ordering::Equal, FPUSpecialNumber::SignallingNAN)),
+        Box::new((FConst::SIGNALLING_NAN_END_64, 0f64, Ordering::Equal, FPUSpecialNumber::SignallingNAN)),
+        Box::new((FConst::SIGNALLING_NAN_NEGATIVE_START_64, 0f64, Ordering::Equal, FPUSpecialNumber::SignallingNAN)),
+        Box::new((FConst::SIGNALLING_NAN_NEGATIVE_END_64, 0f64, Ordering::Equal, FPUSpecialNumber::SignallingNAN)),
+        Box::new((1f64, FConst::SIGNALLING_NAN_START_64, Ordering::Equal, FPUSpecialNumber::SignallingNAN)),
+        Box::new((1f64, FConst::SIGNALLING_NAN_END_64, Ordering::Equal, FPUSpecialNumber::SignallingNAN)),
+        Box::new((1f64, FConst::SIGNALLING_NAN_NEGATIVE_START_64, Ordering::Equal, FPUSpecialNumber::SignallingNAN)),
+        Box::new((1f64, FConst::SIGNALLING_NAN_NEGATIVE_END_64, Ordering::Equal, FPUSpecialNumber::SignallingNAN)),
+        Box::new((FConst::SIGNALLING_NAN_START_64, FConst::SIGNALLING_NAN_START_64, Ordering::Equal, FPUSpecialNumber::SignallingNAN)),
+        Box::new((FConst::SIGNALLING_NAN_START_64, FConst::SIGNALLING_NAN_END_64, Ordering::Equal, FPUSpecialNumber::SignallingNAN)),
+
+        Box::new((FConst::SIGNALLING_NAN_START_64, FConst::QUIET_NAN_START_64, Ordering::Equal, FPUSpecialNumber::BothNAN)),
+
+        Box::new((FConst::SUBNORMAL_MIN_POSITIVE_64, 0f64, Ordering::Greater, FPUSpecialNumber::Subnormal)),
+        Box::new((FConst::SUBNORMAL_MIN_NEGATIVE_64, 0f64, Ordering::Less, FPUSpecialNumber::Subnormal)),
+        Box::new((FConst::SUBNORMAL_MIN_POSITIVE_64, FConst::SUBNORMAL_MAX_POSITIVE_64, Ordering::Less, FPUSpecialNumber::Subnormal)),
+        Box::new((FConst::SUBNORMAL_MAX_POSITIVE_64, FConst::SUBNORMAL_MIN_POSITIVE_64, Ordering::Greater, FPUSpecialNumber::Subnormal)),
+        Box::new((FConst::SUBNORMAL_MIN_NEGATIVE_64, FConst::SUBNORMAL_MAX_NEGATIVE_64, Ordering::Greater, FPUSpecialNumber::Subnormal)),
+        Box::new((FConst::SUBNORMAL_MAX_NEGATIVE_64, FConst::SUBNORMAL_MIN_NEGATIVE_64, Ordering::Less, FPUSpecialNumber::Subnormal)),
+        Box::new((FConst::SUBNORMAL_MIN_NEGATIVE_64, FConst::SUBNORMAL_MIN_POSITIVE_64, Ordering::Less, FPUSpecialNumber::Subnormal)),
+        Box::new((FConst::SUBNORMAL_MAX_POSITIVE_64, FConst::SUBNORMAL_MAX_POSITIVE_64, Ordering::Equal, FPUSpecialNumber::Subnormal)),
+
+        Box::new((FConst::QUIET_NAN_START_64, FConst::SUBNORMAL_MAX_POSITIVE_64, Ordering::Equal, FPUSpecialNumber::QuietNANAndSubnormal)),
+
     }
 }
 

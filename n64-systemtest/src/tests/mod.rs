@@ -241,6 +241,10 @@ pub fn run() {
                 Some(v) => return format!(" with '{:x?}'", v),
                 None => {}
             }
+            match (*value).downcast_ref::<(f64, f64, Ordering, FPUSpecialNumber)>() {
+                Some(v) => return format!(" with '{:x?}'", v),
+                None => {}
+            }
             return " with unknown arguments".to_string();
         }
 
