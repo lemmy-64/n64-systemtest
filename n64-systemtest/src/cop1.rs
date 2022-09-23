@@ -36,6 +36,11 @@ impl FConst {
     pub const SUBNORMAL_MIN_NEGATIVE_32: f32 = unsafe { transmute::<u32, f32>(0x80000001) };
     pub const SUBNORMAL_MAX_NEGATIVE_32: f32 = unsafe { transmute::<u32, f32>(0x807fffff) };
 
+    pub const SUBNORMAL_MIN_POSITIVE_64: f64 = unsafe { transmute::<u64, f64>(0x00000000_00000001) };
+    pub const SUBNORMAL_MAX_POSITIVE_64: f64 = unsafe { transmute::<u64, f64>(0x000fffff_ffffffff) };
+    pub const SUBNORMAL_MIN_NEGATIVE_64: f64 = unsafe { transmute::<u64, f64>(0x80000000_00000001) };
+    pub const SUBNORMAL_MAX_NEGATIVE_64: f64 = unsafe { transmute::<u64, f64>(0x800fffff_ffffffff) };
+
     pub const SUBNORMAL_EXAMPLE_32: f32 = unsafe { transmute::<u32, f32>(0x00400000) };
     pub const SUBNORMAL_EXAMPLE_64: f64 = unsafe { transmute::<u64, f64>(0x0008000000000000) };
 }
