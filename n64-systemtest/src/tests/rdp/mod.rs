@@ -168,15 +168,18 @@ impl Test for StatusFlagsDuringRun {
         // Set start and end to beginning
         RDP::set_start(assembler.start() as u32);
         RDP::set_end(assembler.start() as u32);
+        soft_assert_eq(RDP::start(), assembler.start() as u32, "RDP start should be equal to START after writing END")?;
         soft_assert_eq(RDP::current(), assembler.start() as u32, "RDP current should be equal to START after writing END")?;
 
         wait_for_status(DP_STATUS_COMMAND_BUFFER_READY | DP_STATUS_PIPE_BUSY | DP_STATUS_START_GCLK)?;
+        soft_assert_eq(RDP::start(), assembler.start() as u32, "RDP start should be equal to START after writing END")?;
         soft_assert_eq(RDP::current(), assembler.start() as u32, "RDP current should be equal to START after writing END")?;
 
         // Move forward one instruction. Hardware will briefly set DP_STATUS_DMA_BUSY as it copies an instruction over
         // For now we don't assert for that as few emulators probably implement this exactly
         RDP::set_end(assembler.start() as u32 + 8);
         wait_for_status(DP_STATUS_COMMAND_BUFFER_READY | DP_STATUS_PIPE_BUSY | DP_STATUS_START_GCLK)?;
+        soft_assert_eq(RDP::start(), assembler.start() as u32, "RDP start should be equal to START after writing END")?;
 
         // Advance until the right before the sync_full instructions
         RDP::set_end(assembler.end() as u32 - 16);
@@ -192,6 +195,7 @@ impl Test for StatusFlagsDuringRun {
         // Advance until the second sync_full instruction
         RDP::set_end(assembler.end() as u32);
         wait_for_status(DP_STATUS_COMMAND_BUFFER_READY)?;
+        soft_assert_eq(RDP::start(), assembler.start() as u32, "RDP start should be equal to START after reaching the end")?;
 
         Ok(())
     }
