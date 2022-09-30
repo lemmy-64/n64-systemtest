@@ -469,6 +469,7 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::cop1::CFC1CTC1_0),
         Box::new(super::cop1::CFC1CTC1_31),
         Box::new(super::cop1::FireExceptionViaCTC1),
+        Box::new(super::cop1::FireUnimplementedExceptionViaCTC1),
         Box::new(super::cop1::FireExceptionViaCTC1FollowedByMFC1),
         Box::new(super::cop1::FireExceptionViaCTC1FollowedByMFC2),
         Box::new(super::cop1::FireExceptionViaCTC1Delay),
