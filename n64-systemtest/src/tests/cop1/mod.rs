@@ -134,6 +134,42 @@ impl Test for FireExceptionViaCTC1 {
     }
 }
 
+pub struct FireUnimplementedExceptionViaCTC1;
+
+impl Test for FireUnimplementedExceptionViaCTC1 {
+    fn name(&self) -> &str { "Fire unimplemented exception through CTC1" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        preset_cause_to_copindex2()?;
+
+        let exception_context = expect_exception(CauseException::FPE, 1, || {
+            let fcsr = FCSR::new().with_cause_unimplemented_operation(true);
+            unsafe {
+                asm!("
+                    .set noat
+                    .set noreorder
+                    CTC1 $2, $31
+                    NOP
+                ", in("$2") fcsr.raw_value(), options(nostack))
+            }
+
+            Ok(())
+        })?;
+
+        soft_assert_eq(exception_context.k0_exception_vector, 0xFFFFFFFF_80000180, "Exception Vector")?;
+        soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
+        soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32) }, Assembler::make_ctc1(GPR::V0, u5::new(31)), "ExceptPC points to wrong instruction")?;
+        soft_assert_eq(exception_context.cause, Cause::new().with_exception(CauseException::FPE), "Cause")?;
+        soft_assert_eq(exception_context.status, Status::DEFAULT.with_exl(true).raw_value(), "Status")?;
+        soft_assert_eq(exception_context.fcsr, FCSR::new().with_cause_unimplemented_operation(true), "FCSR")?;
+        Ok(())
+    }
+}
+
 /// This test really requires pipeline emulation, so it is considered TooWeird
 pub struct FireExceptionViaCTC1FollowedByMFC1;
 
