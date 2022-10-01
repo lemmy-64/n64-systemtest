@@ -175,6 +175,7 @@ fn test_values() -> Vec<Box<dyn Any>> {
         Box::new((FConst::SIGNALLING_NAN_START_32, FConst::SIGNALLING_NAN_END_32, Ordering::Equal, FPUSpecialNumber::SignallingNAN)),
 
         Box::new((FConst::SIGNALLING_NAN_START_32, FConst::QUIET_NAN_START_32, Ordering::Equal, FPUSpecialNumber::BothNAN)),
+        Box::new((FConst::QUIET_NAN_START_32, FConst::SIGNALLING_NAN_START_32, Ordering::Equal, FPUSpecialNumber::BothNAN)),
 
         Box::new((FConst::SUBNORMAL_MIN_POSITIVE_32, 0f32, Ordering::Greater, FPUSpecialNumber::Subnormal)),
         Box::new((FConst::SUBNORMAL_MIN_NEGATIVE_32, 0f32, Ordering::Less, FPUSpecialNumber::Subnormal)),
@@ -224,6 +225,7 @@ fn test_values() -> Vec<Box<dyn Any>> {
         Box::new((FConst::SIGNALLING_NAN_START_64, FConst::SIGNALLING_NAN_END_64, Ordering::Equal, FPUSpecialNumber::SignallingNAN)),
 
         Box::new((FConst::SIGNALLING_NAN_START_64, FConst::QUIET_NAN_START_64, Ordering::Equal, FPUSpecialNumber::BothNAN)),
+        Box::new((FConst::QUIET_NAN_START_64, FConst::SIGNALLING_NAN_START_64, Ordering::Equal, FPUSpecialNumber::BothNAN)),
 
         Box::new((FConst::SUBNORMAL_MIN_POSITIVE_64, 0f64, Ordering::Greater, FPUSpecialNumber::Subnormal)),
         Box::new((FConst::SUBNORMAL_MIN_NEGATIVE_64, 0f64, Ordering::Less, FPUSpecialNumber::Subnormal)),
