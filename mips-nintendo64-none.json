@@ -11,6 +11,11 @@
   "llvm-target": "mips-unknown-unknown",
   "os": "none",
   "panic-strategy": "abort",
+  "pre-link-args": {
+    "ld.lld": [
+      "--script=linker.ld"
+    ]
+  },
   "relocation-model": "static",
   "target-c-int-width": "32",
   "target-endian": "big",

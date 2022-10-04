@@ -12,8 +12,6 @@ fn main() {
     if !install_toolchain(&toolchain) {
         panic!("Failed to install rust toolchain {}", toolchain);
     }
-    
-    println!("cargo:rustc-link-arg=--script=linker.ld");
 }
 
 fn install_toolchain(toolchain: &str) -> bool {
