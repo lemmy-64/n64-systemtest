@@ -23,6 +23,11 @@ vrcp32_stress_test = []
 vrsq32_stress_test = []
 rcp_rsq_dump = []
 
+[profile.dev]
+# Using the default level 0 for this profile, causes rust-lld to throw the error "PC offset is too large" with a 64-bit address.
+# This probably occurs because the current architecture target is set as a 32-bit system (attempting to use 64-bit will cause other compiler problems).
+opt-level = 1
+
 [dependencies]
 linked_list_allocator = "0.9.0"
 spinning_top = "0.2.4"
