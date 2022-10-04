@@ -1,0 +1,10 @@
+[build]
+target = "mips-nintendo64-none.json"
+
+[unstable]
+build-std = ["core", "alloc"]
+
+[target.mips-nintendo64-none]
+rustflags = ["-Clinker-plugin-lto"]
+
+runner = "nust64 --ipl3 mini-ipl3/mini-ipl3.bin --elf"
