@@ -18,14 +18,22 @@ n64-systemtest tests common but also some of the more exotic features of the N64
 - RSP
 
 # How to build
-n64-systemtest can be built on Windows, mac or Linux (including within WSL). The steps are pretty much the same.
+n64-systemtest can be built on Windows, Mac or Linux (including within WSL). The steps are pretty much the same.
 1. Install Rust: https://www.rust-lang.org/tools/install
-2. Get the source. (e.g. `git clone https://github.com/lemmy-64/n64-systemtest.git`)
-3. Run `cargo run --release` to build the test rom.
+2. Get the source: (e.g. using git, or downloading an archive manually)
+```
+git clone https://github.com/lemmy-64/n64-systemtest.git
+cd n64-systemtest
+```
+3. Install prerequisites:
+```
+cargo install nust64
+```
+4. Run `cargo run --release` to build the test rom.
 
-**Please note:** N64 roms require a bootcode called IPL3. This bootcode is expected to setup hardware and copy the rom into memory. n64-systemtest comes with its own IPL3, which will **NOT** run on hardware. Once there is a community built open-source IPL3, we'll switch to that. If you'd like to use your own IPL3, use the command line argument like this:
+**Please note:** N64 roms require a bootcode called IPL3. This bootcode is expected to setup hardware and copy the rom into memory. n64-systemtest comes with its own IPL3, which will **NOT** run on hardware. Once there is a community built open-source IPL3, we'll switch to that.
 
-`cargo run --release -- --ipl3 /path/to/ipl3.bin`
+If you'd like to use your own IPL3: Reconfigure the IPL3 path used by the runner (nust64) in `.cargo/config.toml`.
 
 # How to run
 Run the rom in your emulator of choice. Expect one of three things:
