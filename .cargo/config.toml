@@ -7,4 +7,8 @@ build-std = ["core", "alloc"]
 [target.mips-nintendo64-none]
 rustflags = ["-Clinker-plugin-lto"]
 
+# runner specifies a program that cargo automatically executes after compiling (using the 'cargo run' command).
+# nust64 is used by default, to convert the generated ELF file into an N64 ROM, including the provided IPL3 binary.
+# If you wish to use a different IPL3 file, just provide its path here, in place of the mini-ipl3.
+# Cargo will append this command with the path to the ELF file, so make sure the command ends with '--elf'.
 runner = "nust64 --ipl3 mini-ipl3/mini-ipl3.bin --elf"
