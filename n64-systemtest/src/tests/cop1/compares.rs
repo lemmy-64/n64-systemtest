@@ -25,17 +25,19 @@ fn test_compare<FIn: Copy, FAsmBlock: Fn(FIn, FIn)>(
     if let Ok((expected_flags, expected_result)) = expected {
         // Run once with all exceptions enabled that we don't care about and once with all disabled
         for enabled in [ FCSRFlags::NONE, expected_flags.invert() ] {
-            set_fcsr(FCSR::new().with_rounding_mode(rounding_mode).with_enables(enabled));
-            f(value1, value2);
-            let result_fcsr = fcsr();
-            // Copy cause bits into flag bits for no-exception case
-            let expected_fcsr = FCSR::new()
-                .with_condition(expected_result)
-                .with_rounding_mode(rounding_mode)
-                .with_flags(expected_flags)
-                .with_enables(enabled)
-                .with_maskable_causes(expected_flags);
-            soft_assert_eq(result_fcsr, expected_fcsr, "FCSR after operation with exceptions disabled")?;
+            for condition_before in [false, true] {
+                set_fcsr(FCSR::new().with_condition(condition_before).with_rounding_mode(rounding_mode).with_enables(enabled));
+                f(value1, value2);
+                let result_fcsr = fcsr();
+                // Copy cause bits into flag bits for no-exception case
+                let expected_fcsr = FCSR::new()
+                    .with_condition(expected_result)
+                    .with_rounding_mode(rounding_mode)
+                    .with_flags(expected_flags)
+                    .with_enables(enabled)
+                    .with_maskable_causes(expected_flags);
+                soft_assert_eq(result_fcsr, expected_fcsr, "FCSR after operation with exceptions disabled")?;
+            }
         }
 
         if expected_flags == FCSRFlags::NONE {
@@ -54,22 +56,24 @@ fn test_compare<FIn: Copy, FAsmBlock: Fn(FIn, FIn)>(
         (FCSRFlags::NONE, FCSR::new().with_cause_unimplemented_operation(true))
     };
 
-    let exception_context = expect_exception(CauseException::FPE, 1, || {
-        set_fcsr(FCSR::new().with_rounding_mode(rounding_mode).with_enables(enabled_flags));
+    for condition_before in [false, true] {
+        let exception_context = expect_exception(CauseException::FPE, 1, || {
+            set_fcsr(FCSR::new().with_condition(condition_before).with_rounding_mode(rounding_mode).with_enables(enabled_flags));
 
-        f(value1, value2);
+            f(value1, value2);
 
-        set_fcsr(FCSR::new());
-        Ok(())
-    })?;
+            set_fcsr(FCSR::new());
+            Ok(())
+        })?;
 
-    soft_assert_eq(exception_context.k0_exception_vector, 0xFFFFFFFF_80000180, "Exception Vector")?;
-    soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
-    soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32) }, instruction, "ExceptPC points to wrong instruction")?;
-    soft_assert_eq(exception_context.cause, Cause::new().with_coprocessor_error(u2::new(0)).with_exception(CauseException::FPE), "Cause")?;
-    soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
-    let expected_fcsr = expected_cause.with_rounding_mode(rounding_mode).with_enables(enabled_flags);
-    soft_assert_eq(exception_context.fcsr, expected_fcsr, "FCSR after operation with exceptions enabled")?;
+        soft_assert_eq(exception_context.k0_exception_vector, 0xFFFFFFFF_80000180, "Exception Vector")?;
+        soft_assert_eq(exception_context.exceptpc & 0xFFFFFFFF_FF000000, 0xFFFFFFFF_80000000, "ExceptPC")?;
+        soft_assert_eq(unsafe { *(exception_context.exceptpc as *const u32) }, instruction, "ExceptPC points to wrong instruction")?;
+        soft_assert_eq(exception_context.cause, Cause::new().with_coprocessor_error(u2::new(0)).with_exception(CauseException::FPE), "Cause")?;
+        soft_assert_eq(exception_context.status, 0x24000002, "Status")?;
+        let expected_fcsr = expected_cause.with_condition(condition_before).with_rounding_mode(rounding_mode).with_enables(enabled_flags);
+        soft_assert_eq(exception_context.fcsr, expected_fcsr, "FCSR after operation with exceptions enabled")?;
+    }
 
     Ok(())
 }
