@@ -11,6 +11,7 @@ use crate::exception_handler::drain_seen_exception;
 use crate::{FramebufferConsole, print, println};
 use crate::cop1::{FCSR, FCSRFlags, FCSRRoundingMode, set_fcsr};
 use crate::isviewer::text_out;
+use crate::math::soft_float::{SoftF32, SoftF64};
 use crate::tests::cop1::compares::FPUSpecialNumber;
 use crate::tests::traps::Immediate;
 
@@ -178,7 +179,12 @@ pub fn run() {
                 None => {}
             }
             match (*value).downcast_ref::<(bool, FCSRRoundingMode, f32, f32, Result<(FCSRFlags, f32), ()>)>() {
-                Some(v) => return format!(" with '{:x?}'", v),
+                Some((flush_denorm_to_zero, rounding_mode, value1, value2, expected)) => {
+                    // Convert f32 to SoftF32 - it prints more nicely
+                    let new_expected = expected.map(|(flags, f)| (flags, SoftF32::new(f)));
+                    let temp = (*flush_denorm_to_zero, *rounding_mode, SoftF32::new(*value1), SoftF32::new(*value2), new_expected);
+                    return format!(" with '{:x?}'", temp);
+                }
                 None => {}
             }
             match (*value).downcast_ref::<(bool, FCSRRoundingMode, f64, Result<(FCSRFlags, f32), ()>)>() {
@@ -238,11 +244,19 @@ pub fn run() {
                 None => {}
             }
             match (*value).downcast_ref::<(f32, f32, Ordering, FPUSpecialNumber)>() {
-                Some(v) => return format!(" with '{:x?}'", v),
+                Some((f1, f2, ordering, special)) => {
+                    // Convert f32 to SoftF32 - it prints more nicely
+                    let temp = (SoftF32::new(*f1), SoftF32::new(*f2), *ordering, *special);
+                    return format!(" with '{:x?}'", temp);
+                },
                 None => {}
             }
             match (*value).downcast_ref::<(f64, f64, Ordering, FPUSpecialNumber)>() {
-                Some(v) => return format!(" with '{:x?}'", v),
+                Some((f1, f2, ordering, special)) => {
+                    // Convert f64 to SoftF64 - it prints more nicely
+                    let temp = (SoftF64::new(*f1), SoftF64::new(*f2), *ordering, *special);
+                    return format!(" with '{:x?}'", temp);
+                },
                 None => {}
             }
             return " with unknown arguments".to_string();

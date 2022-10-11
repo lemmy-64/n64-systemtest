@@ -20,7 +20,7 @@ impl FConst {
     pub const SIGNALLING_NAN_NEGATIVE_START_64: f64 = unsafe { transmute(0xFFF0000000000001u64) };
     pub const SIGNALLING_NAN_NEGATIVE_END_64: f64 = unsafe { transmute(0xFFF7FFFFFFFFFFFFu64) };
 
-    // Quiet NAN range. The COP1 doesn't seem to support those at all
+    // Quiet NAN range
     pub const QUIET_NAN_START_32: f32 = unsafe { transmute(0x7FC00000u32) };
     pub const QUIET_NAN_END_32: f32 = unsafe { transmute(0x7FFFFFFFu32) };
     pub const QUIET_NAN_NEGATIVE_START_32: f32 = unsafe { transmute(0xFFC00000u32) };
