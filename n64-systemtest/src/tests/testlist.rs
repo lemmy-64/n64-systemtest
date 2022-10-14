@@ -482,7 +482,6 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::cop1::AddD),
         Box::new(super::cop1::SubS),
         Box::new(super::cop1::SubD),
-        Box::new(super::cop1::SubD),
         Box::new(super::cop1::AbsS),
         Box::new(super::cop1::AbsD),
         Box::new(super::cop1::NegS),

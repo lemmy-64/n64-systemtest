@@ -1540,6 +1540,9 @@ impl Test for AddS {
             Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_END_32, 2f32, expected_unimplemented_f32())),
             Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_START_32, 2f32, expected_unimplemented_f32())),
             Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_END_32, 2f32, expected_unimplemented_f32())),
+
+            // Mixing both types of NAN cause unimplemented
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_START_32, FConst::QUIET_NAN_START_32, expected_unimplemented_f32())),
         }
     }
 
