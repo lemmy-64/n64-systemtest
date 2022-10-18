@@ -159,23 +159,45 @@ pub fn run() {
                 None => {}
             }
             match (*value).downcast_ref::<(bool, FCSRRoundingMode, f32, Result<(FCSRFlags, f32), ()>)>() {
-                Some(v) => return format!(" with '{:x?}'", v),
+                Some((flush_denorm_to_zero, rounding_mode, value, expected)) => {
+                    // Convert f32 to SoftF32 - it prints more nicely
+                    let new_expected = expected.map(|(flags, f)| (flags, SoftF32::new(f)));
+                    let temp = (*flush_denorm_to_zero, *rounding_mode, SoftF32::new(*value), new_expected);
+                    return format!(" with '{:x?}'", temp);
+                }
                 None => {}
             }
             match (*value).downcast_ref::<(bool, FCSRRoundingMode, f32, Result<(FCSRFlags, f64), ()>)>() {
-                Some(v) => return format!(" with '{:x?}'", v),
+                Some((flush_denorm_to_zero, rounding_mode, value, expected)) => {
+                    // Convert f32 to SoftF32 - it prints more nicely
+                    let new_expected = expected.map(|(flags, f)| (flags, SoftF64::new(f)));
+                    let temp = (*flush_denorm_to_zero, *rounding_mode, SoftF32::new(*value), new_expected);
+                    return format!(" with '{:x?}'", temp);
+                }
                 None => {}
             }
             match (*value).downcast_ref::<(bool, FCSRRoundingMode, f32, Result<(FCSRFlags, i32), ()>)>() {
-                Some(v) => return format!(" with '{:x?}'", v),
+                Some((flush_denorm_to_zero, rounding_mode, value, expected)) => {
+                    // Convert f32 to SoftF32 - it prints more nicely
+                    let temp = (*flush_denorm_to_zero, *rounding_mode, SoftF32::new(*value), expected);
+                    return format!(" with '{:x?}'", temp);
+                }
                 None => {}
             }
             match (*value).downcast_ref::<(bool, FCSRRoundingMode, f32, Result<(FCSRFlags, i64), ()>)>() {
-                Some(v) => return format!(" with '{:x?}'", v),
+                Some((flush_denorm_to_zero, rounding_mode, value, expected)) => {
+                    // Convert f32 to SoftF32 - it prints more nicely
+                    let temp = (*flush_denorm_to_zero, *rounding_mode, SoftF32::new(*value), expected);
+                    return format!(" with '{:x?}'", temp);
+                }
                 None => {}
             }
             match (*value).downcast_ref::<(f32, Result<(FCSRFlags, i64), ()>)>() {
-                Some(v) => return format!(" with '{:x?}'", v),
+                Some((value, expected)) => {
+                    // Convert f32 to SoftF32 - it prints more nicely
+                    let temp = (SoftF32::new(*value), expected);
+                    return format!(" with '{:x?}'", temp);
+                }
                 None => {}
             }
             match (*value).downcast_ref::<(bool, FCSRRoundingMode, f32, f32, Result<(FCSRFlags, f32), ()>)>() {
@@ -188,31 +210,63 @@ pub fn run() {
                 None => {}
             }
             match (*value).downcast_ref::<(bool, FCSRRoundingMode, f64, Result<(FCSRFlags, f32), ()>)>() {
-                Some(v) => return format!(" with '{:x?}'", v),
+                Some((flush_denorm_to_zero, rounding_mode, value, expected)) => {
+                    // Convert f32 to SoftF32 - it prints more nicely
+                    let new_expected = expected.map(|(flags, f)| (flags, SoftF32::new(f)));
+                    let temp = (*flush_denorm_to_zero, *rounding_mode, SoftF64::new(*value), new_expected);
+                    return format!(" with '{:x?}'", temp);
+                }
                 None => {}
             }
             match (*value).downcast_ref::<(bool, FCSRRoundingMode, f64, Result<(FCSRFlags, f64), ()>)>() {
-                Some(v) => return format!(" with '{:x?}'", v),
+                Some((flush_denorm_to_zero, rounding_mode, value, expected)) => {
+                    // Convert f32 to SoftF32 - it prints more nicely
+                    let new_expected = expected.map(|(flags, f)| (flags, SoftF64::new(f)));
+                    let temp = (*flush_denorm_to_zero, *rounding_mode, SoftF64::new(*value), new_expected);
+                    return format!(" with '{:x?}'", temp);
+                }
                 None => {}
             }
             match (*value).downcast_ref::<(bool, FCSRRoundingMode, f64, Result<(FCSRFlags, i32), ()>)>() {
-                Some(v) => return format!(" with '{:x?}'", v),
+                Some((flush_denorm_to_zero, rounding_mode, value, expected)) => {
+                    // Convert f32 to SoftF32 - it prints more nicely
+                    let temp = (*flush_denorm_to_zero, *rounding_mode, SoftF64::new(*value), expected);
+                    return format!(" with '{:x?}'", temp);
+                }
                 None => {}
             }
             match (*value).downcast_ref::<(bool, FCSRRoundingMode, f64, Result<(FCSRFlags, i64), ()>)>() {
-                Some(v) => return format!(" with '{:x?}'", v),
+                Some((flush_denorm_to_zero, rounding_mode, value, expected)) => {
+                    // Convert f32 to SoftF32 - it prints more nicely
+                    let temp = (*flush_denorm_to_zero, *rounding_mode, SoftF64::new(*value), expected);
+                    return format!(" with '{:x?}'", temp);
+                }
                 None => {}
             }
             match (*value).downcast_ref::<(f64, Result<(FCSRFlags, i64), ()>)>() {
-                Some(v) => return format!(" with '{:x?}'", v),
+                Some((value, expected)) => {
+                    // Convert f32 to SoftF32 - it prints more nicely
+                    let temp = (SoftF64::new(*value), expected);
+                    return format!(" with '{:x?}'", temp);
+                }
                 None => {}
             }
             match (*value).downcast_ref::<(bool, FCSRRoundingMode, i32, Result<(FCSRFlags, f32), ()>)>() {
-                Some(v) => return format!(" with '{:x?}'", v),
+                Some((flush_denorm_to_zero, rounding_mode, value, expected)) => {
+                    // Convert f32 to SoftF32 - it prints more nicely
+                    let new_expected = expected.map(|(flags, f)| (flags, SoftF32::new(f)));
+                    let temp = (*flush_denorm_to_zero, *rounding_mode, value, new_expected);
+                    return format!(" with '{:x?}'", temp);
+                }
                 None => {}
             }
             match (*value).downcast_ref::<(bool, FCSRRoundingMode, i32, Result<(FCSRFlags, f64), ()>)>() {
-                Some(v) => return format!(" with '{:x?}'", v),
+                Some((flush_denorm_to_zero, rounding_mode, value, expected)) => {
+                    // Convert f32 to SoftF32 - it prints more nicely
+                    let new_expected = expected.map(|(flags, f)| (flags, SoftF64::new(f)));
+                    let temp = (*flush_denorm_to_zero, *rounding_mode, value, new_expected);
+                    return format!(" with '{:x?}'", temp);
+                }
                 None => {}
             }
             match (*value).downcast_ref::<(i32, Result<(FCSRFlags, i32), ()>)>() {
@@ -224,11 +278,21 @@ pub fn run() {
                 None => {}
             }
             match (*value).downcast_ref::<(bool, FCSRRoundingMode, i64, Result<(FCSRFlags, f64), ()>)>() {
-                Some(v) => return format!(" with '{:x?}'", v),
+                Some((flush_denorm_to_zero, rounding_mode, value, expected)) => {
+                    // Convert f32 to SoftF32 - it prints more nicely
+                    let new_expected = expected.map(|(flags, f)| (flags, SoftF64::new(f)));
+                    let temp = (*flush_denorm_to_zero, *rounding_mode, value, new_expected);
+                    return format!(" with '{:x?}'", temp);
+                }
                 None => {}
             }
             match (*value).downcast_ref::<(bool, FCSRRoundingMode, i64, Result<(FCSRFlags, f32), ()>)>() {
-                Some(v) => return format!(" with '{:x?}'", v),
+                Some((flush_denorm_to_zero, rounding_mode, value, expected)) => {
+                    // Convert f32 to SoftF32 - it prints more nicely
+                    let new_expected = expected.map(|(flags, f)| (flags, SoftF32::new(f)));
+                    let temp = (*flush_denorm_to_zero, *rounding_mode, value, new_expected);
+                    return format!(" with '{:x?}'", temp);
+                }
                 None => {}
             }
             match (*value).downcast_ref::<(i64, Result<(FCSRFlags, i32), ()>)>() {
@@ -240,7 +304,11 @@ pub fn run() {
                 None => {}
             }
             match (*value).downcast_ref::<(bool, FCSRRoundingMode, f64, f64, Result<(FCSRFlags, f64), ()>)>() {
-                Some(v) => return format!(" with '{:x?}'", v),
+                Some((flush_denorm_to_zero, rounding_mode, f1, f2, expected)) => {
+                    // Convert f32 to SoftF32 - it prints more nicely
+                    let temp = (*flush_denorm_to_zero, *rounding_mode, SoftF64::new(*f1), SoftF64::new(*f2), *expected);
+                    return format!(" with '{:x?}'", temp);
+                },
                 None => {}
             }
             match (*value).downcast_ref::<(f32, f32, Ordering, FPUSpecialNumber)>() {
