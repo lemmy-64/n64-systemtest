@@ -2179,6 +2179,7 @@ impl Test for SqrtS {
             Box::new((false, FCSRRoundingMode::PositiveInfinity, f32::MAX, expected_result(FCSRFlags::new().with_inexact_operation(true), 1.8446744e19f32))),
             Box::new((false, FCSRRoundingMode::NegativeInfinity, f32::MAX, expected_result(FCSRFlags::new().with_inexact_operation(true), 1.8446743e19f32))),
             Box::new((false, FCSRRoundingMode::Nearest, f32::MIN_POSITIVE, expected_result(FCSRFlags::new(), 1.0842022e-19f32))),
+            Box::new((false, FCSRRoundingMode::Nearest, -f32::MIN_POSITIVE, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
             Box::new((false, FCSRRoundingMode::Nearest, f32::INFINITY, expected_result(FCSRFlags::new(), f32::INFINITY))),
 
             // Sqrt(NAN) produces another NAN and invalid operation (which is the opposite of what their name implies)
@@ -2236,6 +2237,7 @@ impl Test for SqrtD {
             Box::new((false, FCSRRoundingMode::PositiveInfinity, f64::MAX, expected_result(FCSRFlags::new().with_inexact_operation(true), 1.3407807929942597e154f64))),
             Box::new((false, FCSRRoundingMode::NegativeInfinity, f64::MAX, expected_result(FCSRFlags::new().with_inexact_operation(true), 1.3407807929942596e154f64))),
             Box::new((false, FCSRRoundingMode::Nearest, f64::MIN_POSITIVE, expected_result(FCSRFlags::new(), 1.4916681462400413e-154f64))),
+            Box::new((false, FCSRRoundingMode::Nearest, -f64::MIN_POSITIVE, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
             Box::new((false, FCSRRoundingMode::Nearest, f64::INFINITY, expected_result(FCSRFlags::new(), f64::INFINITY))),
 
             // Sqrt(NAN) produces another NAN and invalid operation (which is the opposite of what their name implies)
