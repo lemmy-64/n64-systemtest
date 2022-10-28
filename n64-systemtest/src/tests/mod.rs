@@ -295,6 +295,20 @@ pub fn run() {
                 }
                 None => {}
             }
+            match (*value).downcast_ref::<(f32, Result<(FCSRFlags, i32), ()>)>() {
+                Some((value, expected)) => {
+                    let temp = (SoftF32::new(*value), expected);
+                    return format!(" with '{:x?}'", temp)
+                },
+                None => {}
+            }
+            match (*value).downcast_ref::<(f64, Result<(FCSRFlags, i32), ()>)>() {
+                Some((value, expected)) => {
+                    let temp = (SoftF64::new(*value), expected);
+                    return format!(" with '{:x?}'", temp)
+                },
+                None => {}
+            }
             match (*value).downcast_ref::<(i64, Result<(FCSRFlags, i32), ()>)>() {
                 Some(v) => return format!(" with '{:x?}'", v),
                 None => {}
