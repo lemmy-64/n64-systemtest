@@ -18,19 +18,24 @@ use crate::tests::soft_asserts::{soft_assert_eq, soft_assert_eq2, soft_assert_f3
 // Lessons learned:
 // - CFC1 for 0 returns a constant. CTC1 to 0 is ignored.
 // - CFC1 for 1 returns random garbage that seems to contain the original value of the register as well
-//   no test for those
+//  s no test for those
 // - Untested, but we're assuming that 2..=30 behave the same way
 // - CFC1 for 31 returns the FCSR. It has a write-mask. If an interrupt is set AND enabled at the same time,
 //   it is fired right away
 
 // COP1 exceptions:
 // - FPU exception can simply be set via software, by CTC1'ing the bits
+// - All FPU operations with the exception of MOV.S and MOV.D clear the cause bits
 // - When an FPU exception fires, the NEXT instruction defines what the value of Cause.copindex is
 //   (if it's for example a MFC1, it will be 1. For NOP, it will be 0).
 // - Underflow happens if flush-denorm is set. If flush-denorm is false OR if either underflow or inexact exceptions are actually enabled,
 //   UnimplementedOperationException is fired instead
 // - Signalling NANs don't work at all. If either one of the inputs has this value, UnimplementedOperationException is fired
-// - Quiet NANs are support, but they are signalling. Also all NANs (including negative ones) are treated equally
+// - Quiet NANs are supported, but they are signalling. Also all NANs (including negative ones) are treated equally
+
+// TODO:
+// - Nested exception (this will probably show that cause.unimplemented is also cleared?)
+// - Tests for 32 and 64 bit mode separately. Read 64 bit registers after writing them in 64 bit mode
 
 /// Value of the target reg before an operation is executed
 const TARGET_REG_DEFAULT_F32: f32 = 12345678f32;
@@ -645,6 +650,7 @@ fn test_floating_point<FIn: Copy, FOut: Copy, FAsmBlock: Fn(FIn, FIn) -> FOut, F
     assert_f_equal: FAssertEqual,
     flush_denorm_to_zero: bool,
     rounding_mode: FCSRRoundingMode,
+    expected_clear_cause_bits: bool,
     value1: FIn,
     value2: FIn,
     expected: Result<(FCSRFlags, FOut), ()>) -> Result<(), String> {
@@ -652,18 +658,22 @@ fn test_floating_point<FIn: Copy, FOut: Copy, FAsmBlock: Fn(FIn, FIn) -> FOut, F
     if let Ok((expected_flags, expected_result)) = expected {
         // Run once with all exceptions enabled that we don't care about and once with all disabled
         for enabled in [ FCSRFlags::NONE, expected_flags.invert() ] {
-            set_fcsr(FCSR::new().with_rounding_mode(rounding_mode).with_flush_denorm_to_zero(flush_denorm_to_zero).with_enables(enabled));
-            let regular_result = f(value1, value2);
-            let regular_result_fcsr = fcsr();
-            // Copy cause bits into flag bits for no-exception case
-            let expected_fcsr_no_exception = FCSR::new()
-                .with_flush_denorm_to_zero(flush_denorm_to_zero)
-                .with_rounding_mode(rounding_mode)
-                .with_flags(expected_flags)
-                .with_enables(enabled)
-                .with_maskable_causes(expected_flags);
-            assert_f_equal(regular_result, expected_result, format!("Result after {}", context).as_str())?;
-            soft_assert_eq2(regular_result_fcsr, expected_fcsr_no_exception, || format!("FCSR after {} with exceptions disabled", context))?;
+            // Run once with all cause bits off and once with all those set that aren't enabled as exceptions
+            for causes_set_before in [FCSRFlags::NONE, enabled.invert()] {
+                set_fcsr(FCSR::new().with_rounding_mode(rounding_mode).with_flush_denorm_to_zero(flush_denorm_to_zero).with_enables(enabled).with_maskable_causes(causes_set_before));
+                let regular_result = f(value1, value2);
+                let regular_result_fcsr = fcsr();
+                let expected_cause_bits = if expected_clear_cause_bits { expected_flags } else { expected_flags | causes_set_before };
+                // Copy cause bits into flag bits for no-exception case
+                let expected_fcsr_no_exception = FCSR::new()
+                    .with_flush_denorm_to_zero(flush_denorm_to_zero)
+                    .with_rounding_mode(rounding_mode)
+                    .with_flags(expected_flags)
+                    .with_enables(enabled)
+                    .with_maskable_causes(expected_cause_bits);
+                assert_f_equal(regular_result, expected_result, format!("Result after {}", context).as_str())?;
+                soft_assert_eq2(regular_result_fcsr, expected_fcsr_no_exception, || format!("FCSR after {} with exceptions disabled", context))?;
+            }
         }
 
         if expected_flags == FCSRFlags::NONE {
@@ -731,6 +741,20 @@ fn test_floating_point<FIn: Copy, FOut: Copy, FAsmBlock: Fn(FIn, FIn) -> FOut, F
     Ok(())
 }
 
+fn test_floating_point_f32_which_preserves_cause_bits<const INSTRUCTION: u32>(context: &str, flush_denorm_to_zero: bool, rounding_mode: FCSRRoundingMode, value1: f32, value2: f32, expected: Result<(FCSRFlags, f32), ()>) -> Result<(), String> {
+    const BEQ_INSTRUCTION: u32 = Assembler::make_beq(GPR::R0, GPR::R0, 1);
+
+    test_floating_point(
+        context,
+        asm_block_f32::<0, INSTRUCTION>,
+        asm_block_f32::<BEQ_INSTRUCTION, INSTRUCTION>,
+        0f32,
+        TARGET_REG_DEFAULT_F32,
+        INSTRUCTION,
+        |f1, f2, s| soft_assert_f32_bits(f1, f2, s),
+        flush_denorm_to_zero, rounding_mode, false, value1, value2, expected)
+}
+
 fn test_floating_point_f32<const INSTRUCTION: u32>(context: &str, flush_denorm_to_zero: bool, rounding_mode: FCSRRoundingMode, value1: f32, value2: f32, expected: Result<(FCSRFlags, f32), ()>) -> Result<(), String> {
     const BEQ_INSTRUCTION: u32 = Assembler::make_beq(GPR::R0, GPR::R0, 1);
 
@@ -742,7 +766,7 @@ fn test_floating_point_f32<const INSTRUCTION: u32>(context: &str, flush_denorm_t
         TARGET_REG_DEFAULT_F32,
         INSTRUCTION,
         |f1, f2, s| soft_assert_f32_bits(f1, f2, s),
-        flush_denorm_to_zero, rounding_mode, value1, value2, expected)
+        flush_denorm_to_zero, rounding_mode, true, value1, value2, expected)
 }
 
 fn test_floating_point_f32tof64<const INSTRUCTION: u32>(context: &str, flush_denorm_to_zero: bool, rounding_mode: FCSRRoundingMode, value1: f32, value2: f32, expected: Result<(FCSRFlags, f64), ()>) -> Result<(), String> {
@@ -756,7 +780,7 @@ fn test_floating_point_f32tof64<const INSTRUCTION: u32>(context: &str, flush_den
         TARGET_REG_DEFAULT_F64,
         INSTRUCTION,
         |f1, f2, s| soft_assert_f64_bits(f1, f2, s),
-        flush_denorm_to_zero, rounding_mode, value1, value2, expected)
+        flush_denorm_to_zero, rounding_mode, true, value1, value2, expected)
 }
 
 fn test_floating_point_f32toi32<const INSTRUCTION: u32>(context: &str, flush_denorm_to_zero: bool, rounding_mode: FCSRRoundingMode, value1: f32, value2: f32, expected: Result<(FCSRFlags, i32), ()>) -> Result<(), String> {
@@ -770,7 +794,7 @@ fn test_floating_point_f32toi32<const INSTRUCTION: u32>(context: &str, flush_den
         TARGET_REG_DEFAULT_I32,
         INSTRUCTION,
         |f1, f2, s| soft_assert_eq2(f1, f2, || s.to_string()),
-        flush_denorm_to_zero, rounding_mode, value1, value2, expected)
+        flush_denorm_to_zero, rounding_mode, true, value1, value2, expected)
 }
 
 fn test_floating_point_f32toi64<const INSTRUCTION: u32>(context: &str, flush_denorm_to_zero: bool, rounding_mode: FCSRRoundingMode, value1: f32, value2: f32, expected: Result<(FCSRFlags, i64), ()>) -> Result<(), String> {
@@ -784,7 +808,21 @@ fn test_floating_point_f32toi64<const INSTRUCTION: u32>(context: &str, flush_den
         TARGET_REG_DEFAULT_I64,
         INSTRUCTION,
         |f1, f2, s| soft_assert_eq2(f1, f2, || s.to_string()),
-        flush_denorm_to_zero, rounding_mode, value1, value2, expected)
+        flush_denorm_to_zero, rounding_mode, true, value1, value2, expected)
+}
+
+fn test_floating_point_f64_which_preserves_cause_bits<const INSTRUCTION: u32>(context: &str, flush_denorm_to_zero: bool, rounding_mode: FCSRRoundingMode, value1: f64, value2: f64, expected: Result<(FCSRFlags, f64), ()>) -> Result<(), String> {
+    const BEQ_INSTRUCTION: u32 = Assembler::make_beq(GPR::R0, GPR::R0, 1);
+
+    test_floating_point(
+        context,
+        asm_block_f64::<0, INSTRUCTION>,
+        asm_block_f64::<BEQ_INSTRUCTION, INSTRUCTION>,
+        0f64,
+        TARGET_REG_DEFAULT_F64,
+        INSTRUCTION,
+        |f1, f2, s| soft_assert_f64_bits(f1, f2, s),
+        flush_denorm_to_zero, rounding_mode, false, value1, value2, expected)
 }
 
 fn test_floating_point_f64<const INSTRUCTION: u32>(context: &str, flush_denorm_to_zero: bool, rounding_mode: FCSRRoundingMode, value1: f64, value2: f64, expected: Result<(FCSRFlags, f64), ()>) -> Result<(), String> {
@@ -798,7 +836,7 @@ fn test_floating_point_f64<const INSTRUCTION: u32>(context: &str, flush_denorm_t
         TARGET_REG_DEFAULT_F64,
         INSTRUCTION,
         |f1, f2, s| soft_assert_f64_bits(f1, f2, s),
-        flush_denorm_to_zero, rounding_mode, value1, value2, expected)
+        flush_denorm_to_zero, rounding_mode, true, value1, value2, expected)
 }
 
 fn test_floating_point_f64tof32<const INSTRUCTION: u32>(context: &str, flush_denorm_to_zero: bool, rounding_mode: FCSRRoundingMode, value1: f64, value2: f64, expected: Result<(FCSRFlags, f32), ()>) -> Result<(), String> {
@@ -812,7 +850,7 @@ fn test_floating_point_f64tof32<const INSTRUCTION: u32>(context: &str, flush_den
         TARGET_REG_DEFAULT_F32,
         INSTRUCTION,
         |f1, f2, s| soft_assert_f32_bits(f1, f2, s),
-        flush_denorm_to_zero, rounding_mode, value1, value2, expected)
+        flush_denorm_to_zero, rounding_mode, true, value1, value2, expected)
 }
 
 fn test_floating_point_f64toi32<const INSTRUCTION: u32>(context: &str, flush_denorm_to_zero: bool, rounding_mode: FCSRRoundingMode, value1: f64, value2: f64, expected: Result<(FCSRFlags, i32), ()>) -> Result<(), String> {
@@ -826,7 +864,7 @@ fn test_floating_point_f64toi32<const INSTRUCTION: u32>(context: &str, flush_den
         TARGET_REG_DEFAULT_I32,
         INSTRUCTION,
         |f1, f2, s| soft_assert_eq(f1, f2, s),
-        flush_denorm_to_zero, rounding_mode, value1, value2, expected)
+        flush_denorm_to_zero, rounding_mode, true, value1, value2, expected)
 }
 
 fn test_floating_point_f64toi64<const INSTRUCTION: u32>(context: &str, flush_denorm_to_zero: bool, rounding_mode: FCSRRoundingMode, value1: f64, value2: f64, expected: Result<(FCSRFlags, i64), ()>) -> Result<(), String> {
@@ -840,7 +878,7 @@ fn test_floating_point_f64toi64<const INSTRUCTION: u32>(context: &str, flush_den
         TARGET_REG_DEFAULT_I64,
         INSTRUCTION,
         |f1, f2, s| soft_assert_eq(f1, f2, s),
-        flush_denorm_to_zero, rounding_mode, value1, value2, expected)
+        flush_denorm_to_zero, rounding_mode, true, value1, value2, expected)
 }
 
 fn test_floating_point_i32tof32<const INSTRUCTION: u32>(context: &str, flush_denorm_to_zero: bool, rounding_mode: FCSRRoundingMode, value1: i32, value2: i32, expected: Result<(FCSRFlags, f32), ()>) -> Result<(), String> {
@@ -854,7 +892,7 @@ fn test_floating_point_i32tof32<const INSTRUCTION: u32>(context: &str, flush_den
         TARGET_REG_DEFAULT_F32,
         INSTRUCTION,
         |f1, f2, s| soft_assert_f32_bits(f1, f2, s),
-        flush_denorm_to_zero, rounding_mode, value1, value2, expected)
+        flush_denorm_to_zero, rounding_mode, true, value1, value2, expected)
 }
 
 fn test_floating_point_i32toi32<const INSTRUCTION: u32>(context: &str, flush_denorm_to_zero: bool, rounding_mode: FCSRRoundingMode, value1: i32, value2: i32, expected: Result<(FCSRFlags, i32), ()>) -> Result<(), String> {
@@ -868,7 +906,7 @@ fn test_floating_point_i32toi32<const INSTRUCTION: u32>(context: &str, flush_den
         TARGET_REG_DEFAULT_I32,
         INSTRUCTION,
         |f1, f2, s| soft_assert_eq(f1, f2, s),
-        flush_denorm_to_zero, rounding_mode, value1, value2, expected)
+        flush_denorm_to_zero, rounding_mode, true, value1, value2, expected)
 }
 
 fn test_floating_point_i32toi64<const INSTRUCTION: u32>(context: &str, flush_denorm_to_zero: bool, rounding_mode: FCSRRoundingMode, value1: i32, value2: i32, expected: Result<(FCSRFlags, i64), ()>) -> Result<(), String> {
@@ -882,7 +920,7 @@ fn test_floating_point_i32toi64<const INSTRUCTION: u32>(context: &str, flush_den
         TARGET_REG_DEFAULT_I64,
         INSTRUCTION,
         |f1, f2, s| soft_assert_eq(f1, f2, s),
-        flush_denorm_to_zero, rounding_mode, value1, value2, expected)
+        flush_denorm_to_zero, rounding_mode, true, value1, value2, expected)
 }
 
 fn test_floating_point_i32tof64<const INSTRUCTION: u32>(context: &str, flush_denorm_to_zero: bool, rounding_mode: FCSRRoundingMode, value1: i32, value2: i32, expected: Result<(FCSRFlags, f64), ()>) -> Result<(), String> {
@@ -896,7 +934,7 @@ fn test_floating_point_i32tof64<const INSTRUCTION: u32>(context: &str, flush_den
         TARGET_REG_DEFAULT_F64,
         INSTRUCTION,
         |f1, f2, s| soft_assert_f64_bits(f1, f2, s),
-        flush_denorm_to_zero, rounding_mode, value1, value2, expected)
+        flush_denorm_to_zero, rounding_mode, true, value1, value2, expected)
 }
 
 fn test_floating_point_i64tof32<const INSTRUCTION: u32>(context: &str, flush_denorm_to_zero: bool, rounding_mode: FCSRRoundingMode, value1: i64, value2: i64, expected: Result<(FCSRFlags, f32), ()>) -> Result<(), String> {
@@ -910,7 +948,7 @@ fn test_floating_point_i64tof32<const INSTRUCTION: u32>(context: &str, flush_den
         TARGET_REG_DEFAULT_F32,
         INSTRUCTION,
         |f1, f2, s| soft_assert_f32_bits(f1, f2, s),
-        flush_denorm_to_zero, rounding_mode, value1, value2, expected)
+        flush_denorm_to_zero, rounding_mode, true, value1, value2, expected)
 }
 
 fn test_floating_point_i64tof64<const INSTRUCTION: u32>(context: &str, flush_denorm_to_zero: bool, rounding_mode: FCSRRoundingMode, value1: i64, value2: i64, expected: Result<(FCSRFlags, f64), ()>) -> Result<(), String> {
@@ -924,7 +962,7 @@ fn test_floating_point_i64tof64<const INSTRUCTION: u32>(context: &str, flush_den
         TARGET_REG_DEFAULT_F64,
         INSTRUCTION,
         |f1, f2, s| soft_assert_f64_bits(f1, f2, s),
-        flush_denorm_to_zero, rounding_mode, value1, value2, expected)
+        flush_denorm_to_zero, rounding_mode, true, value1, value2, expected)
 }
 
 fn test_floating_point_i64toi32<const INSTRUCTION: u32>(context: &str, flush_denorm_to_zero: bool, rounding_mode: FCSRRoundingMode, value1: i64, value2: i64, expected: Result<(FCSRFlags, i32), ()>) -> Result<(), String> {
@@ -938,7 +976,7 @@ fn test_floating_point_i64toi32<const INSTRUCTION: u32>(context: &str, flush_den
         TARGET_REG_DEFAULT_I32,
         INSTRUCTION,
         |f1, f2, s| soft_assert_eq(f1, f2, s),
-        flush_denorm_to_zero, rounding_mode, value1, value2, expected)
+        flush_denorm_to_zero, rounding_mode, true, value1, value2, expected)
 }
 
 fn test_floating_point_i64toi64<const INSTRUCTION: u32>(context: &str, flush_denorm_to_zero: bool, rounding_mode: FCSRRoundingMode, value1: i64, value2: i64, expected: Result<(FCSRFlags, i64), ()>) -> Result<(), String> {
@@ -952,7 +990,7 @@ fn test_floating_point_i64toi64<const INSTRUCTION: u32>(context: &str, flush_den
         TARGET_REG_DEFAULT_I64,
         INSTRUCTION,
         |f1, f2, s| soft_assert_eq(f1, f2, s),
-        flush_denorm_to_zero, rounding_mode, value1, value2, expected)
+        flush_denorm_to_zero, rounding_mode, true, value1, value2, expected)
 }
 
 pub struct DivS;
@@ -1008,8 +1046,15 @@ impl Test for DivS {
             Box::new((true, FCSRRoundingMode::PositiveInfinity, -f32::MIN_POSITIVE, 1.0000001f32, expected_result(FCSRFlags::new().with_underflow(true).with_inexact_operation(true), -0f32))),
 
             // Any subnormal input causes unimplemented
-            Box::new((true, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_EXAMPLE_32, 1f32, expected_unimplemented_f32())),
-            Box::new((true, FCSRRoundingMode::Nearest, 1f32, FConst::SUBNORMAL_EXAMPLE_32, expected_unimplemented_f32())),
+            Box::new((true, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_MIN_POSITIVE_32, 1f32, expected_unimplemented_f32())),
+            Box::new((true, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_MAX_POSITIVE_32, 1f32, expected_unimplemented_f32())),
+            Box::new((true, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_MIN_NEGATIVE_32, 1f32, expected_unimplemented_f32())),
+            Box::new((true, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_MIN_NEGATIVE_32, 1f32, expected_unimplemented_f32())),
+            Box::new((true, FCSRRoundingMode::Nearest, 0f32, FConst::SUBNORMAL_MIN_POSITIVE_32, expected_unimplemented_f32())),
+            Box::new((true, FCSRRoundingMode::Nearest, 0f32, FConst::SUBNORMAL_MAX_POSITIVE_32, expected_unimplemented_f32())),
+            Box::new((true, FCSRRoundingMode::Nearest, 0f32, FConst::SUBNORMAL_MIN_NEGATIVE_32, expected_unimplemented_f32())),
+            Box::new((true, FCSRRoundingMode::Nearest, 0f32, FConst::SUBNORMAL_MIN_NEGATIVE_32, expected_unimplemented_f32())),
+            Box::new((true, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_MIN_NEGATIVE_32, FConst::SUBNORMAL_MIN_NEGATIVE_32, expected_unimplemented_f32())),
 
             // 0/0 gives an invalid operation and produces a specific nan result
             Box::new((false, FCSRRoundingMode::Nearest, 0f32, 0f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
@@ -1128,8 +1173,15 @@ impl Test for DivD {
             Box::new((true, FCSRRoundingMode::PositiveInfinity, -f64::MIN_POSITIVE, 1.0000001f64, expected_result(FCSRFlags::new().with_underflow(true).with_inexact_operation(true), -0f64))),
 
             // Any subnormal input causes unimplemented
-            Box::new((true, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_EXAMPLE_64, 1f64, expected_unimplemented_f64())),
-            Box::new((true, FCSRRoundingMode::Nearest, 1f64, FConst::SUBNORMAL_EXAMPLE_64, expected_unimplemented_f64())),
+            Box::new((true, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_MIN_POSITIVE_64, 1f64, expected_unimplemented_f64())),
+            Box::new((true, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_MAX_POSITIVE_64, 1f64, expected_unimplemented_f64())),
+            Box::new((true, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_MIN_NEGATIVE_64, 1f64, expected_unimplemented_f64())),
+            Box::new((true, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_MAX_NEGATIVE_64, 1f64, expected_unimplemented_f64())),
+            Box::new((true, FCSRRoundingMode::Nearest, 0f64, FConst::SUBNORMAL_MIN_POSITIVE_64, expected_unimplemented_f64())),
+            Box::new((true, FCSRRoundingMode::Nearest, 0f64, FConst::SUBNORMAL_MAX_POSITIVE_64, expected_unimplemented_f64())),
+            Box::new((true, FCSRRoundingMode::Nearest, 0f64, FConst::SUBNORMAL_MIN_NEGATIVE_64, expected_unimplemented_f64())),
+            Box::new((true, FCSRRoundingMode::Nearest, 0f64, FConst::SUBNORMAL_MAX_NEGATIVE_64, expected_unimplemented_f64())),
+            Box::new((true, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_MIN_POSITIVE_64, FConst::SUBNORMAL_MAX_NEGATIVE_64, expected_unimplemented_f64())),
 
             // 0/0 gives an invalid operation and produces a specific nan result
             Box::new((false, FCSRRoundingMode::Nearest, 0f64, 0f64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
@@ -1195,81 +1247,6 @@ impl Test for DivD {
     }
 }
 
-/// Any FPU instructions clears all cause bits
-pub struct CauseClearing;
-
-impl Test for CauseClearing {
-    fn name(&self) -> &str { "COP1: DIV.S Cause bit clearing" }
-
-    fn level(&self) -> Level { Level::BasicFunctionality }
-
-    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
-
-    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
-        // Set inexact operation (with all maskable cause flags and the inexact operation flag)
-        set_fcsr(FCSR::new().with_maskable_causes(FCSRFlags::ALL).with_inexact_operation(true));
-        soft_assert_eq(fcsr(), FCSR::new().with_maskable_causes(FCSRFlags::ALL).with_inexact_operation(true), "FCSR after initial setting")?;
-
-        // Calculate 1/1. This should work fine and clear all cause bits. It will retain the inexact operation flag
-        unsafe {
-            asm!("DIV.S $4, $0, $2",
-            in("$f0") 1.0f32,
-            in("$f2") 1.0f32,
-            inout("$f4") TARGET_REG_DEFAULT_F32 => _,
-            options(nostack))
-        }
-        soft_assert_eq(fcsr(), FCSR::new().with_inexact_operation(true), "FCSR after regular operation")?;
-
-        // Perform division by zero. Set all other cause flags to ensure they get zeroed
-        set_fcsr(FCSR::new().with_maskable_causes(FCSRFlags::ALL).with_cause_division_by_zero(false).with_inexact_operation(true));
-        unsafe {
-            asm!("DIV.S $4, $0, $2",
-            in("$f0") 1.0f32,
-            in("$f2") 0.0f32,
-            inout("$f4") TARGET_REG_DEFAULT_F32 => _,
-            options(nostack))
-        }
-
-        soft_assert_eq(fcsr(), FCSR::new().with_cause_division_by_zero(true).with_division_by_zero(true).with_inexact_operation(true), "FCSR after division by zero operation")?;
-
-        // Perform unimplemented exception
-        set_fcsr(FCSR::new().with_maskable_causes(FCSRFlags::ALL).with_inexact_operation(true).with_underflow(true).with_invalid_operation(true));
-
-        let exception_context = expect_exception(CauseException::FPE, 1, || {
-            unsafe {
-                asm!("DIV.S $4, $0, $2",
-                in("$f0") FConst::SIGNALLING_NAN_START_32,
-                in("$f2") 0.0f32,
-                out("$f4") _,
-                options(nostack))
-            }
-            Ok(())
-        })?;
-
-        // Ensure that all causes were removed and flags were preserved
-        soft_assert_eq(exception_context.fcsr, FCSR::new().with_cause_unimplemented_operation(true).with_inexact_operation(true).with_underflow(true).with_invalid_operation(true), "FCSR after invalid operation exception (caused by signalling NAN)")?;
-
-        // Perform unimplemented exception, but this time through subnormal
-        set_fcsr(FCSR::new().with_maskable_causes(FCSRFlags::ALL).with_division_by_zero(true).with_overflow(true).with_invalid_operation(true));
-
-        let exception_context = expect_exception(CauseException::FPE, 1, || {
-            unsafe {
-                asm!("DIV.S $4, $0, $2",
-                in("$f0") f32::MIN_POSITIVE,
-                in("$f2") 2f32,
-                out("$f4") _,
-                options(nostack))
-            }
-            Ok(())
-        })?;
-
-        // Ensure that all causes were removed and flags were preserved
-        soft_assert_eq(exception_context.fcsr, FCSR::new().with_cause_unimplemented_operation(true).with_division_by_zero(true).with_overflow(true).with_invalid_operation(true), "FCSR after invalid operation exception (caused by subnormal)")?;
-
-        Ok(())
-    }
-}
-
 pub struct MulS;
 
 impl Test for MulS {
@@ -1281,19 +1258,58 @@ impl Test for MulS {
         vec! {
             // Elements: (flush_denorm_to_zero, rounding mode, first number, second number, expected-cause-bits, expected result
             Box::new((false, FCSRRoundingMode::Nearest, 0f32, 2f32, expected_result(FCSRFlags::new(), 0f32))),
+            Box::new((false, FCSRRoundingMode::Nearest, 0f32, 0f32, expected_result(FCSRFlags::new(), 0f32))),
+            Box::new((false, FCSRRoundingMode::Nearest, -0f32, 0f32, expected_result(FCSRFlags::new(), -0f32))),
+            Box::new((false, FCSRRoundingMode::Nearest, -2f32, 0f32, expected_result(FCSRFlags::new(), -0f32))),
+            Box::new((false, FCSRRoundingMode::Nearest, 0f32, f32::MAX, expected_result(FCSRFlags::new(), 0f32))),
+            Box::new((false, FCSRRoundingMode::Nearest, -0f32, f32::MAX, expected_result(FCSRFlags::new(), -0f32))),
             Box::new((false, FCSRRoundingMode::Nearest, f32::MIN, -1f32, expected_result(FCSRFlags::new(), f32::MAX))),
             Box::new((false, FCSRRoundingMode::Nearest, f32::MIN_POSITIVE, -1f32, expected_result(FCSRFlags::new(), -f32::MIN_POSITIVE))),
             Box::new((false, FCSRRoundingMode::Nearest, f32::MAX, -1f32, expected_result(FCSRFlags::new(), f32::MIN))),
 
+            // Inexact
+            Box::new((false, FCSRRoundingMode::Nearest, 0.123456789f32, 10.123456789f32, expected_result(FCSRFlags::new().with_inexact_operation(true), 1.2498095f32))),
+            Box::new((false, FCSRRoundingMode::NegativeInfinity, 0.123456789f32, 10.123456789f32, expected_result(FCSRFlags::new().with_inexact_operation(true), 1.2498095f32))),
+            Box::new((false, FCSRRoundingMode::PositiveInfinity, 0.123456789f32, 10.123456789f32, expected_result(FCSRFlags::new().with_inexact_operation(true), 1.2498096f32))),
+            Box::new((false, FCSRRoundingMode::Zero, 0.123456789f32, 10.123456789f32, expected_result(FCSRFlags::new().with_inexact_operation(true), 1.2498095f32))),
+
+            Box::new((false, FCSRRoundingMode::Nearest, 0.123456789f32, -10.123456789f32, expected_result(FCSRFlags::new().with_inexact_operation(true), -1.2498095f32))),
+            Box::new((false, FCSRRoundingMode::NegativeInfinity, 0.123456789f32, -10.123456789f32, expected_result(FCSRFlags::new().with_inexact_operation(true), -1.2498096f32))),
+            Box::new((false, FCSRRoundingMode::PositiveInfinity, 0.123456789f32, -10.123456789f32, expected_result(FCSRFlags::new().with_inexact_operation(true), -1.2498095f32))),
+            Box::new((false, FCSRRoundingMode::Zero, 0.123456789f32, -10.123456789f32, expected_result(FCSRFlags::new().with_inexact_operation(true), -1.2498095f32))),
+
+            Box::new((false, FCSRRoundingMode::Nearest, 0.456789123f32, 10.123457095f32, expected_result(FCSRFlags::new().with_inexact_operation(true), 4.624285f32))),
+            Box::new((false, FCSRRoundingMode::NegativeInfinity, 0.456789123f32, 10.123457095f32, expected_result(FCSRFlags::new().with_inexact_operation(true), 4.6242847f32))),
+            Box::new((false, FCSRRoundingMode::PositiveInfinity, 0.456789123f32, 10.123457095f32, expected_result(FCSRFlags::new().with_inexact_operation(true), 4.624285f32))),
+            Box::new((false, FCSRRoundingMode::Zero, 0.456789123f32, 10.123457095f32, expected_result(FCSRFlags::new().with_inexact_operation(true), 4.6242847f32))),
+
+
+            // Inexact with overflow
             Box::new((false, FCSRRoundingMode::Nearest, f32::MAX, f32::MAX, expected_result(FCSRFlags::new().with_inexact_operation(true).with_overflow(true), f32::INFINITY))),
             Box::new((false, FCSRRoundingMode::Nearest, f32::MIN, f32::MAX, expected_result(FCSRFlags::new().with_inexact_operation(true).with_overflow(true), f32::NEG_INFINITY))),
             Box::new((false, FCSRRoundingMode::Nearest, f32::MIN, f32::MIN, expected_result(FCSRFlags::new().with_inexact_operation(true).with_overflow(true), f32::INFINITY))),
+
+            // Infinity * 0 is NAN. Infinity times anything else is Infinity (while preserving the sign)
+            Box::new((false, FCSRRoundingMode::Nearest, f32::INFINITY, 1f32, expected_result(FCSRFlags::new(), f32::INFINITY))),
+            Box::new((false, FCSRRoundingMode::Nearest, f32::INFINITY, 2f32, expected_result(FCSRFlags::new(), f32::INFINITY))),
+            Box::new((false, FCSRRoundingMode::Nearest, f32::INFINITY, 0f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, f32::INFINITY, -1f32, expected_result(FCSRFlags::new(), f32::NEG_INFINITY))),
+            Box::new((false, FCSRRoundingMode::Nearest, f32::INFINITY, -2f32, expected_result(FCSRFlags::new(), f32::NEG_INFINITY))),
+            Box::new((false, FCSRRoundingMode::Nearest, f32::INFINITY, -0f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, f32::NEG_INFINITY, 1f32, expected_result(FCSRFlags::new(), f32::NEG_INFINITY))),
+            Box::new((false, FCSRRoundingMode::Nearest, f32::NEG_INFINITY, 2f32, expected_result(FCSRFlags::new(), f32::NEG_INFINITY))),
+            Box::new((false, FCSRRoundingMode::Nearest, f32::NEG_INFINITY, 0f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, f32::NEG_INFINITY, -1f32, expected_result(FCSRFlags::new(), f32::INFINITY))),
+            Box::new((false, FCSRRoundingMode::Nearest, f32::NEG_INFINITY, -2f32, expected_result(FCSRFlags::new(), f32::INFINITY))),
+            Box::new((false, FCSRRoundingMode::Nearest, f32::NEG_INFINITY, -0f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, f32::NEG_INFINITY, f32::INFINITY, expected_result(FCSRFlags::new(), f32::NEG_INFINITY))),
 
             // Underflow with flush-denorm off causes unimplemented
             Box::new((false, FCSRRoundingMode::Nearest, f32::MIN_POSITIVE, 0.5f32, expected_unimplemented_f32())),
             Box::new((false, FCSRRoundingMode::PositiveInfinity, f32::MIN_POSITIVE, 0.5f32, expected_unimplemented_f32())),
             Box::new((false, FCSRRoundingMode::NegativeInfinity, f32::MIN_POSITIVE, 0.5f32, expected_unimplemented_f32())),
             Box::new((false, FCSRRoundingMode::Zero, f32::MIN_POSITIVE, 0.5f32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Zero, f32::MIN_POSITIVE, f32::MIN_POSITIVE, expected_unimplemented_f32())),
 
             // Underflow with flush-denorm on causes underflow
             Box::new((true, FCSRRoundingMode::Nearest, f32::MIN_POSITIVE, 0.5f32, expected_result(FCSRFlags::new().with_inexact_operation(true).with_underflow(true), 0f32))),
@@ -1331,6 +1347,8 @@ impl Test for MulS {
             Box::new((true, FCSRRoundingMode::NegativeInfinity, FConst::SUBNORMAL_MIN_POSITIVE_32, 0f32, expected_unimplemented_f32())),
             Box::new((false, FCSRRoundingMode::PositiveInfinity, FConst::SUBNORMAL_MIN_POSITIVE_32, 0f32, expected_unimplemented_f32())),
             Box::new((true, FCSRRoundingMode::PositiveInfinity, FConst::SUBNORMAL_MIN_POSITIVE_32, 0f32, expected_unimplemented_f32())),
+            Box::new((true, FCSRRoundingMode::PositiveInfinity, FConst::SUBNORMAL_MIN_POSITIVE_32, f32::INFINITY, expected_unimplemented_f32())),
+            Box::new((true, FCSRRoundingMode::PositiveInfinity, f32::INFINITY, FConst::SUBNORMAL_MIN_POSITIVE_32, expected_unimplemented_f32())),
 
             // Experiments with extreme values
             Box::new((false, FCSRRoundingMode::Nearest, f32::MAX, f32::MIN_POSITIVE, expected_result(FCSRFlags::new(), 3.9999998f32))),
@@ -1350,12 +1368,14 @@ impl Test for MulS {
             Box::new((false, FCSRRoundingMode::Nearest, 2f32, FConst::SIGNALLING_NAN_END_32, expected_unimplemented_f32())),
             Box::new((false, FCSRRoundingMode::Nearest, 2f32, FConst::SIGNALLING_NAN_NEGATIVE_START_32, expected_unimplemented_f32())),
             Box::new((false, FCSRRoundingMode::Nearest, 2f32, FConst::SIGNALLING_NAN_NEGATIVE_END_32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, f32::INFINITY, FConst::SIGNALLING_NAN_NEGATIVE_END_32, expected_unimplemented_f32())),
 
             // NAN*2 produces another NAN and invalid operation (which is the opposite of what their name implies)
             Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_START_32, 2f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
             Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_END_32, 2f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
             Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_NEGATIVE_START_32, 2f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
             Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_NEGATIVE_END_32, 2f32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_NEGATIVE_END_32, f32::INFINITY, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
 
             // Signalling NANs aren't supported and cause unimplemented operation
             Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_START_32, 2f32, expected_unimplemented_f32())),
@@ -2161,7 +2181,7 @@ impl Test for MovS {
         const INSTRUCTION: u32 = Assembler::make_mov(FR::F4, FR::F0).s();
         match (*value).downcast_ref::<(bool, FCSRRoundingMode, f32, Result<(FCSRFlags, f32), ()>)>() {
             Some((flush_denorm_to_zero, rounding_mode, value1, expected)) => {
-                test_floating_point_f32::<INSTRUCTION>("MOV.S", *flush_denorm_to_zero, *rounding_mode, *value1, 0f32, *expected)?
+                test_floating_point_f32_which_preserves_cause_bits::<INSTRUCTION>("MOV.S", *flush_denorm_to_zero, *rounding_mode, *value1, 0f32, *expected)?
             }
             _ => return Err("Unhandled match pattern".to_string())
         }
@@ -2192,7 +2212,7 @@ impl Test for MovD {
         const INSTRUCTION: u32 = Assembler::make_mov(FR::F4, FR::F0).d();
         match (*value).downcast_ref::<(bool, FCSRRoundingMode, f64, Result<(FCSRFlags, f64), ()>)>() {
             Some((flush_denorm_to_zero, rounding_mode, value1, expected)) => {
-                test_floating_point_f64::<INSTRUCTION>("MOV.D", *flush_denorm_to_zero, *rounding_mode, *value1, 0f64, *expected)?
+                test_floating_point_f64_which_preserves_cause_bits::<INSTRUCTION>("MOV.D", *flush_denorm_to_zero, *rounding_mode, *value1, 0f64, *expected)?
             }
             _ => return Err("Unhandled match pattern".to_string())
         }
@@ -2327,8 +2347,10 @@ impl Test for CvtS {
         vec! {
             // S ==> S (which doesn't exist)
             Box::new((false, FCSRRoundingMode::Nearest, 4f32, expected_unimplemented_f32())),
-
-            // D => S
+            //
+            // // D => S
+            Box::new((false, FCSRRoundingMode::Nearest, 4f64, expected_result(FCSRFlags::new(), 4f32))),
+            Box::new((false, FCSRRoundingMode::Nearest, -0f64, expected_result(FCSRFlags::new(), -0f32))),
             Box::new((false, FCSRRoundingMode::Nearest, 4.123456789123456f64, expected_result(FCSRFlags::new().with_inexact_operation(true), 4.123457f32))),
             Box::new((false, FCSRRoundingMode::Zero, 4.123456789123456f64, expected_result(FCSRFlags::new().with_inexact_operation(true), 4.1234565f32))),
             Box::new((false, FCSRRoundingMode::NegativeInfinity, 4.123456789123456f64, expected_result(FCSRFlags::new().with_inexact_operation(true), 4.1234565f32))),
@@ -2344,6 +2366,12 @@ impl Test for CvtS {
 
             // Overflow
             Box::new((false, FCSRRoundingMode::Nearest, f64::MAX, expected_result(FCSRFlags::new().with_overflow(true).with_inexact_operation(true), f32::INFINITY))),
+
+            // If we're juuuust above the f32 limit, the rounding mode determines overflow or not
+            Box::new((false, FCSRRoundingMode::Nearest, 3.40282348e+38_f64, expected_result(FCSRFlags::new().with_inexact_operation(true), 3.4028235e+38_f32))),
+            Box::new((false, FCSRRoundingMode::Zero, 3.40282348e+38_f64, expected_result(FCSRFlags::new().with_inexact_operation(true), 3.4028235e+38_f32))),
+            Box::new((false, FCSRRoundingMode::PositiveInfinity, 3.40282348e+38_f64, expected_result(FCSRFlags::new().with_overflow(true).with_inexact_operation(true), f32::INFINITY))),
+            Box::new((false, FCSRRoundingMode::NegativeInfinity, 3.40282348e+38_f64, expected_result(FCSRFlags::new().with_inexact_operation(true), 3.4028235e+38_f32))),
 
             // Underflow
             Box::new((false, FCSRRoundingMode::Nearest, f64::MIN_POSITIVE, expected_unimplemented_f32())),
@@ -2371,13 +2399,30 @@ impl Test for CvtS {
             Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_END_64, expected_unimplemented_f32())),
 
             // Subnormal also causes unimplemented
-            Box::new((false, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_EXAMPLE_64, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_MIN_POSITIVE_64, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_MAX_POSITIVE_64, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_MIN_NEGATIVE_64, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_MAX_NEGATIVE_64, expected_unimplemented_f32())),
+            Box::new((true, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_MIN_POSITIVE_64, expected_unimplemented_f32())),
+            Box::new((true, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_MAX_POSITIVE_64, expected_unimplemented_f32())),
+            Box::new((true, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_MIN_NEGATIVE_64, expected_unimplemented_f32())),
+            Box::new((true, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_MAX_NEGATIVE_64, expected_unimplemented_f32())),
 
             // W => S
             Box::new((false, FCSRRoundingMode::Nearest, 9i32, expected_result(FCSRFlags::new(), 9f32))),
             Box::new((false, FCSRRoundingMode::Zero, 1234567891i32, expected_result(FCSRFlags::new().with_inexact_operation(true), 1234567800f32))),
             Box::new((false, FCSRRoundingMode::Nearest, 1234567891i32, expected_result(FCSRFlags::new().with_inexact_operation(true), 1234568000f32))),
             Box::new((false, FCSRRoundingMode::Nearest, -1234567891i32, expected_result(FCSRFlags::new().with_inexact_operation(true), -1234568000f32))),
+            Box::new((false, FCSRRoundingMode::Nearest, 0x7FFFFFFDi32, expected_result(FCSRFlags::new().with_inexact_operation(true), 2147483600f32))),
+            Box::new((false, FCSRRoundingMode::Nearest, 0x7FFFFFFEi32, expected_result(FCSRFlags::new().with_inexact_operation(true), 2147483600f32))),
+            Box::new((false, FCSRRoundingMode::Nearest, 0x7FFFFFFFi32, expected_result(FCSRFlags::new().with_inexact_operation(true), 2147483600f32))),
+            Box::new((false, FCSRRoundingMode::Nearest, 0x80000002u32 as i32, expected_result(FCSRFlags::new().with_inexact_operation(true), -2147483600f32))),
+            Box::new((false, FCSRRoundingMode::Nearest, 0x80000001u32 as i32, expected_result(FCSRFlags::new().with_inexact_operation(true), -2147483600f32))),
+            Box::new((false, FCSRRoundingMode::Nearest, 0x80000000u32 as i32, expected_result(FCSRFlags::new(), -2147483600f32))),
+            Box::new((false, FCSRRoundingMode::Nearest, 0xFFFFFFFDu32 as i32, expected_result(FCSRFlags::new(), -3f32))),
+            Box::new((false, FCSRRoundingMode::Nearest, 0xFFFFFFFEu32 as i32, expected_result(FCSRFlags::new(), -2f32))),
+            Box::new((false, FCSRRoundingMode::Nearest, 0xFFFFFFFFu32 as i32, expected_result(FCSRFlags::new(), -1f32))),
+
 
             // L => S
             Box::new((false, FCSRRoundingMode::Nearest, 9i64, expected_result(FCSRFlags::new(), 9f32))),
@@ -2391,6 +2436,8 @@ impl Test for CvtS {
             Box::new((false, FCSRRoundingMode::Nearest, 1i64 << 61, expected_unimplemented_f32())),
             Box::new((false, FCSRRoundingMode::Nearest, 1i64 << 62, expected_unimplemented_f32())),
             Box::new((false, FCSRRoundingMode::Nearest, 1i64 << 63, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, -(1i64 << 55), expected_result(FCSRFlags::new(), -3.6028797e16f32))),
+            Box::new((false, FCSRRoundingMode::Nearest, -(1i64 << 55) - 1, expected_unimplemented_f32())),
             Box::new((false, FCSRRoundingMode::Nearest, i64::MAX, expected_unimplemented_f32())),
         }
     }
@@ -2441,8 +2488,9 @@ impl Test for CvtD {
 
     fn values(&self) -> Vec<Box<dyn Any>> {
         vec! {
-            // S ==> D (which doesn't exist)
+            // S ==> D
             Box::new((false, FCSRRoundingMode::Nearest, 4f32, expected_result(FCSRFlags::new(), 4f64))),
+            Box::new((false, FCSRRoundingMode::Nearest, -0f32, expected_result(FCSRFlags::new(), -0f64))),
             Box::new((false, FCSRRoundingMode::Nearest, f32::MIN_POSITIVE, expected_result(FCSRFlags::new(), 1.1754943508222875e-38))),
             Box::new((false, FCSRRoundingMode::Nearest, f32::INFINITY, expected_result(FCSRFlags::new(), f64::INFINITY))),
             Box::new((false, FCSRRoundingMode::Nearest, f32::NEG_INFINITY, expected_result(FCSRFlags::new(), f64::NEG_INFINITY))),
@@ -2460,7 +2508,14 @@ impl Test for CvtD {
             Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_END_32, expected_unimplemented_f64())),
 
             // Subnormal also causes unimplemented
-            Box::new((false, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_EXAMPLE_32, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_MIN_POSITIVE_32, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_MAX_POSITIVE_32, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_MIN_NEGATIVE_32, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_MAX_NEGATIVE_32, expected_unimplemented_f64())),
+            Box::new((true, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_MIN_POSITIVE_32, expected_unimplemented_f64())),
+            Box::new((true, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_MAX_POSITIVE_32, expected_unimplemented_f64())),
+            Box::new((true, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_MIN_NEGATIVE_32, expected_unimplemented_f64())),
+            Box::new((true, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_MAX_NEGATIVE_32, expected_unimplemented_f64())),
 
             // D => D (which doesn't exist)
             Box::new((false, FCSRRoundingMode::Nearest, 4f64, expected_unimplemented_f64())),
@@ -2471,6 +2526,7 @@ impl Test for CvtD {
             Box::new((false, FCSRRoundingMode::Zero, -1234567891i32, expected_result(FCSRFlags::new(), -1234567891f64))),
             Box::new((false, FCSRRoundingMode::PositiveInfinity, -1234567891i32, expected_result(FCSRFlags::new(), -1234567891f64))),
             Box::new((false, FCSRRoundingMode::NegativeInfinity, -1234567891i32, expected_result(FCSRFlags::new(), -1234567891f64))),
+            Box::new((false, FCSRRoundingMode::NegativeInfinity, i32::MAX, expected_result(FCSRFlags::new(), 2147483647f64))),
 
             // L => D
             Box::new((false, FCSRRoundingMode::Nearest, 9i64, expected_result(FCSRFlags::new(), 9f64))),
@@ -2478,11 +2534,30 @@ impl Test for CvtD {
             Box::new((false, FCSRRoundingMode::Nearest, -1234567891i32, expected_result(FCSRFlags::new(), -1234567891f64))),
             Box::new((false, FCSRRoundingMode::Nearest, 1i64 << 53, expected_result(FCSRFlags::new(), 9007199254740992f64))),
             Box::new((false, FCSRRoundingMode::Nearest, 1i64 << 54, expected_result(FCSRFlags::new(), 1.8014398509481984e16f64))),
+
+            // Large numbers start being weird: We can see inexact here. Too large numbers aren't supported at all
+            Box::new((false, FCSRRoundingMode::Nearest, (1i64 << 55) - 4, expected_result(FCSRFlags::new(), 3.6028797018963964e16f64))),
+            Box::new((false, FCSRRoundingMode::Nearest, (1i64 << 55) - 3, expected_result(FCSRFlags::new().with_inexact_operation(true), 3.6028797018963964e16f64))),
+            Box::new((false, FCSRRoundingMode::Nearest, (1i64 << 55) - 2, expected_result(FCSRFlags::new().with_inexact_operation(true), 3.602879701896397e16f64))),
+            Box::new((false, FCSRRoundingMode::Zero, (1i64 << 55) - 2, expected_result(FCSRFlags::new().with_inexact_operation(true), 3.6028797018963964e16f64))),
+            Box::new((false, FCSRRoundingMode::PositiveInfinity, (1i64 << 55) - 2, expected_result(FCSRFlags::new().with_inexact_operation(true), 3.602879701896397e16f64))),
+            Box::new((false, FCSRRoundingMode::NegativeInfinity, (1i64 << 55) - 2, expected_result(FCSRFlags::new().with_inexact_operation(true), 3.6028797018963964e16f64))),
+            Box::new((false, FCSRRoundingMode::Nearest, (1i64 << 55) - 1, expected_result(FCSRFlags::new().with_inexact_operation(true), 3.602879701896397e16f64))),
             Box::new((false, FCSRRoundingMode::Nearest, 1i64 << 55, expected_unimplemented_f64())),
             Box::new((false, FCSRRoundingMode::Nearest, 1i64 << 56, expected_unimplemented_f64())),
             Box::new((false, FCSRRoundingMode::Nearest, 1i64 << 61, expected_unimplemented_f64())),
             Box::new((false, FCSRRoundingMode::Nearest, 1i64 << 62, expected_unimplemented_f64())),
-            Box::new((false, FCSRRoundingMode::Nearest, 1i64 << 63, expected_unimplemented_f64())),
+
+            // Same with negative numbers
+            Box::new((false, FCSRRoundingMode::Nearest, -(1i64 << 55) + 2, expected_result(FCSRFlags::new().with_inexact_operation(true), -3.602879701896397e16f64))),
+            Box::new((false, FCSRRoundingMode::Nearest, -(1i64 << 55) + 1, expected_result(FCSRFlags::new().with_inexact_operation(true), -3.602879701896397e16f64))),
+            Box::new((false, FCSRRoundingMode::Nearest, -(1i64 << 55), expected_result(FCSRFlags::new(), -3.602879701896397e16f64))),
+            Box::new((false, FCSRRoundingMode::Nearest, -(1i64 << 55) - 1, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, -(1i64 << 56), expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, -(1i64 << 57), expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, -(1i64 << 61), expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, -(1i64 << 62), expected_unimplemented_f64())),
+
             Box::new((false, FCSRRoundingMode::Nearest, i64::MAX, expected_unimplemented_f64())),
         }
     }
@@ -2557,13 +2632,21 @@ impl Test for ConvertToW {
             Box::new((false, FCSRRoundingMode::PositiveInfinity, f32::MIN_POSITIVE, expected_result(FCSRFlags::new().with_inexact_operation(true), 1i32))),
             Box::new((false, FCSRRoundingMode::NegativeInfinity, f32::MIN_POSITIVE, expected_result(FCSRFlags::new().with_inexact_operation(true), 0i32))),
 
-            Box::new((2147483500f32, expected_result(FCSRFlags::new(), 2147483520i32))),
+            Box::new((2140000000f32, expected_result(FCSRFlags::new(), 2140000000i32))),
+            Box::new((2147483520f32, expected_result(FCSRFlags::new(), 2147483520i32))),
             Box::new((2147483600f32, expected_unimplemented_i32())),
+            Box::new((2150000000f32, expected_unimplemented_i32())),
+
+            Box::new((-2140000000f32, expected_result(FCSRFlags::new(), -2140000000i32))),
+            Box::new((-2147483520f32, expected_result(FCSRFlags::new(), -2147483520i32))),
+            Box::new((-2147483600f32, expected_result(FCSRFlags::new(), -2147483648i32))),
+            Box::new((-2147483904f32, expected_unimplemented_i32())),
+            Box::new((-2150000000f32, expected_unimplemented_i32())),
 
             Box::new((f32::INFINITY, expected_unimplemented_i32())),
             Box::new((f32::NEG_INFINITY, expected_unimplemented_i32())),
 
-            // CVT(NAN) produces another NAN and invalid operation (which is the opposite of what their name implies)
+            // Quiet NANs aren't supported and cause unimplemented operation
             Box::new((FConst::QUIET_NAN_START_32, expected_unimplemented_i32())),
             Box::new((FConst::QUIET_NAN_END_32, expected_unimplemented_i32())),
             Box::new((FConst::QUIET_NAN_NEGATIVE_START_32, expected_unimplemented_i32())),
@@ -2576,7 +2659,10 @@ impl Test for ConvertToW {
             Box::new((FConst::SIGNALLING_NAN_NEGATIVE_END_32, expected_unimplemented_i32())),
 
             // Subnormal also causes unimplemented
-            Box::new((FConst::SUBNORMAL_EXAMPLE_32, expected_unimplemented_i32())),
+            Box::new((FConst::SUBNORMAL_MIN_POSITIVE_32, expected_unimplemented_i32())),
+            Box::new((FConst::SUBNORMAL_MAX_POSITIVE_32, expected_unimplemented_i32())),
+            Box::new((FConst::SUBNORMAL_MIN_NEGATIVE_32, expected_unimplemented_i32())),
+            Box::new((FConst::SUBNORMAL_MAX_NEGATIVE_32, expected_unimplemented_i32())),
 
             // D => W
             Box::new((4f64, expected_result(FCSRFlags::new(), 4i32))),
@@ -2605,6 +2691,17 @@ impl Test for ConvertToW {
             Box::new((2147483500f64, expected_result(FCSRFlags::new(), 2147483500i32))),
             Box::new((2147483647f64, expected_result(FCSRFlags::new(), 2147483647i32))),
             Box::new((2147483648f64, expected_unimplemented_i32())),
+            Box::new((2147483649f64, expected_unimplemented_i32())),
+
+            Box::new((-2147483500f64, expected_result(FCSRFlags::new(), -2147483500i32))),
+            Box::new((-2147483647f64, expected_result(FCSRFlags::new(), -2147483647i32))),
+            Box::new((-2147483648f64, expected_result(FCSRFlags::new(), -2147483648i32))),
+            Box::new((-2147483649f64, expected_unimplemented_i32())),
+
+            Box::new((false, FCSRRoundingMode::Nearest, 2147483647.4f64, expected_result(FCSRFlags::new().with_inexact_operation(true), 2147483647i32))),
+            Box::new((false, FCSRRoundingMode::PositiveInfinity, 2147483647.4f64, expected_unimplemented_i32())),
+            Box::new((false, FCSRRoundingMode::NegativeInfinity, 2147483647.6f64, expected_result(FCSRFlags::new().with_inexact_operation(true), 2147483647i32))),
+            Box::new((false, FCSRRoundingMode::Nearest, 2147483647.6f64, expected_unimplemented_i32())),
 
             Box::new((f64::INFINITY, expected_unimplemented_i32())),
             Box::new((f64::NEG_INFINITY, expected_unimplemented_i32())),
@@ -2622,7 +2719,10 @@ impl Test for ConvertToW {
             Box::new((FConst::SIGNALLING_NAN_NEGATIVE_END_64, expected_unimplemented_i32())),
 
             // Subnormal also causes unimplemented
-            Box::new((FConst::SUBNORMAL_EXAMPLE_32, expected_unimplemented_i32())),
+            Box::new((FConst::SUBNORMAL_MIN_POSITIVE_64, expected_unimplemented_i32())),
+            Box::new((FConst::SUBNORMAL_MAX_POSITIVE_64, expected_unimplemented_i32())),
+            Box::new((FConst::SUBNORMAL_MIN_NEGATIVE_64, expected_unimplemented_i32())),
+            Box::new((FConst::SUBNORMAL_MAX_NEGATIVE_64, expected_unimplemented_i32())),
 
             // W => W (which doesn't exist)
             Box::new((4i32, expected_unimplemented_i32())),
@@ -2778,11 +2878,15 @@ impl Test for ConvertToL {
             Box::new((false, FCSRRoundingMode::PositiveInfinity, f32::MIN_POSITIVE, expected_result(FCSRFlags::new().with_inexact_operation(true), 1i64))),
             Box::new((false, FCSRRoundingMode::NegativeInfinity, f32::MIN_POSITIVE, expected_result(FCSRFlags::new().with_inexact_operation(true), 0i64))),
 
-            Box::new((9.0071e15f32, expected_result(FCSRFlags::new(), 9007099933622272i64))),
-            Box::new((9.0072e15f32, expected_unimplemented_i64())),
+            Box::new((9.007198e15f32, expected_result(FCSRFlags::new(), 9007198180999168i64))),
+            Box::new((9.00719871787e15f32, expected_result(FCSRFlags::new(), 9007198717870080i64))),
+            Box::new((9.00719925474e15f32, expected_unimplemented_i64())),
+            Box::new((9.00720032848e15f32, expected_unimplemented_i64())),
 
-            Box::new((-9.0071e15f32, expected_result(FCSRFlags::new(), -9007099933622272i64))),
-            Box::new((-9.0072e15f32, expected_unimplemented_i64())),
+            Box::new((-9.007198e15f32, expected_result(FCSRFlags::new(), -9007198180999168i64))),
+            Box::new((-9.00719871787e15f32, expected_result(FCSRFlags::new(), -9007198717870080i64))),
+            Box::new((-9.00719925474e15f32, expected_unimplemented_i64())),
+            Box::new((-9.00720032848e15f32, expected_unimplemented_i64())),
 
             Box::new((f32::INFINITY, expected_unimplemented_i64())),
             Box::new((f32::NEG_INFINITY, expected_unimplemented_i64())),
@@ -2800,7 +2904,10 @@ impl Test for ConvertToL {
             Box::new((FConst::SIGNALLING_NAN_NEGATIVE_END_32, expected_unimplemented_i64())),
 
             // Subnormal also causes unimplemented
-            Box::new((FConst::SUBNORMAL_EXAMPLE_32, expected_unimplemented_i64())),
+            Box::new((FConst::SUBNORMAL_MIN_POSITIVE_32, expected_unimplemented_i64())),
+            Box::new((FConst::SUBNORMAL_MAX_POSITIVE_32, expected_unimplemented_i64())),
+            Box::new((FConst::SUBNORMAL_MIN_NEGATIVE_32, expected_unimplemented_i64())),
+            Box::new((FConst::SUBNORMAL_MAX_NEGATIVE_32, expected_unimplemented_i64())),
 
             // D => L
             Box::new((4f64, expected_result(FCSRFlags::new(), 4i64))),
@@ -2859,7 +2966,10 @@ impl Test for ConvertToL {
             Box::new((FConst::SIGNALLING_NAN_NEGATIVE_END_64, expected_unimplemented_i64())),
 
             // Subnormal also causes unimplemented
-            Box::new((FConst::SUBNORMAL_EXAMPLE_32, expected_unimplemented_i64())),
+            Box::new((FConst::SUBNORMAL_MIN_POSITIVE_64, expected_unimplemented_i64())),
+            Box::new((FConst::SUBNORMAL_MAX_POSITIVE_64, expected_unimplemented_i64())),
+            Box::new((FConst::SUBNORMAL_MIN_NEGATIVE_64, expected_unimplemented_i64())),
+            Box::new((FConst::SUBNORMAL_MAX_NEGATIVE_64, expected_unimplemented_i64())),
 
             // W => L (which doesn't exist)
             Box::new((4i64, expected_unimplemented_i64())),

@@ -3,6 +3,7 @@ use alloc::string::String;
 use core::arch::asm;
 use core::fmt::{Debug, Formatter};
 use core::mem::transmute;
+use core::ops::BitOr;
 use bitbybit::{bitenum, bitfield};
 use crate::cop1::FCSRRoundingMode::{NegativeInfinity, PositiveInfinity};
 
@@ -31,6 +32,7 @@ impl FConst {
     pub const QUIET_NAN_NEGATIVE_START_64: f64 = unsafe { transmute(0xFFF8000000000000u64) };
     pub const QUIET_NAN_NEGATIVE_END_64: f64 = unsafe { transmute(0xFFFFFFFFFFFFFFFFu64) };
 
+    // Subnormal range
     pub const SUBNORMAL_MIN_POSITIVE_32: f32 = unsafe { transmute::<u32, f32>(0x00000001) };
     pub const SUBNORMAL_MAX_POSITIVE_32: f32 = unsafe { transmute::<u32, f32>(0x007fffff) };
     pub const SUBNORMAL_MIN_NEGATIVE_32: f32 = unsafe { transmute::<u32, f32>(0x80000001) };
@@ -40,9 +42,6 @@ impl FConst {
     pub const SUBNORMAL_MAX_POSITIVE_64: f64 = unsafe { transmute::<u64, f64>(0x000fffff_ffffffff) };
     pub const SUBNORMAL_MIN_NEGATIVE_64: f64 = unsafe { transmute::<u64, f64>(0x80000000_00000001) };
     pub const SUBNORMAL_MAX_NEGATIVE_64: f64 = unsafe { transmute::<u64, f64>(0x800fffff_ffffffff) };
-
-    pub const SUBNORMAL_EXAMPLE_32: f32 = unsafe { transmute::<u32, f32>(0x00400000) };
-    pub const SUBNORMAL_EXAMPLE_64: f64 = unsafe { transmute::<u64, f64>(0x0008000000000000) };
 }
 
 #[bitenum(u2, exhaustive: true)]
@@ -83,6 +82,14 @@ impl FCSRFlags {
             .with_overflow(!self.overflow())
             .with_underflow(!self.underflow())
             .with_inexact_operation(!self.inexact_operation())
+    }
+}
+
+impl BitOr for FCSRFlags {
+    type Output = FCSRFlags;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        Self::new_with_raw_value(self.raw_value() | rhs.raw_value())
     }
 }
 
