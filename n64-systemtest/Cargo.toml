@@ -22,6 +22,7 @@ vmadn_stress_test = []
 vrcp32_stress_test = []
 vrsq32_stress_test = []
 rcp_rsq_dump = []
+cop1_stress_test = []
 
 [dependencies]
 linked_list_allocator = "0.9.0"
