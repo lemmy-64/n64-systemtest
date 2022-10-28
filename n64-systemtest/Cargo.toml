@@ -1,6 +1,6 @@
 [package]
 name = "n64-systemtest"
-version = "1.0.18"
+version = "2.0.0"
 edition = "2021"
 
 [features]
