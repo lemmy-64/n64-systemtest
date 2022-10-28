@@ -37,6 +37,19 @@ fn append_stress_tests(_target: &mut Vec<Box<dyn Test>>) {
     _target.push(Box::new(super::rsp::stresstests_div::VRSQ32 {}));
     #[cfg(feature = "rcp_rsq_dump")]
     _target.push(Box::new(super::rsp::op_vmov_vrcp::GenerateDump {}));
+    #[cfg(feature = "cop1_stress_test")]
+    {
+        _target.push(Box::new(super::cop1::randomized::StresstestAddS {}));
+        _target.push(Box::new(super::cop1::randomized::StresstestAddD {}));
+        _target.push(Box::new(super::cop1::randomized::StresstestSubS {}));
+        _target.push(Box::new(super::cop1::randomized::StresstestSubD {}));
+        _target.push(Box::new(super::cop1::randomized::StresstestMulS {}));
+        _target.push(Box::new(super::cop1::randomized::StresstestMulD {}));
+        _target.push(Box::new(super::cop1::randomized::StresstestDivS {}));
+        _target.push(Box::new(super::cop1::randomized::StresstestDivD {}));
+        _target.push(Box::new(super::cop1::randomized::StresstestSqrtS {}));
+        _target.push(Box::new(super::cop1::randomized::StresstestSqrtD {}));
+    }
 }
 
 #[cfg(feature = "default_tests")]
@@ -505,6 +518,16 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::cop1::compares::C_NGE),
         Box::new(super::cop1::compares::C_LE),
         Box::new(super::cop1::compares::C_NGT),
+        Box::new(super::cop1::randomized::AddS),
+        Box::new(super::cop1::randomized::AddD),
+        Box::new(super::cop1::randomized::SubS),
+        Box::new(super::cop1::randomized::SubD),
+        Box::new(super::cop1::randomized::MulS),
+        Box::new(super::cop1::randomized::MulD),
+        Box::new(super::cop1::randomized::DivS),
+        Box::new(super::cop1::randomized::DivD),
+        Box::new(super::cop1::randomized::SqrtS),
+        Box::new(super::cop1::randomized::SqrtD),
         Box::new(super::cop_unusable::COP3Usable {}),
         Box::new(super::cop_unusable::COP2Usable {}),
         Box::new(super::cop_unusable::COP1Usable {}),

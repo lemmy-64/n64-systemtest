@@ -1,4 +1,5 @@
 pub mod compares;
+pub mod randomized;
 
 use alloc::boxed::Box;
 use alloc::{format, vec};
@@ -2242,6 +2243,9 @@ impl Test for SqrtS {
             Box::new((false, FCSRRoundingMode::Nearest, -f32::MIN_POSITIVE, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
             Box::new((false, FCSRRoundingMode::Nearest, f32::INFINITY, expected_result(FCSRFlags::new(), f32::INFINITY))),
 
+            // This value shows that inexact can happen even if sqrt*sqrt==original
+            Box::new((false, FCSRRoundingMode::Nearest, 0.0000000000000000000000106731965f32, expected_result(FCSRFlags::new().with_inexact_operation(true), 3.2669859e-12f32))),
+
             // Sqrt(NAN) produces another NAN and invalid operation (which is the opposite of what their name implies)
             Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_START_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
             Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_END_32, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_32))),
@@ -2299,6 +2303,9 @@ impl Test for SqrtD {
             Box::new((false, FCSRRoundingMode::Nearest, f64::MIN_POSITIVE, expected_result(FCSRFlags::new(), 1.4916681462400413e-154f64))),
             Box::new((false, FCSRRoundingMode::Nearest, -f64::MIN_POSITIVE, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
             Box::new((false, FCSRRoundingMode::Nearest, f64::INFINITY, expected_result(FCSRFlags::new(), f64::INFINITY))),
+
+            // This value shows that inexact can happen even if sqrt*sqrt==original
+            Box::new((false, FCSRRoundingMode::Nearest, 3.890549325378585e109f64, expected_result(FCSRFlags::new().with_inexact_operation(true), 6.23742681350137e54f64))),
 
             // Sqrt(NAN) produces another NAN and invalid operation (which is the opposite of what their name implies)
             Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_START_64, expected_result(FCSRFlags::new().with_invalid_operation(true), COP1_RESULT_NAN_64))),
