@@ -3097,3 +3097,77 @@ impl Test for ConvertToL {
         Err("Unhandled format".to_string())
     }
 }
+
+fn test_fcsr_unchanged<const INSTRUCTION: u32>() -> Result<(), String> {
+
+    let mut temp: u64 = 0x01234567;
+
+    let fs = FCSR::new().with_enable_overflow(true).with_cause_division_by_zero(true).with_condition(true).with_rounding_mode(FCSRRoundingMode::PositiveInfinity);
+    set_fcsr(fs);
+    unsafe {
+        asm!("
+        .WORD {INSTRUCTION}
+    ", INSTRUCTION = const INSTRUCTION, inout("$2") &mut temp => _)
+    };
+    soft_assert_eq(fs, fcsr(), "FCSR was modified but should have not")
+}
+
+pub struct LWC1PreservingFCSR;
+
+impl Test for LWC1PreservingFCSR {
+    fn name(&self) -> &str { "LWC1 preserving FCSR" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        const INSTRUCTION: u32 = Assembler::make_lwc1(GPR::V0, 0, GPR::V0);
+        test_fcsr_unchanged::<INSTRUCTION>()
+    }
+}
+
+pub struct SWC1PreservingFCSR;
+
+impl Test for SWC1PreservingFCSR {
+    fn name(&self) -> &str { "SWC1 preserving FCSR" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        const INSTRUCTION: u32 = Assembler::make_swc1(GPR::V0, 0, GPR::V0);
+        test_fcsr_unchanged::<INSTRUCTION>()
+    }
+}
+
+pub struct LDC1PreservingFCSR;
+
+impl Test for LDC1PreservingFCSR {
+    fn name(&self) -> &str { "LDC1 preserving FCSR" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        const INSTRUCTION: u32 = Assembler::make_ldc1(GPR::V0, 0, GPR::V0);
+        test_fcsr_unchanged::<INSTRUCTION>()
+    }
+}
+
+pub struct SDC1PreservingFCSR;
+
+impl Test for SDC1PreservingFCSR {
+    fn name(&self) -> &str { "SDC1 preserving FCSR" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        const INSTRUCTION: u32 = Assembler::make_sdc1(GPR::V0, 0, GPR::V0);
+        test_fcsr_unchanged::<INSTRUCTION>()
+    }
+}
