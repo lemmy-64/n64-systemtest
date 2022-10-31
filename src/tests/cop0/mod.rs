@@ -6,6 +6,7 @@ use core::any::Any;
 use core::arch::asm;
 
 use crate::cop0;
+use crate::cop0::Status;
 use crate::tests::{Level, Test};
 use crate::tests::soft_asserts::soft_assert_eq;
 
@@ -452,11 +453,13 @@ impl Test for StatusMasking {
     fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        // Bit 19 is not writable
         let previous = cop0::status();
-        unsafe { cop0::set_status(previous.with_nmi(true)) }
+        let bit19 = 1 << 19;
+        unsafe { cop0::set_status(Status::new_with_raw_value(previous.raw_value() | bit19)) }
         let readback = cop0::status();
         
-        soft_assert_eq(readback, previous.with_nmi(false), "Status bit-19 set. Expected readback bit-19 to be clear")?;
+        soft_assert_eq(readback, previous, "Status bit-19 set. Expected readback bit-19 to be clear")?;
         
         Ok(())
     }
