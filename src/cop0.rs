@@ -99,8 +99,21 @@ pub struct Status {
     #[bit(26, rw)]
     fpu64 : bool,
 
-    #[bit(19, rw)]
-    nmi : bool,
+    /// User mode has reverse endian compare to kernel/supervisor (which itself is configured by Config.BE)
+    #[bit(25, rw)]
+    reverse_endian : bool,
+
+    #[bit(22, rw)]
+    tlb_miss_vectors : bool,
+
+    #[bit(21, rw)]
+    tlb_shutdown : bool,
+
+    #[bit(20, rw)]
+    soft_reset : bool,
+
+    #[bit(18, rw)]
+    cop0_condition : bool,
 
     #[bit(15, r)]
     interrupt_mask_compare : bool,

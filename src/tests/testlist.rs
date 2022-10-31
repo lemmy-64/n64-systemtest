@@ -941,6 +941,9 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::traps::TLTIU {}),
         Box::new(super::traps::delay::TNEDelay1 {}),
         Box::new(super::traps::delay::TNEDelay2 {}),
+
+        // This should be the overall last test
+        Box::new(super::startup::TearDownTest {}),
     }
 }
 
