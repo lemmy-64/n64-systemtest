@@ -289,6 +289,36 @@ impl Test for SqrtD {
     }
 }
 
+pub struct CvtSFromW;
+
+impl Test for CvtSFromW {
+    fn name(&self) -> &str { "CVT.S.W (randomized - quick)" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        const INSTRUCTION: u32 = Assembler::make_cvt_s(FR::F4, FR::F0).w();
+        randomized_test32::<INSTRUCTION>("CVT.S.W", false, 2000, 0x8ac09585da537355)
+    }
+}
+
+pub struct CvtWFromS;
+
+impl Test for CvtWFromS {
+    fn name(&self) -> &str { "CVT.W.S (randomized - quick)" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        const INSTRUCTION: u32 = Assembler::make_cvt_w(FR::F4, FR::F0).s();
+        randomized_test32::<INSTRUCTION>("CVT.W.S", false, 2000, 0x41ca013057f72659)
+    }
+}
+
 pub struct StresstestAddS;
 
 impl Test for StresstestAddS {
@@ -438,3 +468,34 @@ impl Test for StresstestSqrtD {
         randomized_test64::<INSTRUCTION>("10/10 SQRT.D", true, 2000000, 0x88edc4c0aec12da4)
     }
 }
+
+pub struct StresstestCvtSFromW;
+
+impl Test for StresstestCvtSFromW {
+    fn name(&self) -> &str { "CVT.S.W (randomized - stresstest)" }
+
+    fn level(&self) -> Level { Level::StressTest }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        const INSTRUCTION: u32 = Assembler::make_cvt_s(FR::F4, FR::F0).w();
+        randomized_test32::<INSTRUCTION>("CVT.S.W", true, 2000000, 0x1adc160325245c23)
+    }
+}
+
+pub struct StresstestCvtWFromS;
+
+impl Test for StresstestCvtWFromS {
+    fn name(&self) -> &str { "CVT.W.S (randomized - stresstest)" }
+
+    fn level(&self) -> Level { Level::StressTest }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        const INSTRUCTION: u32 = Assembler::make_cvt_w(FR::F4, FR::F0).s();
+        randomized_test32::<INSTRUCTION>("CVT.W.S", true, 2000000, 0x1e1b3c375a34d773)
+    }
+}
+

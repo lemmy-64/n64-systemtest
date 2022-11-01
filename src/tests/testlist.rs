@@ -49,6 +49,8 @@ fn append_stress_tests(_target: &mut Vec<Box<dyn Test>>) {
         _target.push(Box::new(super::cop1::randomized::StresstestDivD {}));
         _target.push(Box::new(super::cop1::randomized::StresstestSqrtS {}));
         _target.push(Box::new(super::cop1::randomized::StresstestSqrtD {}));
+        _target.push(Box::new(super::cop1::randomized::StresstestCvtSFromW {}));
+        _target.push(Box::new(super::cop1::randomized::StresstestCvtWFromS {}));
     }
 }
 
@@ -481,6 +483,23 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::cop0::CacheErrorMasking),
         Box::new(super::cop1::CFC1CTC1_0),
         Box::new(super::cop1::CFC1CTC1_31),
+        Box::new(super::cop1::full_vs_half_mode::FullMode),
+        Box::new(super::cop1::full_vs_half_mode::HalfMode),
+        Box::new(super::cop1::full_vs_half_mode::MixedMode),
+        Box::new(super::cop1::full_vs_half_mode::UpperBitsOf32BitOperationFull),
+        Box::new(super::cop1::full_vs_half_mode::UpperBitsOf32BitOperationHalf),
+        Box::new(super::cop1::full_vs_half_mode::UpperBitsOf32BitConversionHalf),
+        Box::new(super::cop1::full_vs_half_mode::HalfMode64BitOperationsWithOddIndex),
+        Box::new(super::cop1::full_vs_half_mode::HalfMode64BitConversionsWithOddIndex),
+        Box::new(super::cop1::full_vs_half_mode::ComparisonInHalfModeWithOddRegisters),
+        Box::new(super::cop1::full_vs_half_mode::LWC1InHalfMode),
+        Box::new(super::cop1::full_vs_half_mode::LDC1InHalfMode),
+        Box::new(super::cop1::full_vs_half_mode::SWC1InHalfMode),
+        Box::new(super::cop1::full_vs_half_mode::SDC1InHalfMode),
+        Box::new(super::cop1::full_vs_half_mode::MTC1InHalfMode),
+        Box::new(super::cop1::full_vs_half_mode::DMTC1InHalfMode),
+        Box::new(super::cop1::full_vs_half_mode::MFC1InHalfMode),
+        Box::new(super::cop1::full_vs_half_mode::DMFC1InHalfMode),
         Box::new(super::cop1::FireExceptionViaCTC1),
         Box::new(super::cop1::FireUnimplementedExceptionViaCTC1),
         Box::new(super::cop1::FireExceptionViaCTC1FollowedByMFC1),
@@ -536,6 +555,8 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::cop1::randomized::DivD),
         Box::new(super::cop1::randomized::SqrtS),
         Box::new(super::cop1::randomized::SqrtD),
+        Box::new(super::cop1::randomized::CvtSFromW),
+        Box::new(super::cop1::randomized::CvtWFromS),
         Box::new(super::cop_unusable::COP3Usable {}),
         Box::new(super::cop_unusable::COP2Usable {}),
         Box::new(super::cop_unusable::COP1Usable {}),

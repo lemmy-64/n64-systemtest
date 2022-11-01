@@ -162,6 +162,7 @@ pub struct Status {
 }
 
 impl Status {
+    // Make sure to enable fpu64 by default as the compiled Rust is allowed to use all registers
     pub const DEFAULT: Status = Status::new().with_cop1usable(true).with_fpu64(true);
     pub const ADDRESSING_MODE_64_BIT: Status = Self::DEFAULT.with_kx(true).with_sx(true).with_ux(true);
 }

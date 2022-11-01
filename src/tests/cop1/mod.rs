@@ -1,4 +1,5 @@
 pub mod compares;
+pub mod full_vs_half_mode;
 pub mod randomized;
 
 use alloc::boxed::Box;
