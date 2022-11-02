@@ -210,7 +210,7 @@ pub struct BGEZALWithinDelay {}
 impl Test for BGEZALWithinDelay {
     fn name(&self) -> &str { "BGEZAL: Within delay slot of J" }
 
-    fn level(&self) -> Level { Level::TooWeird }
+    fn level(&self) -> Level { Level::Cycle }
 
     fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 
@@ -265,7 +265,7 @@ pub struct BGEZALWithinDelayOfBEQ {}
 impl Test for BGEZALWithinDelayOfBEQ {
     fn name(&self) -> &str { "BGEZAL: Within delay slot of BEQ" }
 
-    fn level(&self) -> Level { Level::TooWeird }
+    fn level(&self) -> Level { Level::Cycle }
 
     fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 
@@ -376,7 +376,7 @@ pub struct BEQWithinDelay {}
 impl Test for BEQWithinDelay {
     fn name(&self) -> &str { "BEQ: Within delay slot of J" }
 
-    fn level(&self) -> Level { Level::TooWeird }
+    fn level(&self) -> Level { Level::Cycle }
 
     fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 
@@ -428,7 +428,7 @@ pub struct BEQWithinDelayOfJR {}
 impl Test for BEQWithinDelayOfJR {
     fn name(&self) -> &str { "BEQ: Within delay slot of JR" }
 
-    fn level(&self) -> Level { Level::TooWeird }
+    fn level(&self) -> Level { Level::Cycle }
 
     fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 

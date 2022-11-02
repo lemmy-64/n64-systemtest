@@ -659,7 +659,7 @@ pub struct COP2LWC2Behavior {}
 impl Test for COP2LWC2Behavior {
     fn name(&self) -> &str { "LWC2/LDC2/SWC2/SDC2" }
 
-    fn level(&self) -> Level { Level::TooWeird }
+    fn level(&self) -> Level { Level::PoorlyUnderstoodQuirk }
 
     fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 

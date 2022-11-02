@@ -183,7 +183,7 @@ pub struct FireExceptionViaCTC1FollowedByMFC1;
 impl Test for FireExceptionViaCTC1FollowedByMFC1 {
     fn name(&self) -> &str { "Fire exception through CTC1 (followed by MFC1)" }
 
-    fn level(&self) -> Level { Level::TooWeird }
+    fn level(&self) -> Level { Level::Cycle }
 
     fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 
@@ -220,7 +220,7 @@ pub struct FireExceptionViaCTC1FollowedByMFC2;
 impl Test for FireExceptionViaCTC1FollowedByMFC2 {
     fn name(&self) -> &str { "Fire exception through CTC1 (followed by MFC2)" }
 
-    fn level(&self) -> Level { Level::TooWeird }
+    fn level(&self) -> Level { Level::Cycle }
 
     fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 

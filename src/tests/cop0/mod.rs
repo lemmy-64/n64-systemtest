@@ -30,7 +30,7 @@ pub struct RandomDecrement;
 impl Test for RandomDecrement {
     fn name(&self) -> &str { "Random (decrement)" }
 
-    fn level(&self) -> Level { Level::CycleExact }
+    fn level(&self) -> Level { Level::Timing }
 
     fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 
@@ -119,7 +119,7 @@ pub struct RandomMasking;
 impl Test for RandomMasking {
     fn name(&self) -> &str { "Random (masking)" }
 
-    fn level(&self) -> Level { Level::CycleExact }
+    fn level(&self) -> Level { Level::Timing }
 
     fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 
@@ -160,7 +160,7 @@ pub struct RandomReadEarly;
 impl Test for RandomReadEarly {
     fn name(&self) -> &str { "Random (read early)" }
 
-    fn level(&self) -> Level { Level::CycleExact }
+    fn level(&self) -> Level { Level::COP0Hazard }
 
     fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 

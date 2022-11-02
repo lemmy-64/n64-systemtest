@@ -54,7 +54,7 @@ fn append_stress_tests(_target: &mut Vec<Box<dyn Test>>) {
     }
 }
 
-#[cfg(feature = "default_tests")]
+#[cfg(feature = "quick")]
 fn default_tests() -> Vec<Box<dyn Test>> {
     vec! {
         // This should be the overall first test
@@ -779,7 +779,6 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::rsp::op_vector_arithmetic::VSAD {}),
         Box::new(super::rsp::op_vector_arithmetic::VSAC {}),
         Box::new(super::rsp::op_vector_arithmetic::VSUM {}),
-        Box::new(super::rsp::op_vector_arithmetic::VSUMNoNops {}),
         Box::new(super::rsp::op_vector_arithmetic::VLT {}),
         Box::new(super::rsp::op_vector_arithmetic::VEQ {}),
         Box::new(super::rsp::op_vector_arithmetic::VNE {}),
@@ -972,7 +971,7 @@ fn default_tests() -> Vec<Box<dyn Test>> {
     }
 }
 
-#[cfg(not(feature = "default_tests"))]
+#[cfg(not(feature = "quick"))]
 fn default_tests() -> Vec<Box<dyn Test>> {
     vec! {}
 }

@@ -545,30 +545,9 @@ impl Test for VSUM {
         run_vzero(&|assembler, target, source1, source2, e| {
             // Use fewer than 3 NOPs here and the test will fail on hardware - it seems that one
             // of the previous multiplications will still be able to write to the accumulator.
-            // See test below
             assembler.write_nop();
             assembler.write_nop();
             assembler.write_nop();
-            assembler.write_vsum(target, source1, source2, e);
-        })
-    }
-}
-
-pub struct VSUMNoNops {}
-
-impl Test for VSUMNoNops {
-    fn name(&self) -> &str { "RSP VSUM (without NOPs before)" }
-
-    fn level(&self) -> Level { Level::TooWeird }
-
-    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
-
-    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
-        // VSUM seems to broken - if it runs after a multiplication, the multiplication might still
-        // be able to change (some) of the accumulator - the result is deterministic, so we'll keep
-        // the test but this sounds like a bug that no one would probably ever need,
-        // so the test it marked as TooWeird to prevent it from running
-        run_vzero(&|assembler, target, source1, source2, e| {
             assembler.write_vsum(target, source1, source2, e);
         })
     }

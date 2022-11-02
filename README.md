@@ -35,6 +35,22 @@ cargo install nust64
 
 If you'd like to use your own IPL3: Reconfigure the IPL3 path used by the runner (nust64) in `.cargo/config.toml`.
 
+# Expanded test-set
+In addition to the regular set of tests, n64-systemtest has a few additional sets which can
+be enabled individually: timing, cycle and cop0hazard. Refer to cargo.toml for a detailed description.
+
+```
+cargo run --release --features cycle,timing
+```
+
+# Stresstests
+n64-systemtest has stresstests, which take too long to be included by default. To compile just the stresstests,
+use --no-default-features (to exclude the base set) and then specify the test you want. See cargo.toml for a full list.
+
+```
+cargo run --release --no-default-features --features vmulf_stress_test,vmulu_stress_test
+```
+
 # How to run
 Run the rom in your emulator of choice. Expect one of three things:
 1. The rom says something like "Done! Tests: 262. Failed: 0". If this is your emulator: Congratulations, you are done.

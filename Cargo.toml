@@ -4,8 +4,35 @@ version = "2.0.2"
 edition = "2021"
 
 [features]
-default = ["default_tests"]
-default_tests = []
+# The set of tests that should be included by default
+default = ["base"]
+
+# This flag controls whether quick tests are included in the test set. It must be true if any quick test is supposed
+# to be run (therefore the next features require it).
+# For stresstest builds it is useful to not have this on, so those don't require it
+quick = []
+
+# This is the basic set of tests. The majority of tests fall into this category
+base = ["quick"]
+
+# Tests that requires emulation of accurate time (e.g. a NOP is 0.5 cycles, Random decrements by 1 per instruction).
+timing = ["quick"]
+
+# Tests that require a cycle accurate emulator (where for example some parts of an instruction happen in a later cycle
+# than the instruction itself). There isn't much test coverage to fully derive the rules yet (and most likely this
+# wouldn't be implementable by a dynamic recompiler), so for now this is disabled by default.
+cycle = ["quick"]
+
+# Tests that require a cycle accurate emulator (where for example some parts of an instruction happen in a later cycle
+# than the instruction itself). There isn't much test coverage to fully derive the rules yet (and most likely this
+# wouldn't be implementable by a dynamic recompiler), so for now this is disabled by default.
+cop0hazard = ["quick"]
+
+# Tests that show something weird about the hardware where the pattern isn't fully understood. These tests aren't enough
+# to implement in an emulator yet. As more tests for a certain quirk are being written (and the understanding grows),
+# they'd move out of this category. Therefore it is disabled by default and not even reported as disabled.
+poorly_understood_quirk = ["quick"]
+
 vmulf_stress_test = []
 vmulu_stress_test = []
 vmulq_stress_test = []
