@@ -33,6 +33,7 @@ mod sp_memory;
 mod testlist;
 mod tlb;
 mod tlb64;
+mod timing;
 mod traps;
 
 mod configuration {
@@ -451,29 +452,34 @@ pub fn run() {
         let mut succeeded_base = succeeded_total;
         let mut failed_base = failed_total;
 
+        fn stat_string(friendly_name: &str, succeeded: u32, failed: u32) -> String {
+            if succeeded + failed != 0 {
+                format!("{}: Failed {} of {} tests ({}% success rate)\n", friendly_name, failed, failed + succeeded, succeeded * 100 / (failed + succeeded))
+            } else {
+                format!("")
+            }
+        }
+
         let mut category_stat = |friendly_name, level| {
             let succeeded = succeeded[level as usize];
             let failed = failed[level as usize];
             succeeded_base -= succeeded;
             failed_base -= failed;
-            if succeeded + failed != 0 {
-                format!("\n{}: Failed {} of {} tests ({}% success rate)", friendly_name, failed, failed + succeeded, succeeded * 100 / (failed + succeeded))
-            } else {
-                format!("")
-            }
+            stat_string(friendly_name, succeeded, failed)
         };
 
         let timing_stat = category_stat("Timing", Level::Timing);
         let cycle_stat = category_stat("Cycle", Level::Cycle);
         let cp0_hazards_stat = category_stat("CP0-hazards", Level::COP0Hazard);
         let poorly_understood_quirk_stat = category_stat("Poorly-understood-quirk", Level::PoorlyUnderstoodQuirk);
+        let base_stat = stat_string("Base", succeeded_base, failed_base);
 
         let debug_msg = format!(
             "n64-systemtest {} (base={} timing={} cycle={} cp0-hazards={})
-Finished in {:0.2}s. Base: Failed {} of {} tests ({}% success rate){}{}{}{}\n",
+Finished in {:0.2}s. {}{}{}{}{}",
             VERSION, configuration::BASE as u8, configuration::TIMING as u8, configuration::CYCLE as u8, configuration::COP0HAZARD as u8,
-            cycles_to_seconds(counter_after - counter_before), failed_base, failed_base + succeeded_base, succeeded_base * 100 / (failed_base + succeeded_base),
-            timing_stat, cycle_stat, cp0_hazards_stat, poorly_understood_quirk_stat
+            cycles_to_seconds(counter_after - counter_before),
+            base_stat, timing_stat, cycle_stat, cp0_hazards_stat, poorly_understood_quirk_stat
         );
         // Print to the console, at the end
         text_out(&debug_msg);
