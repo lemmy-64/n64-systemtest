@@ -59,6 +59,7 @@ impl Test for RandomDecrement {
             
             unsafe {
                 asm!("
+                    .set noat
                     mtc0 {gpr_in}, $6
                     nop
                     nop
@@ -127,6 +128,7 @@ impl Test for RandomMasking {
         let readback: u32;
         unsafe {
             asm!("
+               .set noat
                 mtc0 {gpr_wired}, $6
                 nop
                 nop
@@ -170,6 +172,7 @@ impl Test for RandomReadEarly {
         let readback: u32;
         unsafe {
             asm!("
+                .set noat
                 mtc0 {gpr_init_wired}, $6
                 nop;
                 nop; nop; nop; nop; nop;
@@ -197,6 +200,7 @@ impl Test for RandomReadEarly {
         let readback: u32;
         unsafe {
             asm!("
+                .set noat
                 mtc0 {gpr_init_wired}, $6
                 nop;
                 nop; nop; nop; nop; nop;
@@ -536,6 +540,7 @@ impl Test for UnusedRegistersExtraMtc0 {
             let readback: u32;
             unsafe {
                 asm!("
+                    .set noat
                     mtc0 {gpr_write}, ${cop0_reg}
                     nop
                     nop
@@ -672,6 +677,7 @@ impl Test for UnusedRegistersWriteRead {
             let readback: u32;
             unsafe {
                 asm!("
+                    .set noat
                     mtc0 {gpr_write}, ${cop0_reg}
                     nop
                     nop
@@ -724,6 +730,7 @@ impl Test for ParityErrorMasking {
         let readback: u32;
         unsafe {
             asm!("
+                .set noat
                 mtc0 {gpr_test}, $26
                 nop
                 nop
@@ -758,6 +765,7 @@ impl Test for CacheErrorMasking {
         let readback: u32;
         unsafe {
             asm!("
+                .set noat
                 mtc0 {gpr_test}, $27
                 nop
                 nop

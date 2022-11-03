@@ -277,6 +277,7 @@ impl Test for UpperBitsOf32BitOperationFull {
 
         unsafe {
             asm!("
+                .set noat
                 ADD.S $0, $28, $30
                 SUB.S $1, $28, $30
                 MUL.S $2, $28, $30
@@ -372,6 +373,7 @@ impl Test for UpperBitsOf32BitOperationHalf {
         const FULL_MODE: u32 = Status::DEFAULT.raw_value();
         unsafe {
             asm!("
+                .set noat
                 ADD.S $0, $28, $30
                 ADD.S $1, $29, $30
                 ADD.S $2, $28, $31
@@ -978,7 +980,9 @@ impl Test for LWC1InHalfMode {
 
         // First load
         set_mode(false);
-        unsafe { asm!("LWC1 $0, 4({a})", a = in(reg) &a) }
+        unsafe { asm!("
+            .set noat
+            LWC1 $0, 4({a})", a = in(reg) &a) }
         set_mode(true);
 
         soft_assert_eq(dmfc1::<0>(), 0x00001111_89ABCDEF, "DMFC1(0) after LWC1($0)")?;
@@ -988,7 +992,9 @@ impl Test for LWC1InHalfMode {
 
         // Second load
         set_mode(false);
-        unsafe { asm!("LWC1 $1, 0({a})", a = in(reg) &a) }
+        unsafe { asm!("
+            .set noat
+            LWC1 $1, 0({a})", a = in(reg) &a) }
         set_mode(true);
 
         soft_assert_eq(dmfc1::<0>(), 0x01234567_89ABCDEF, "DMFC1(0) after LWC1($1)")?;
@@ -998,7 +1004,9 @@ impl Test for LWC1InHalfMode {
 
         // Third load
         set_mode(false);
-        unsafe { asm!("LWC1 $2, 0({b})", b = in(reg) &b) }
+        unsafe { asm!("
+            .set noat
+            LWC1 $2, 0({b})", b = in(reg) &b) }
         set_mode(true);
 
         soft_assert_eq(dmfc1::<0>(), 0x01234567_89ABCDEF, "DMFC1(0) after LWC1($2)")?;
@@ -1008,7 +1016,9 @@ impl Test for LWC1InHalfMode {
 
         // Fourth load
         set_mode(false);
-        unsafe { asm!("LWC1 $3, 4({b})", b = in(reg) &b) }
+        unsafe { asm!("
+            .set noat
+            LWC1 $3, 4({b})", b = in(reg) &b) }
         set_mode(true);
 
         soft_assert_eq(dmfc1::<0>(), 0x01234567_89ABCDEF, "DMFC1(0) after LWC1($3)")?;
@@ -1050,7 +1060,9 @@ impl Test for LDC1InHalfMode {
 
         // First load
         set_mode(false);
-        unsafe { asm!("LDC1 $0, 0({a})", a = in(reg) &a) }
+        unsafe { asm!("
+            .set noat
+            LDC1 $0, 0({a})", a = in(reg) &a) }
         set_mode(true);
 
         soft_assert_eq(dmfc1::<0>(), 0x01234567_89ABCDEF, "DMFC1(0) after LDC1($0)")?;
@@ -1060,7 +1072,9 @@ impl Test for LDC1InHalfMode {
 
         // Second load
         set_mode(false);
-        unsafe { asm!("LDC1 $1, 0({b})", b = in(reg) &b) }
+        unsafe { asm!("
+            .set noat
+            LDC1 $1, 0({b})", b = in(reg) &b) }
         set_mode(true);
 
         soft_assert_eq(dmfc1::<0>(), 0xFEDCBA98_76543210, "DMFC1(0) after LDC1($1)")?;
@@ -1093,7 +1107,9 @@ impl Test for SWC1InHalfMode {
 
         // First store
         set_mode(false);
-        unsafe { asm!("SWC1 $0, 4({a})", a = in(reg) &mut a) }
+        unsafe { asm!("
+            .set noat
+            SWC1 $0, 4({a})", a = in(reg) &mut a) }
         set_mode(true);
 
         soft_assert_eq(a, 0x01234567_22223333, "a after SWC1($0)")?;
@@ -1101,7 +1117,9 @@ impl Test for SWC1InHalfMode {
 
         // Second store
         set_mode(false);
-        unsafe { asm!("SWC1 $1, 0({a})", a = in(reg) &mut a) }
+        unsafe { asm!("
+            .set noat
+            SWC1 $1, 0({a})", a = in(reg) &mut a) }
         set_mode(true);
 
         soft_assert_eq(a, 0x00001111_22223333, "a after SWC1($1)")?;
@@ -1109,7 +1127,9 @@ impl Test for SWC1InHalfMode {
 
         // Third store
         set_mode(false);
-        unsafe { asm!("SWC1 $2, 0({b})", b = in(reg) &mut b) }
+        unsafe { asm!("
+            .set noat
+            SWC1 $2, 0({b})", b = in(reg) &mut b) }
         set_mode(true);
 
         soft_assert_eq(a, 0x00001111_22223333, "a after SWC1($2)")?;
@@ -1117,7 +1137,9 @@ impl Test for SWC1InHalfMode {
 
         // Fourth store
         set_mode(false);
-        unsafe { asm!("SWC1 $3, 4({b})", b = in(reg) &mut b) }
+        unsafe { asm!("
+            .set noat
+            SWC1 $3, 4({b})", b = in(reg) &mut b) }
         set_mode(true);
 
         soft_assert_eq(a, 0x00001111_22223333, "a after SWC1($3)")?;
@@ -1148,7 +1170,9 @@ impl Test for SDC1InHalfMode {
 
         // First store
         set_mode(false);
-        unsafe { asm!("SDC1 $0, 0({a})", a = in(reg) &mut a) }
+        unsafe { asm!("
+            .set noat
+            SDC1 $0, 0({a})", a = in(reg) &mut a) }
         set_mode(true);
 
         soft_assert_eq(a, 0x00001111_22223333, "a after SDC1($0)")?;
@@ -1156,7 +1180,9 @@ impl Test for SDC1InHalfMode {
 
         // Second store
         set_mode(false);
-        unsafe { asm!("SDC1 $1, 0({b})", b = in(reg) &mut b) }
+        unsafe { asm!("
+            .set noat
+            SDC1 $1, 0({b})", b = in(reg) &mut b) }
         set_mode(true);
 
         soft_assert_eq(a, 0x00001111_22223333, "a after SDC1($1)")?;
@@ -1195,7 +1221,9 @@ impl Test for MTC1InHalfMode {
 
         // First load
         set_mode(false);
-        unsafe { asm!("MTC1 {a}, $0", a = in(reg) (a as u32)) }
+        unsafe { asm!("
+            .set noat
+            MTC1 {a}, $0", a = in(reg) (a as u32)) }
         set_mode(true);
 
         soft_assert_eq(dmfc1::<0>(), 0x00001111_89ABCDEF, "DMFC1(0) after MTC1($0)")?;
@@ -1205,7 +1233,9 @@ impl Test for MTC1InHalfMode {
 
         // Second load
         set_mode(false);
-        unsafe { asm!("MTC1 {a}, $1", a = in(reg) ((a >> 32) as u32)) }
+        unsafe { asm!("
+            .set noat
+            MTC1 {a}, $1", a = in(reg) ((a >> 32) as u32)) }
         set_mode(true);
 
         soft_assert_eq(dmfc1::<0>(), 0x01234567_89ABCDEF, "DMFC1(0) after MTC1($1)")?;
@@ -1215,7 +1245,9 @@ impl Test for MTC1InHalfMode {
 
         // Third load
         set_mode(false);
-        unsafe { asm!("MTC1 {b}, $2", b = in(reg) ((b >> 32) as u32)) }
+        unsafe { asm!("
+            .set noat
+            MTC1 {b}, $2", b = in(reg) ((b >> 32) as u32)) }
         set_mode(true);
 
         soft_assert_eq(dmfc1::<0>(), 0x01234567_89ABCDEF, "DMFC1(0) after MTC1($2)")?;
@@ -1225,7 +1257,9 @@ impl Test for MTC1InHalfMode {
 
         // Third load
         set_mode(false);
-        unsafe { asm!("MTC1 {b}, $3", b = in(reg) (b as u32)) }
+        unsafe { asm!("
+            .set noat
+            MTC1 {b}, $3", b = in(reg) (b as u32)) }
         set_mode(true);
 
         soft_assert_eq(dmfc1::<0>(), 0x01234567_89ABCDEF, "DMFC1(0) after MTC1($3)")?;
