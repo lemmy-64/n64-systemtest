@@ -33,7 +33,6 @@ mod sp_memory;
 mod testlist;
 mod tlb;
 mod tlb64;
-mod timing;
 mod traps;
 
 mod configuration {
