@@ -6,7 +6,7 @@ use core::any::Any;
 use core::arch::asm;
 
 use crate::cop0;
-use crate::cop0::Status;
+use crate::cop0::{RegisterIndex, Status};
 use crate::tests::{Level, Test};
 use crate::tests::soft_asserts::soft_assert_eq;
 
@@ -60,18 +60,18 @@ impl Test for RandomDecrement {
             unsafe {
                 asm!("
                     .set noat
-                    mtc0 {gpr_in}, $6
+                    mtc0 {gpr_in}, ${WIRED}
                     nop
                     nop
-                    mfc0 {gpr_after1}, $1
+                    mfc0 {gpr_after1}, ${RANDOM}
                     
                     nop; nop; nop; nop; nop; nop; nop; nop; nop; nop;
                     nop; nop; nop; nop;
-                    mfc0 {gpr_after16}, $1
+                    mfc0 {gpr_after16}, ${RANDOM}
                     
                     nop; nop; nop; nop; nop; nop; nop; nop; nop; nop;
                     nop; nop; nop; nop;
-                    mfc0 {gpr_after31}, $1
+                    mfc0 {gpr_after31}, ${RANDOM}
                     
                     nop; nop; nop; nop; nop; nop; nop; nop; nop; nop;
                     nop; nop; nop; nop; nop; nop; nop; nop; nop; nop;
@@ -81,13 +81,15 @@ impl Test for RandomDecrement {
                     nop; nop; nop; nop; nop; nop; nop; nop; nop; nop;
                     nop; nop; nop; nop; nop;
                     nop; nop; nop;
-                    mfc0 {gpr_after100}, $1
+                    mfc0 {gpr_after100}, ${RANDOM}
                 ",
                 gpr_in = in(reg) wired,
                 gpr_after1 = out(reg) after1,
                 gpr_after16 = out(reg) after16,
                 gpr_after31 = out(reg) after31,
                 gpr_after100 = out(reg) after100,
+                WIRED = const RegisterIndex::Wired as usize,
+                RANDOM = const RegisterIndex::Random as usize,
             )}
             
             soft_assert_eq(after1, simulate(1, wired), &format!("Random, 1 instruction after setting Wired = {}", wired))?;
@@ -129,17 +131,19 @@ impl Test for RandomMasking {
         unsafe {
             asm!("
                .set noat
-                mtc0 {gpr_wired}, $6
+                mtc0 {gpr_wired}, ${WIRED}
                 nop
                 nop
-                mtc0 {gpr_test}, $1
+                mtc0 {gpr_test}, ${RANDOM}
                 nop
                 nop
-                mfc0 {gpr_readback}, $1
+                mfc0 {gpr_readback}, ${RANDOM}
             ",
             gpr_wired = in(reg) 0u32,
             gpr_test = in(reg) 0xFFFFFFFFu32,
             gpr_readback = out(reg) readback,
+            WIRED = const RegisterIndex::Wired as usize,
+            RANDOM = const RegisterIndex::Random as usize,
         )}
         soft_assert_eq(readback, 27, "Random was written as 0xFFFFFFFF, Wired written as 0, expecting Random write to be ignored")?;
         
@@ -173,16 +177,16 @@ impl Test for RandomReadEarly {
         unsafe {
             asm!("
                 .set noat
-                mtc0 {gpr_init_wired}, $6
+                mtc0 {gpr_init_wired}, ${WIRED}
                 nop;
                 nop; nop; nop; nop; nop;
                 nop; nop; nop; nop; nop;
                 
-                mfc0 {gpr_start}, $1
+                mfc0 {gpr_start}, ${RANDOM}
                 nop
                 nop
-                mtc0 {gpr_wired}, $6
-                mfc0 {gpr_readback}, $1
+                mtc0 {gpr_wired}, ${WIRED}
+                mfc0 {gpr_readback}, ${RANDOM}
                 nop
                 nop
             ",
@@ -190,6 +194,8 @@ impl Test for RandomReadEarly {
             gpr_start = out(reg) start,
             gpr_wired = in(reg) 5u32, // value here shouldn't matter
             gpr_readback = out(reg) readback,
+            WIRED = const RegisterIndex::Wired as usize,
+            RANDOM = const RegisterIndex::Random as usize,
         )}
         
         soft_assert_eq(start, 21, "Wired set to 20, Random decremented 10 times")?;
@@ -201,17 +207,17 @@ impl Test for RandomReadEarly {
         unsafe {
             asm!("
                 .set noat
-                mtc0 {gpr_init_wired}, $6
+                mtc0 {gpr_init_wired}, ${WIRED}
                 nop;
                 nop; nop; nop; nop; nop;
                 nop; nop; nop; nop; nop;
                 
-                mfc0 {gpr_start}, $1
+                mfc0 {gpr_start}, ${RANDOM}
                 nop
                 nop
-                mtc0 {gpr_wired}, $6
+                mtc0 {gpr_wired}, ${WIRED}
                 nop
-                mfc0 {gpr_readback}, $1
+                mfc0 {gpr_readback}, ${RANDOM}
                 nop
                 nop
             ",
@@ -219,6 +225,8 @@ impl Test for RandomReadEarly {
             gpr_start = out(reg) start,
             gpr_wired = in(reg) 5u32, // value here shouldn't matter
             gpr_readback = out(reg) readback,
+            WIRED = const RegisterIndex::Wired as usize,
+            RANDOM = const RegisterIndex::Random as usize,
         )}
         
         soft_assert_eq(start, 21, "Wired set to 20, Random decremented 10 times")?;
