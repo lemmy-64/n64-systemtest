@@ -63,6 +63,7 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::address_error_exception::UnalignedLW2 {}),
         Box::new(super::address_error_exception::UnalignedLWDelay {}),
         Box::new(super::address_error_exception::UnalignedSW {}),
+        Box::new(super::address_error_exception::UnalignedJump {}),
         Box::new(super::address_error_exception::LWAddressNotSignExtended {}),
         Box::new(super::address_error_exception::SWAddressNotSignExtended {}),
         Box::new(super::arithmetic::nemu_port::LUIOpcodeTest1 {}),

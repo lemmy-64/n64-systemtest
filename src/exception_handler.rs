@@ -242,6 +242,7 @@ extern "C" fn exception_handler_compiled(stackpointer: usize) -> usize {
             crate::isviewer::text_out("Got unhandled exception. Attempting to continue\n");
             context.return_to = context.exceptpc + (if context.cause.branch_delay() { 8 } else { 4 });
         }
+        context.return_to = context.return_to & !0x3;
 
         // Save the exception context
         if guard.is_none() {
