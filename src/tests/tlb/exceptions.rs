@@ -222,6 +222,35 @@ impl Test for StoreMiss4k {
     }
 }
 
+pub struct StoreMissMisaligned4k {}
+
+impl Test for StoreMissMisaligned4k {
+    fn name(&self) -> &str { "TLB: Store misaligned after 4k page, expect TLBS" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        let pagemask = 0; // 4k
+        let swl = |address: u32| { 
+            unsafe { asm!("swl $0, 0($2)", in("$2") address); }; Ok(()) 
+        };
+        let swr = |address: u32| { 
+            unsafe { asm!("swr $0, 0($2)", in("$2") address); }; Ok(()) 
+        };
+        test_miss_exception(pagemask, 4096, true, true, 1, CauseException::TLBS, false, false, swl)?;
+        test_miss_exception(pagemask, 4096, true, true, 1, CauseException::TLBS, false, false, swr)?;
+        test_miss_exception(pagemask, 4097, true, true, 1, CauseException::TLBS, false, false, swl)?;
+        test_miss_exception(pagemask, 4097, true, true, 1, CauseException::TLBS, false, false, swr)?;
+        test_miss_exception(pagemask, 4098, true, true, 1, CauseException::TLBS, false, false, swl)?;
+        test_miss_exception(pagemask, 4098, true, true, 1, CauseException::TLBS, false, false, swr)?;
+        test_miss_exception(pagemask, 4099, true, true, 1, CauseException::TLBS, false, false, swl)?;
+        test_miss_exception(pagemask, 4099, true, true, 1, CauseException::TLBS, false, false, swr)?;
+        Ok(())
+    }
+}
+
 /// This verifies that code that lies within the TLB mapped area can be executed
 pub struct ExecuteTLBMapped4k {}
 
