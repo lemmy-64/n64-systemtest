@@ -932,6 +932,7 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::tlb::exceptions::ReadMiss4M {}),
         Box::new(super::tlb::exceptions::ReadMiss16M {}),
         Box::new(super::tlb::exceptions::StoreMiss4k {}),
+        Box::new(super::tlb::exceptions::StoreMissMisaligned4k {}),
         Box::new(super::tlb::exceptions::ExecuteTLBMapped4k {}),
         Box::new(super::tlb::exceptions::ExecuteTLBMappedMiss {}),
         Box::new(super::tlb::exceptions::ExecuteTLBMappedMissInDelay {}),
