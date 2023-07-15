@@ -2610,7 +2610,7 @@ impl Test for CvtD {
 pub struct ConvertToW;
 
 impl Test for ConvertToW {
-    fn name(&self) -> &str { "COP1: CVT.W, ROUND.W, TRUNC.W, CEIL.W" }
+    fn name(&self) -> &str { "COP1: CVT.W, ROUND.W, TRUNC.W, FLOOR.W, CEIL.W" }
 
     fn level(&self) -> Level { Level::BasicFunctionality }
 
@@ -2856,7 +2856,7 @@ impl Test for ConvertToW {
 pub struct ConvertToL;
 
 impl Test for ConvertToL {
-    fn name(&self) -> &str { "COP1: CVT.L, ROUND.L, TRUNC.L, CEIL.L" }
+    fn name(&self) -> &str { "COP1: CVT.L, ROUND.L, TRUNC.L, FLOOR.L, CEIL.L" }
 
     fn level(&self) -> Level { Level::BasicFunctionality }
 
