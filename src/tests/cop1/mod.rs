@@ -2980,7 +2980,7 @@ impl Test for ConvertToL {
             Box::new((FConst::SUBNORMAL_MAX_NEGATIVE_64, expected_unimplemented_i64())),
 
             // W => L (which doesn't exist)
-            Box::new((4i64, expected_unimplemented_i64())),
+            Box::new((4i32, expected_unimplemented_i64())),
 
             // L => L (which doesn't exist)
             Box::new((4i64, expected_unimplemented_i64())),
