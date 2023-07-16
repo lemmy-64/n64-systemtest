@@ -1051,11 +1051,11 @@ impl Test for DivS {
             Box::new((true, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_MIN_POSITIVE_32, 1f32, expected_unimplemented_f32())),
             Box::new((true, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_MAX_POSITIVE_32, 1f32, expected_unimplemented_f32())),
             Box::new((true, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_MIN_NEGATIVE_32, 1f32, expected_unimplemented_f32())),
-            Box::new((true, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_MIN_NEGATIVE_32, 1f32, expected_unimplemented_f32())),
+            Box::new((true, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_MAX_NEGATIVE_32, 1f32, expected_unimplemented_f32())),
             Box::new((true, FCSRRoundingMode::Nearest, 0f32, FConst::SUBNORMAL_MIN_POSITIVE_32, expected_unimplemented_f32())),
             Box::new((true, FCSRRoundingMode::Nearest, 0f32, FConst::SUBNORMAL_MAX_POSITIVE_32, expected_unimplemented_f32())),
             Box::new((true, FCSRRoundingMode::Nearest, 0f32, FConst::SUBNORMAL_MIN_NEGATIVE_32, expected_unimplemented_f32())),
-            Box::new((true, FCSRRoundingMode::Nearest, 0f32, FConst::SUBNORMAL_MIN_NEGATIVE_32, expected_unimplemented_f32())),
+            Box::new((true, FCSRRoundingMode::Nearest, 0f32, FConst::SUBNORMAL_MAX_NEGATIVE_32, expected_unimplemented_f32())),
             Box::new((true, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_MIN_NEGATIVE_32, FConst::SUBNORMAL_MIN_NEGATIVE_32, expected_unimplemented_f32())),
 
             // 0/0 gives an invalid operation and produces a specific nan result
