@@ -855,17 +855,17 @@ impl Test for HalfMode64BitConversionsWithOddIndex {
         soft_assert_eq(result[6], 16u64, "Result after CVT.W.D (6)")?;
         soft_assert_eq(result[7], 16u64, "Result after CVT.W.D (7)")?;
 
-        soft_assert_eq(result[8], 16u64, "Result after ROUND.D.S (8)")?;
-        soft_assert_eq(result[9], 16u64, "Result after ROUND.D.S (9)")?;
+        soft_assert_eq(result[8], 16u64, "Result after ROUND.W.D (8)")?;
+        soft_assert_eq(result[9], 16u64, "Result after ROUND.W.D (9)")?;
 
-        soft_assert_eq(result[10], 16u64, "Result after TRUNC.D.S (10)")?;
-        soft_assert_eq(result[11], 16u64, "Result after TRUNC.D.S (11)")?;
+        soft_assert_eq(result[10], 16u64, "Result after TRUNC.W.D (10)")?;
+        soft_assert_eq(result[11], 16u64, "Result after TRUNC.W.D (11)")?;
 
-        soft_assert_eq(result[12], 16u64, "Result after CEIL.D.S (12)")?;
-        soft_assert_eq(result[13], 16u64, "Result after CEIL.D.S (13)")?;
+        soft_assert_eq(result[12], 16u64, "Result after CEIL.W.D (12)")?;
+        soft_assert_eq(result[13], 16u64, "Result after CEIL.W.D (13)")?;
 
-        soft_assert_eq(result[14], 16u64, "Result after FLOOR.D.S (14)")?;
-        soft_assert_eq(result[15], 16u64, "Result after FLOOR.D.S (15)")?;
+        soft_assert_eq(result[14], 16u64, "Result after FLOOR.W.D (14)")?;
+        soft_assert_eq(result[15], 16u64, "Result after FLOOR.W.D (15)")?;
 
         soft_assert_eq(result[16], 16u64, "Result after CVT.L.D (16)")?;
         soft_assert_eq(result[17], 16u64, "Result after CVT.L.D (17)")?;
