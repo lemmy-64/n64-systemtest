@@ -10,6 +10,32 @@ use crate::cop0::{RegisterIndex, Status};
 use crate::tests::{Level, Test};
 use crate::tests::soft_asserts::soft_assert_eq;
 
+pub struct IndexMasking;
+
+impl Test for IndexMasking {
+    fn name(&self) -> &str { "Index (masking)" }
+
+    fn level(&self) -> Level { Level::Weird }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        let previous = cop0::index();
+        
+        unsafe { cop0::set_index(0xFFFFFFFF) }
+        let readback = cop0::index();
+        soft_assert_eq(readback, 0x8000003F, "Index written with 0xFFFFFFFF")?;
+        
+        unsafe { cop0::set_index(0x00000000) }
+        let readback = cop0::index();
+        soft_assert_eq(readback, 0x00000000, "Index written with 0x00000000")?; // verifies bit 31 is mutable
+        
+        unsafe { cop0::set_index(previous) }
+        
+        Ok(())
+    }
+}
+
 /// Tests the behavior of the COP0 Random register after writing to Wired and executing any other instructions.
 /// 
 /// When writing any value to Wired (which hardware will mask to a value of 0-63 inclusive), the
