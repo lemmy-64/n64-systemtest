@@ -461,6 +461,7 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::cart_memory::write::Write16AndReadback32 {}),
         Box::new(super::cart_memory::write::Write64AndReadback32 {}),
         Box::new(super::cart_memory::write::WriteAndCheckPIFlag {}),
+        Box::new(super::cop0::IndexMasking),
         Box::new(super::cop0::RandomDecrement),
         Box::new(super::cop0::RandomMasking),
         Box::new(super::cop0::RandomReadEarly),
