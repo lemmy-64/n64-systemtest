@@ -1,3 +1,4 @@
+use alloc::format;
 use alloc::string::{String, ToString};
 use core::arch::asm;
 use arbitrary_int::{u19, u2, u27, u31, u41};
@@ -586,12 +587,15 @@ pub unsafe fn cache64<const OP: u8, const OFFSET: u16>(location: u64) {
 // Fires a cop2 usable exception and handles it itself. Afterwards, Cause.copindex will be set to 2
 pub fn preset_cause_to_copindex2() -> Result<(), String> {
     // Fire a COP2 unusable exception. This is to write something into Cause.copindex so that we can see whether it gets overwritten
-    let temp_context = expect_exception(CauseException::CopUnusable, 1, || {
+    let temp_context = match expect_exception(CauseException::CopUnusable, 1, || {
         unsafe { asm!("MFC2 $0, $0"); }
         Ok(())
-    })?;
+    }) {
+        Ok(c) => c,
+        Err(e) => return Err(format!("Failed to preset Cause.copindex to 2: {}", e))
+    };
     if temp_context.cause != Cause::new().with_coprocessor_error(u2::new(2)).with_exception(CauseException::CopUnusable) {
-        return Err("Presetting Cause.copindex to 2 failed".to_string());
+        return Err("Cause.copindex was supposed to be preset to 2, but it didn't change".to_string());
     };
 
     Ok(())
