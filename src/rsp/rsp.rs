@@ -86,7 +86,6 @@ impl RSP {
             SP_STATUS_SET_CLEAR_INTERRUPT_ON_BREAK);
     }
 
-    #[allow(dead_code)]
     pub unsafe fn start_dma_sp_to_cpu(spmem: u32, to: *mut u8, length: u32) {
         Self::set_sp_address(spmem);
         Self::set_dram_address(to as usize as u32);
