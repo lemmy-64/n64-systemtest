@@ -240,3 +240,44 @@ impl Test for SPDMAIntoIMEMWithOverflow {
         Ok(())
     }
 }
+
+
+pub struct SPDMAFromDMEMWithOverflow {}
+
+impl Test for SPDMAFromDMEMWithOverflow {
+    fn name(&self) -> &str { "spmem: DMA RDRAM <- DMEM (overflow)" }
+
+    fn level(&self) -> Level { Level::Weird }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        SPMEM::write(0x0000, 0x01234567);
+        SPMEM::write(0x0004, 0x89ABCDEF);
+        SPMEM::write(0x0FF8, 0xFEDCBA98);
+        SPMEM::write(0x0FFC, 0x76543210);
+
+        SPMEM::write(0x1000, 0x11223344);
+        SPMEM::write(0x1004, 0x55667788);
+        SPMEM::write(0x1FF8, 0x99AABBCC);
+        SPMEM::write(0x1FFC, 0xDDEEFF00);
+
+        let mut source_data: [u32; 4] = [0u32; 4];
+        let source_data_uncached = MemoryMap::uncached_mut(&mut source_data);
+        let source_ptr = source_data_uncached as *mut u8;
+        unsafe {
+            RSP::start_dma_sp_to_cpu(0x0FF8, source_ptr, 16);
+            RSP::wait_until_dma_completed();
+            soft_assert_eq2(*source_data_uncached, [0xFEDCBA98, 0x76543210, 0x01234567, 0x89ABCDEF], || "RDRAM data after DMA overflow from DMEM".to_string())?;
+        }
+
+        unsafe {
+            RSP::start_dma_sp_to_cpu(0x1FF8, source_ptr, 16);
+            RSP::wait_until_dma_completed();
+            soft_assert_eq2(*source_data_uncached, [0x99AABBCC, 0xDDEEFF00, 0x11223344, 0x55667788], || "RDRAM data after DMA overflow from IMEM".to_string())?;
+        }
+
+        Ok(())
+    }
+
+}
