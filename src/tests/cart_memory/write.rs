@@ -6,7 +6,8 @@ use alloc::vec::Vec;
 use core::any::Any;
 use core::arch::asm;
 use crate::assembler::{Assembler, GPR};
-use crate::{MemoryMap, pi};
+use crate::MemoryMap;
+use crate::pi::Pi;
 use crate::tests::soft_asserts::{soft_assert_eq, soft_assert_neq};
 
 // Writing to CART:
@@ -399,11 +400,11 @@ impl Test for WriteAndCheckPIFlag {
         unsafe { (p_cart as *mut u64).write_volatile(0x01010101_23232323) }
 
         // After writing, the IO BUSY flag should be set
-        let b1 = pi::is_io_busy();
+        let b1 = Pi::status().io_busy();
 
         // Do a read from cart - that should be synchronous and ensure that IO is no longer busy
         unsafe { p_cart.read_volatile() };
-        let b2 = pi::is_io_busy();
+        let b2 = Pi::status().io_busy();
 
         soft_assert_eq(b1, true, "Reading IO BUSY after writing to cart should return true")?;
         soft_assert_eq(b2, false, "Reading IO BUSY after reading should always return false")?;

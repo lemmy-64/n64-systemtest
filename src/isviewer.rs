@@ -1,4 +1,4 @@
-use crate::pi;
+use crate::pi::Pi;
 
 /// Write the length of the text here
 const ISVIEWER_WRITE_LEN: *mut u32 = 0xB3FF0014 as *mut u32;
@@ -8,7 +8,7 @@ const ISVIEWER_BUFFER_START: *mut u32 = 0xB3FF0020 as *mut u32;
 const ISVIEWER_BUFFER_LENGTH: usize = 0x200;
 
 fn pi_wait() {
-    while pi::is_io_busy() {}
+    while Pi::status().io_busy() {}
 }
 
 

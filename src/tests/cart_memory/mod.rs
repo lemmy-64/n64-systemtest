@@ -9,6 +9,7 @@ use crate::tests::{Level, Test};
 use crate::tests::soft_asserts::soft_assert_eq;
 
 pub mod write;
+pub mod dma;
 
 // Reading from cart:
 // - LW works as expected
