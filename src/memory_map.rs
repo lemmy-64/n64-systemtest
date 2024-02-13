@@ -45,14 +45,18 @@ impl MemoryMap {
     }
 
     /// Returns the cartridge (rom) address of a given constant
-    pub fn uncached_cart_address<T>(p: *const T) -> *const T {
+    pub fn physical_cart_address<T>(p: *const T) -> usize {
         // The bootcode copies from 0x10001000 to 0x8000_0400. If we have some other pointer,
         // it doesn't come from the cart
         let memory_address = p as usize;
         assert!(memory_address >= 0x8000_0400);
         assert!(memory_address < 0x8000_0400 + 3 * 1024 * 1024);
 
-        Self::uncached((memory_address + 0x10001000 - 0x400) as *const T)
+        memory_address - 0x8000_0000 + 0x10001000 - 0x400
+    }
+
+    pub fn uncached_cart_address<T>(p: *const T) -> *const T {
+        (Self::physical_cart_address(p) | 0xA000_0000) as *const T
     }
 
     pub fn physical_to_uncached_mut<T>(address: usize) -> *mut T {

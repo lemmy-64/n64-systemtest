@@ -44,7 +44,7 @@ impl Test for PIDMA {
         Pi::set_status(PiStatusWrite::new().with_reset(true).with_clear_interrupt(true));
         soft_assert_eq(Pi::status(), PiStatusRead::new(), "Pi Status before dma")?;
 
-        let cart_addr = MemoryMap::uncached_cart_address(&DATA[0] as *const u64 as *const u32) as u32;
+        let cart_addr = MemoryMap::physical_cart_address(&DATA[0] as *const u64 as *const u32) as u32;
         let mut target = UncachedHeapMemory::<u32>::new_with_init_value(100, 0);
         let dram_address = target.start_phyiscal() as u32;
         Pi::set_cart_address(cart_addr);
