@@ -17,7 +17,7 @@
 .set FS_START,              0x8000031C
 
 _start:
-    // Find out how much ram there is, in 2 MB increments
+    // Find out the amount of RAM, in 2 MB increments. 4MB/8MB are normal, but an emulator might provide more
     li $t0, 0                                    // memory size determined, so far
     li $t1, 0xA0000000 | (2 * 1024 * 1024 - 4)   // address to check
     li $t2, 2 * 1024 * 1024                      // 2mb increment value
