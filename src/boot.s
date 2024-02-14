@@ -10,7 +10,6 @@
 .set FPCSR_EV,  0x00000800 // Enable invalid operation exceptions
 
 // N64 PIF/OS pointers
-.set OS_MEM_SIZE,           0x80000318
 .set PIF_ENTRY_POINT,       0xBFC00000
 .set PIF_CONTROL,           0x07FC
 
@@ -18,40 +17,32 @@
 .set FS_START,              0x8000031C
 
 _start:
-    // IPL3 copied over the first 1MB. Copy over the next MB
-    // TODO: Any way to determine the actual size of the binary? We're overcopying quite a bit here
-    li $t1, 0x10101000
-    li $t3, 0x80100400
-    li $t2, 0x1FFFFF
+    tne $31, $31, 0x10
 
-    lui $t0, 0xA460
-    sw $t1, 0x4($t0)  // cart
-    sw $t3, 0x0($t0)  // dram
-    sw $t2, 0xC($t0)  // length
+    // Find out how much ram there is, in 2 MB increments
+    li $t0, 0                                    // memory size determined, so far
+    li $t1, 0xA0000000 | (2 * 1024 * 1024 - 4)   // address to check
+    li $t2, 2 * 1024 * 1024                      // 2mb increment value
+    li $t3, 0xCAFFEE                             // test value to write, which we expect to read back
 
-wait_for_dma_finished:
-    lw $t1, 0x10($t0)
-    andi $t1, $t1, 1
-    bnez $t1, wait_for_dma_finished
-    nop
+memory_size_loop:
+    lw $t5, 0($t1)  // backup previous value
+    sw $t3, 0($t1)
+    lw $t4, 0($t1)
+    bne $t3, $t4, memory_size_found
+    sw $t5, 0($t1)  // restore previous value (delay slot)
+
+    addu $t0, $t0, $t2
+    b memory_size_loop
+    addu $t1, $t1, $t2  // delay slot
+
+memory_size_found:
+    // Make this the first argument for the Rust entrypoint
+    move $a0, $t0
 
     // Initialize stack
-    li $t0, OS_MEM_SIZE
-    lw $t0, 0($t0)
     li $t1, 0x80000000
-    or $sp, $t0, $t1
-
-    // Clear .bss section
-    la $t0, __bss_start
-    la $t1, __bss_end
-bss_clear_loop:
-    bge $t0, $t1, bss_clear_done
-    nop
-    sw $zero, 0($t0)
-    addiu $t0, $t0, 4
-    b bss_clear_loop
-    nop
-bss_clear_done:
+    or $sp, $t1, $t0
 
     // Configure Floating Point Unit
     li $t0, (FPCSR_FS | FPCSR_EV)

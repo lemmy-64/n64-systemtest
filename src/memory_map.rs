@@ -17,11 +17,10 @@ impl MemoryMap {
     pub const PHYSICAL_PIFRAM_BASE: usize = 0x1FC0_07C0;
 
     /// Call very early (before setting up exception handlers) during boot to set memory size
-    pub(super) fn init() {
+    pub(super) fn init(memory_size: usize) {
         assert_eq!(Self::memory_size(), 0);
         unsafe {
-            let value = *(0x8000_0318 as *mut usize);
-            MEMORY_SIZE = value;
+            MEMORY_SIZE = memory_size;
         };
     }
 

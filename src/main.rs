@@ -50,8 +50,8 @@ global_asm!(include_str!("boot.s"));
 static VIDEO: Spinlock<Video> = Spinlock::new(Video::new());
 
 #[no_mangle]
-unsafe extern "C" fn rust_entrypoint() -> ! {
-    MemoryMap::init();
+unsafe extern "C" fn rust_entrypoint(memory_size: usize) -> ! {
+    MemoryMap::init(memory_size);
     allocator::init_allocator();
     main();
 
