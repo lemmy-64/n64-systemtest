@@ -17,8 +17,6 @@
 .set FS_START,              0x8000031C
 
 _start:
-    tne $31, $31, 0x10
-
     // Find out how much ram there is, in 2 MB increments
     li $t0, 0                                    // memory size determined, so far
     li $t1, 0xA0000000 | (2 * 1024 * 1024 - 4)   // address to check
