@@ -45,13 +45,16 @@ impl MemoryMap {
 
     /// Returns the cartridge (rom) address of a given constant
     pub fn physical_cart_address<T>(p: *const T) -> usize {
-        // The bootcode copies from 0x10001000 to 0x8000_0400. If we have some other pointer,
+        // TODO: This is quite ipl3-prod specific. Can we find those constants from somewhere to avoid
+        // breakage when it gets updated?
+
+        // The bootcode copies from 0x10001C00 to 0x8000_0400. If we have some other pointer,
         // it doesn't come from the cart
         let memory_address = p as usize;
         assert!(memory_address >= 0x8000_0400);
         assert!(memory_address < 0x8000_0400 + 3 * 1024 * 1024);
 
-        memory_address - 0x8000_0000 + 0x10001000 - 0x400
+        memory_address - 0x8000_0400 + 0x10001C00
     }
 
     pub fn uncached_cart_address<T>(p: *const T) -> *const T {
