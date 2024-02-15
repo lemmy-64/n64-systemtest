@@ -43,7 +43,7 @@ impl Test for StartupTest {
         //soft_assert_eq(crate::cop0::exceptpc(), 0xFFFFFFFF_FFFFFFFF, "COP0 ExceptPC")?;
         //soft_assert_eq(crate::cop0::errorepc(), 0xFFFFFFFF_FFFFFFFF, "COP0 ErrorEPC")?;
 
-        // COP0 Status: This should be 0x3400_0000 and we should check for that. We can also allow
+        // COP0 Status: This should be 0x3400_0000, and we should check for that. We can also allow
         // if soft_reset is true as that happens after the reset button.
         // The EverDrive has a bug however and sets the wrong value. If we detect that,
         // TearDownTest will report it

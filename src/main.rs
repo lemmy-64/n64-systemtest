@@ -52,6 +52,7 @@ static VIDEO: Spinlock<Video> = Spinlock::new(Video::new());
 #[no_mangle]
 unsafe extern "C" fn rust_entrypoint(memory_size: usize) -> ! {
     MemoryMap::init(memory_size);
+    mi::clear_interrupt_mask();
     allocator::init_allocator();
     main();
 

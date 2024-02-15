@@ -30,7 +30,7 @@ cop0hazard = ["quick"]
 
 # Tests that show something weird about the hardware where the pattern isn't fully understood. These tests aren't enough
 # to implement in an emulator yet. As more tests for a certain quirk are being written (and the understanding grows),
-# they'd move out of this category. Therefore it is disabled by default and not even reported as disabled.
+# they'd move out of this category. Therefore, it is disabled by default and not even reported as disabled.
 poorly_understood_quirk = ["quick"]
 
 vmulf_stress_test = []
