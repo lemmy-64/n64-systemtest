@@ -1605,6 +1605,11 @@ impl Test for AddS {
 
             // Mixing both types of NAN cause unimplemented
             Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_START_32, FConst::QUIET_NAN_START_32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_START_32, FConst::SIGNALLING_NAN_START_32, expected_unimplemented_f32())),
+            
+            // Mixing NAN with subnormal cause unimplemented
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_START_32, FConst::SUBNORMAL_MIN_POSITIVE_32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_MIN_POSITIVE_32, FConst::QUIET_NAN_START_32, expected_unimplemented_f32())),
         }
     }
 
