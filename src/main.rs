@@ -19,7 +19,9 @@
 
 extern crate alloc;
 
+use crate::cop1::FCSR;
 use spinning_top::Spinlock;
+use crate::cop1::set_fcsr;
 use crate::graphics::framebuffer_console::FramebufferConsole;
 
 use crate::graphics::vi::Video;
@@ -50,7 +52,13 @@ static VIDEO: Spinlock<Video> = Spinlock::new(Video::new());
 unsafe extern "C" fn entrypoint() -> ! {
     // IPL3 (the bootloader) write the memory size to DMEM. We can read it from there
     let memory_size = SPMEM::read(0) as usize;
-    MemoryMap::init(memory_size);
+    let elf_header_offset = ((SPMEM::read(12) >> 16) << 8) as usize;
+    MemoryMap::init(memory_size, elf_header_offset);
+
+    // fcsr isn't reset on boot. Use a good default for the main loop - some tests will change and
+    // restore this
+    set_fcsr(FCSR::new().with_flush_denorm_to_zero(true).with_enable_invalid_operation(true));
+
     mi::clear_interrupt_mask();
     allocator::init_allocator();
     main();

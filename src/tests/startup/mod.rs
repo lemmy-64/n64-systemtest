@@ -4,7 +4,6 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::any::Any;
 use crate::cop0::Status;
-use crate::cop1::cfc1;
 use crate::println;
 
 use crate::rsp::rsp::RSP;
@@ -67,7 +66,8 @@ impl Test for StartupTest {
         soft_assert_eq(RSP::pc(), 0x0, "RSP PC")?;
 
         // COP1 control word
-        soft_assert_eq(0x01000800, cfc1::<31>(), "COP1 FCSR")?;
+        // This doesn't have a fixed value. After a hardreset it is 0, but after a soft reset it is whatever it was before
+        //soft_assert_eq(0x01000800, cfc1::<31>(), "COP1 FCSR")?;
 
         Ok(())
     }

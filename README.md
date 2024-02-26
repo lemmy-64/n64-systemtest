@@ -31,10 +31,6 @@ cargo install nust64
 ```
 4. Run `cargo run --release` to build the test rom.
 
-**Please note:** N64 roms require a bootcode called IPL3. This bootcode is expected to setup hardware and copy the rom into memory. n64-systemtest comes with its own IPL3, which will **NOT** run on hardware. Once there is a community built open-source IPL3, we'll switch to that.
-
-If you'd like to use your own IPL3: Reconfigure the IPL3 path used by the runner (nust64) in `.cargo/config.toml`.
-
 # Expanded test-set
 In addition to the regular set of tests, n64-systemtest has a few additional sets which can
 be enabled individually: timing, cycle and cop0hazard. Refer to cargo.toml for a detailed description.
