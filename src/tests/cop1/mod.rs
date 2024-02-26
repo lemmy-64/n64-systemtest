@@ -1107,6 +1107,14 @@ impl Test for DivS {
             Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_END_32, 2f32, expected_unimplemented_f32())),
             Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_START_32, 2f32, expected_unimplemented_f32())),
             Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_END_32, 2f32, expected_unimplemented_f32())),
+            
+            // Mixing both types of NAN cause unimplemented
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_START_32, FConst::QUIET_NAN_START_32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_START_32, FConst::SIGNALLING_NAN_START_32, expected_unimplemented_f32())),
+            
+            // Mixing NAN with subnormal cause unimplemented
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_START_32, FConst::SUBNORMAL_MIN_POSITIVE_32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_MIN_POSITIVE_32, FConst::QUIET_NAN_START_32, expected_unimplemented_f32())),
         }
     }
 
@@ -1234,6 +1242,14 @@ impl Test for DivD {
             Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_END_64, 2f64, expected_unimplemented_f64())),
             Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_START_64, 2f64, expected_unimplemented_f64())),
             Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_END_64, 2f64, expected_unimplemented_f64())),
+            
+            // Mixing both types of NAN cause unimplemented
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_START_64, FConst::QUIET_NAN_START_64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_START_64, FConst::SIGNALLING_NAN_START_64, expected_unimplemented_f64())),
+            
+            // Mixing NAN with subnormal cause unimplemented
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_START_64, FConst::SUBNORMAL_MIN_POSITIVE_64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_MIN_POSITIVE_64, FConst::QUIET_NAN_START_64, expected_unimplemented_f64())),
         }
     }
 
@@ -1384,6 +1400,14 @@ impl Test for MulS {
             Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_END_32, 2f32, expected_unimplemented_f32())),
             Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_START_32, 2f32, expected_unimplemented_f32())),
             Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_END_32, 2f32, expected_unimplemented_f32())),
+            
+            // Mixing both types of NAN cause unimplemented
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_START_32, FConst::QUIET_NAN_START_32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_START_32, FConst::SIGNALLING_NAN_START_32, expected_unimplemented_f32())),
+            
+            // Mixing NAN with subnormal cause unimplemented
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_START_32, FConst::SUBNORMAL_MIN_POSITIVE_32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_MIN_POSITIVE_32, FConst::QUIET_NAN_START_32, expected_unimplemented_f32())),
         }
     }
 
@@ -1490,6 +1514,14 @@ impl Test for MulD {
             Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_END_64, 2f64, expected_unimplemented_f64())),
             Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_START_64, 2f64, expected_unimplemented_f64())),
             Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_END_64, 2f64, expected_unimplemented_f64())),
+            
+            // Mixing both types of NAN cause unimplemented
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_START_64, FConst::QUIET_NAN_START_64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_START_64, FConst::SIGNALLING_NAN_START_64, expected_unimplemented_f64())),
+            
+            // Mixing NAN with subnormal cause unimplemented
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_START_64, FConst::SUBNORMAL_MIN_POSITIVE_64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_MIN_POSITIVE_64, FConst::QUIET_NAN_START_64, expected_unimplemented_f64())),
         }
     }
 
@@ -1722,6 +1754,14 @@ impl Test for AddD {
             Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_END_64, 2f64, expected_unimplemented_f64())),
             Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_START_64, 2f64, expected_unimplemented_f64())),
             Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_END_64, 2f64, expected_unimplemented_f64())),
+            
+            // Mixing both types of NAN cause unimplemented
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_START_64, FConst::QUIET_NAN_START_64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_START_64, FConst::SIGNALLING_NAN_START_64, expected_unimplemented_f64())),
+            
+            // Mixing NAN with subnormal cause unimplemented
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_START_64, FConst::SUBNORMAL_MIN_POSITIVE_64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_MIN_POSITIVE_64, FConst::QUIET_NAN_START_64, expected_unimplemented_f64())),
         }
     }
 
@@ -1824,6 +1864,14 @@ impl Test for SubS {
             Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_END_32, 2f32, expected_unimplemented_f32())),
             Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_START_32, 2f32, expected_unimplemented_f32())),
             Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_END_32, 2f32, expected_unimplemented_f32())),
+            
+            // Mixing both types of NAN cause unimplemented
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_START_32, FConst::QUIET_NAN_START_32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_START_32, FConst::SIGNALLING_NAN_START_32, expected_unimplemented_f32())),
+            
+            // Mixing NAN with subnormal cause unimplemented
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_START_32, FConst::SUBNORMAL_MIN_POSITIVE_32, expected_unimplemented_f32())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_MIN_POSITIVE_32, FConst::QUIET_NAN_START_32, expected_unimplemented_f32())),
         }
     }
 
@@ -1926,6 +1974,14 @@ impl Test for SubD {
             Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_END_64, 2f64, expected_unimplemented_f64())),
             Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_START_64, 2f64, expected_unimplemented_f64())),
             Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_NEGATIVE_END_64, 2f64, expected_unimplemented_f64())),
+            
+            // Mixing both types of NAN cause unimplemented
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SIGNALLING_NAN_START_64, FConst::QUIET_NAN_START_64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_START_64, FConst::SIGNALLING_NAN_START_64, expected_unimplemented_f64())),
+            
+            // Mixing NAN with subnormal cause unimplemented
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::QUIET_NAN_START_64, FConst::SUBNORMAL_MIN_POSITIVE_64, expected_unimplemented_f64())),
+            Box::new((false, FCSRRoundingMode::Nearest, FConst::SUBNORMAL_MIN_POSITIVE_64, FConst::QUIET_NAN_START_64, expected_unimplemented_f64())),
         }
     }
 
