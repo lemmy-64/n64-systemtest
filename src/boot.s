@@ -17,7 +17,6 @@
 .set FS_START,              0x8000031C
 
 _start:
-tne $31, $31, 0x10
     // ipl3 writes the ramsize into 0xA4000000. Let's read it from there
     li $a0, 0xA4000000
     lw $a0, 0($a0)
