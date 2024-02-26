@@ -4,7 +4,6 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::any::Any;
 use crate::cop0::Status;
-use crate::cop1::cfc1;
 use crate::println;
 
 use crate::rsp::rsp::RSP;
@@ -43,7 +42,7 @@ impl Test for StartupTest {
         //soft_assert_eq(crate::cop0::exceptpc(), 0xFFFFFFFF_FFFFFFFF, "COP0 ExceptPC")?;
         //soft_assert_eq(crate::cop0::errorepc(), 0xFFFFFFFF_FFFFFFFF, "COP0 ErrorEPC")?;
 
-        // COP0 Status: This should be 0x3400_0000 and we should check for that. We can also allow
+        // COP0 Status: This should be 0x3400_0000, and we should check for that. We can also allow
         // if soft_reset is true as that happens after the reset button.
         // The EverDrive has a bug however and sets the wrong value. If we detect that,
         // TearDownTest will report it
@@ -67,7 +66,8 @@ impl Test for StartupTest {
         soft_assert_eq(RSP::pc(), 0x0, "RSP PC")?;
 
         // COP1 control word
-        soft_assert_eq(0x01000800, cfc1::<31>(), "COP1 FCSR")?;
+        // This doesn't have a fixed value. After a hardreset it is 0, but after a soft reset it is whatever it was before
+        //soft_assert_eq(0x01000800, cfc1::<31>(), "COP1 FCSR")?;
 
         Ok(())
     }
