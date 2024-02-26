@@ -17,30 +17,14 @@
 .set FS_START,              0x8000031C
 
 _start:
-    // Find out the amount of RAM, in 2 MB increments. 4MB/8MB are normal, but an emulator might provide more
-    li $t0, 0                                    // memory size determined, so far
-    li $t1, 0xA0000000 | (2 * 1024 * 1024 - 4)   // address to check
-    li $t2, 2 * 1024 * 1024                      // 2mb increment value
-    li $t3, 0xCAFFEE                             // test value to write, which we expect to read back
-
-memory_size_loop:
-    lw $t5, 0($t1)  // backup previous value
-    sw $t3, 0($t1)
-    lw $t4, 0($t1)
-    bne $t3, $t4, memory_size_found
-    sw $t5, 0($t1)  // restore previous value (delay slot)
-
-    addu $t0, $t0, $t2
-    b memory_size_loop
-    addu $t1, $t1, $t2  // delay slot
-
-memory_size_found:
-    // Make this the first argument for the Rust entrypoint
-    move $a0, $t0
+tne $31, $31, 0x10
+    // ipl3 writes the ramsize into 0xA4000000. Let's read it from there
+    li $a0, 0xA4000000
+    lw $a0, 0($a0)
 
     // Initialize stack
     li $t1, 0x80000000
-    or $sp, $t1, $t0
+    or $sp, $t1, $a0
 
     // Configure Floating Point Unit
     li $t0, (FPCSR_FS | FPCSR_EV)
