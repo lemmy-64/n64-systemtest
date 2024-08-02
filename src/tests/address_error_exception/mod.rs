@@ -227,6 +227,54 @@ impl Test for UnalignedJump {
     }
 }
 
+pub struct UnalignedJumpWithDelaySlot {}
+
+impl Test for UnalignedJumpWithDelaySlot {
+    fn name(&self) -> &str { "Unaligned jump exception with delay slot" }
+
+    fn level(&self) -> Level { Level::Weird }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        let mut addr = 0u32;
+        let mut val = 0u32;
+        unsafe { cop0::set_context_64(0); }
+        unsafe { cop0::set_xcontext_64(0); }
+        let exception_context = expect_exception(CauseException::AdEL, 0, || {
+            unsafe {
+                asm!("
+                    .set noat
+                    .set noreorder
+                    ORI $3, $0, 0x01
+                    LA $2, 1f
+                    ADDIU $2, 1
+                    JR $2
+                    ORI $3, $3, 0x02
+                1:
+                    ORI $3, $3, 0x04
+                ", out("$2") addr,
+                   out("$3") val);
+            }
+
+            Ok(())
+        })?;
+
+        let addr64 = addr as i32 as u64;
+
+        soft_assert_eq(exception_context.k0_exception_vector, 0xFFFFFFFF_80000180, "Exception Vector")?;
+        soft_assert_eq(exception_context.exceptpc, addr64, "ExceptPC")?;
+        soft_assert_eq(exception_context.badvaddr, addr64, "BadVAddr during AdEL exception")?;
+        soft_assert_eq(exception_context.cause.raw_value(), 0x10, "Cause during AdEL exception")?;
+        soft_assert_eq(exception_context.status, 0x24000002, "Status during AdEL exception")?;
+        soft_assert_eq(exception_context.context, Context::from_virtual_address(addr64), "Context during AdEL exception")?;
+        soft_assert_eq(exception_context.xcontext, XContext::from_virtual_address(addr64), "XContext during AdEL exception")?;
+        soft_assert_eq(val, 7, "delay slot execution during exception")?;
+
+        Ok(())
+    }
+}
+
 
 pub struct LWAddressNotSignExtended {}
 
