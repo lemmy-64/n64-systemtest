@@ -426,6 +426,40 @@ impl Test for LFV {
     }
 }
 
+pub struct LFVZeroExtended {}
+
+impl Test for LFVZeroExtended {
+	fn name(&self) -> &str { "RSP LFV Zero Extended" }
+	
+	fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        test(0, |assembler, e| assembler.write_lfv(VR::V1, e, 0x0c0, GPR::A0),
+             |expected, test_data, e, offset| {
+                 let mut temp = Vector::new();
+                 let address = 0xc0 + offset as usize;
+                 let aligned_address = address & !0x7;
+                 let misalignment = address & 0x7;
+                 let e_ = e as usize;
+
+                 temp.set16(0, (test_data[aligned_address + ((misalignment + e_) & 0xF)] as u16) << 7);
+                 temp.set16(1, (test_data[aligned_address + ((misalignment + 4 - e_) & 0xF)] as u16) << 7);
+                 temp.set16(2, (test_data[aligned_address + ((misalignment + 8 - e_) & 0xF)] as u16) << 7);
+                 temp.set16(3, (test_data[aligned_address + ((misalignment + 12 - e_) & 0xF)] as u16) << 7);
+                 temp.set16(4, (test_data[aligned_address + ((misalignment + 8 - e_) & 0xF)] as u16) << 7);
+                 temp.set16(5, (test_data[aligned_address + ((misalignment + 12 - e_) & 0xF)] as u16) << 7);
+                 temp.set16(6, (test_data[aligned_address + ((misalignment - e_) & 0xF)] as u16) << 7);
+                 temp.set16(7, (test_data[aligned_address + ((misalignment + 4 - e_) & 0xF)] as u16) << 7);
+                 let length = min(8, 16 - e_);
+                 for i in e_..length + e_ {
+                     expected[i] = temp.get8(i);
+                 }
+             })
+    }
+}
+
 pub struct LWV {}
 
 impl Test for LWV {
