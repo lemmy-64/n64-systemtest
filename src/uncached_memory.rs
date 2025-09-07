@@ -65,6 +65,10 @@ impl<T: Copy + Clone> UncachedHeapMemory<T> {
         }
     }
 
+    pub fn as_ptr(&self) -> *mut T {
+        self.uncached_data
+    }
+
     /// Pointer to physical start of memory
     pub fn start_phyiscal(&mut self) -> usize {
         MemoryMap::uncached_to_physical_mut(self.uncached_data)

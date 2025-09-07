@@ -23,6 +23,7 @@ mod cop0;
 mod cop1;
 mod exception_instructions;
 mod jumps;
+mod mi;
 mod overflow_exception;
 mod pif_memory;
 mod rdp;
