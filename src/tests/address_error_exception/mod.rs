@@ -39,8 +39,8 @@ impl Test for UnalignedLW {
             unsafe {
                 asm!("
                     .set noat
-                    LW $0, 0({gpr})
-                ", gpr = in(reg) p)
+                    LW $0, 0($3)
+                ", in("$3") p)
             }
 
             Ok(())
