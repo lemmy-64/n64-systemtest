@@ -269,45 +269,50 @@ pub fn drain_seen_exception() -> Option<(ExceptionContext, u32)> {
 
 pub fn expect_exception<F>(code: CauseException, skip_instructions_on_hit: u64, f: F) -> Result<ExceptionContext, alloc::string::String>
     where F: FnOnce() -> Result<(), &'static str> {
-    let guard = SEEN_EXCEPTION.lock();
-    if guard.is_some() {
-        return Err(format!("Expected exception {:?} but we already previously got {:?}", code, guard.unwrap().0.cause.exception()));
-    }
-    drop(guard);
+    fn _expect_exception(code: CauseException, skip_instructions_on_hit: u64, f: &mut dyn FnMut() -> Result<(), &'static str>) -> Result<ExceptionContext, alloc::string::String> {
+        let guard = SEEN_EXCEPTION.lock();
+        if guard.is_some() {
+            return Err(format!("Expected exception {:?} but we already previously got {:?}", code, guard.unwrap().0.cause.exception()));
+        }
+        drop(guard);
 
-    let mut skip_guard = EXCEPTION_SKIP.lock();
-    assert!(skip_guard.is_none());
-    *skip_guard = Some(skip_instructions_on_hit);
-    drop(skip_guard);
+        let mut skip_guard = EXCEPTION_SKIP.lock();
+        assert!(skip_guard.is_none());
+        *skip_guard = Some(skip_instructions_on_hit);
+        drop(skip_guard);
 
-    let result = f();
+        let result = f();
 
-    let mut skip_guard = EXCEPTION_SKIP.lock();
-    assert!(skip_guard.is_some());
-    *skip_guard = None;
-    drop(skip_guard);
+        let mut skip_guard = EXCEPTION_SKIP.lock();
+        assert!(skip_guard.is_some());
+        *skip_guard = None;
+        drop(skip_guard);
 
-    let seen_exception_and_count = drain_seen_exception();
-    match result {
-        Ok(_) => {
-            match seen_exception_and_count {
-                None => {
-                    Err(format!("Exception expected but none seen"))
-                }
-                Some((context, count)) => {
-                    let actual_exception = context.cause.exception();
-                    if count != 1 {
-                        Err(format!("Expected exception {:?} but got {} exceptions, the first of which was {:?}", code, count, actual_exception))
-                    } else if actual_exception == Ok(code) {
-                        Ok(context)
-                    } else {
-                        Err(format!("Expected exception {:?} but got {:?}", code, actual_exception))
+        let seen_exception_and_count = drain_seen_exception();
+        match result {
+            Ok(_) => {
+                match seen_exception_and_count {
+                    None => {
+                        Err(format!("Exception expected but none seen"))
+                    }
+                    Some((context, count)) => {
+                        let actual_exception = context.cause.exception();
+                        if count != 1 {
+                            Err(format!("Expected exception {:?} but got {} exceptions, the first of which was {:?}", code, count, actual_exception))
+                        } else if actual_exception == Ok(code) {
+                            Ok(context)
+                        } else {
+                            Err(format!("Expected exception {:?} but got {:?}", code, actual_exception))
+                        }
                     }
                 }
             }
+            Err(result) => Err(format!("{}", result))
         }
-        Err(result) => Err(format!("{}", result))
     }
+    let mut f = Some(f);
+    let mut f = move || (f.take().unwrap())();
+    _expect_exception(code, skip_instructions_on_hit, &mut f)
 }
 
 pub fn install_handler(source: *mut u8, target: *mut u8, size: usize, capacity: usize) {
