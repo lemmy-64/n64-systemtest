@@ -14,8 +14,8 @@ use crate::tests::{Level, Test};
 use crate::tests::soft_asserts::soft_assert_eq;
 
 /// Tests the given FP instruction in both regular and delay position and ensures that the result was seen and the right set of exceptions is being fired
-fn test_compare<FIn: Copy, FAsmBlock: Fn(FIn, FIn)>(
-    f: FAsmBlock,
+fn test_compare<FIn: Copy>(
+    f: fn(FIn, FIn),
     rounding_mode: FCSRRoundingMode,
     value1: FIn,
     value2: FIn,

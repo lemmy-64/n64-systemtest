@@ -642,14 +642,14 @@ fn asm_block_i64toi64<const BRANCH_INSTRUCTION: u32, const INSTRUCTION: u32>(val
 }
 
 /// Tests the given FP instruction in both regular and delay position and ensures that the result was seen and the right set of exceptions is being fired
-fn test_floating_point<FIn: Copy, FOut: Copy, FAsmBlock: Fn(FIn, FIn) -> FOut, FAsmBlockDelay: Fn(FIn, FIn) -> FOut, FAssertEqual: Fn(FOut, FOut, &str) -> Result<(), String>>(
+fn test_floating_point<FIn: Copy, FOut: Copy>(
     context: &str,
-    f: FAsmBlock,
-    f_delay: FAsmBlockDelay,
+    f: fn(FIn, FIn) -> FOut,
+    f_delay: fn(FIn, FIn) -> FOut,
     zero: FOut,
     default: FOut,
     instruction: u32,
-    assert_f_equal: FAssertEqual,
+    assert_f_equal: fn(FOut, FOut, &str) -> Result<(), String>,
     flush_denorm_to_zero: bool,
     rounding_mode: FCSRRoundingMode,
     expected_clear_cause_bits: bool,
