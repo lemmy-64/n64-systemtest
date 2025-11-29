@@ -35,7 +35,7 @@ pub struct SB {}
 impl Test for SB {
     fn name(&self) -> &str { "MI Repeat: SB" }
 
-    fn level(&self) -> Level { Level::BasicFunctionality }
+    fn level(&self) -> Level { Level::Weird }
 
     fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 
@@ -83,7 +83,7 @@ pub struct SH {}
 impl Test for SH {
     fn name(&self) -> &str { "MI Repeat: SH" }
 
-    fn level(&self) -> Level { Level::BasicFunctionality }
+    fn level(&self) -> Level { Level::Weird }
 
     fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 
@@ -131,7 +131,7 @@ pub struct SW {}
 impl Test for SW {
     fn name(&self) -> &str { "MI Repeat: SW" }
 
-    fn level(&self) -> Level { Level::BasicFunctionality }
+    fn level(&self) -> Level { Level::Weird }
 
     fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 
@@ -174,7 +174,7 @@ pub struct SD {}
 impl Test for SD {
     fn name(&self) -> &str { "MI Repeat: SD" }
 
-    fn level(&self) -> Level { Level::BasicFunctionality }
+    fn level(&self) -> Level { Level::Weird }
 
     fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 
@@ -217,7 +217,7 @@ pub struct Wrap2KiB {}
 impl Test for Wrap2KiB {
     fn name(&self) -> &str { "MI Repeat: Wrap2KiB" }
 
-    fn level(&self) -> Level { Level::BasicFunctionality }
+    fn level(&self) -> Level { Level::Weird }
 
     fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 
