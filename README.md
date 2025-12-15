@@ -27,7 +27,7 @@ cd n64-systemtest
 ```
 3. Install prerequisites:
 ```
-cargo install nust64
+cargo +stable install nust64
 ```
 4. Run `cargo run --release` to build the test rom.
 
