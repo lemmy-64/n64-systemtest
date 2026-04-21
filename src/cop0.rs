@@ -488,6 +488,21 @@ pub unsafe fn set_xcontext_32(value: u32) {
     unsafe { write_cop0::<INDEX>(value) }
 }
 
+pub fn tag_lo() -> u32 {
+    const INDEX: u32 = RegisterIndex::TagLo as u32;
+    unsafe { read_cop0::<INDEX>() }
+}
+
+pub unsafe fn set_tag_lo(value: u32) {
+    const INDEX: u32 = RegisterIndex::TagLo as u32;
+    unsafe { write_cop0::<INDEX>(value) }
+}
+
+#[inline(always)]
+pub unsafe fn sync() {
+    unsafe { asm!("sync") }
+}
+
 pub fn errorepc() -> u64 {
     const INDEX: u32 = RegisterIndex::ErrorEPC as u32;
     unsafe { read_cop0_64::<INDEX>() }

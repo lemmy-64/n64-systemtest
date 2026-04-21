@@ -819,3 +819,11 @@ impl Test for CacheErrorMasking {
         Ok(())
     }
 }
+
+mod cache_common;
+mod icache_cache;
+mod icache_functional;
+mod dcache_cache;
+pub use icache_cache::*;
+pub use icache_functional::*;
+pub use dcache_cache::*;
