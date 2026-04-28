@@ -47,12 +47,17 @@ mod tests;
 mod uncached_memory;
 
 static VIDEO: Spinlock<Video> = Spinlock::new(Video::new());
+static mut IPL3_TV_TYPE: u8 = 0;
 
 #[no_mangle]
 unsafe extern "C" fn entrypoint() -> ! {
     // IPL3 (the bootloader) write the memory size to DMEM. We can read it from there
     let memory_size = SPMEM::read(0) as usize;
     let elf_header_offset = ((SPMEM::read(12) >> 16) << 8) as usize;
+    unsafe {
+        IPL3_TV_TYPE = SPMEM::read_u8(9);
+        IPL3_TV_TYPE = 0;
+    }
     MemoryMap::init(memory_size, elf_header_offset);
 
     // fcsr isn't reset on boot. Use a good default for the main loop - some tests will change and
@@ -69,7 +74,7 @@ unsafe extern "C" fn entrypoint() -> ! {
 fn main() {
     exception_handler::install_exception_handlers();
     let video_init = VIDEO.lock();
-    video_init.init();
+    video_init.init(unsafe { IPL3_TV_TYPE });
     video_init.alloc_framebuffer();
     drop(video_init);
     tests::run();

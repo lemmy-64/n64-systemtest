@@ -3,6 +3,10 @@ use crate::graphics::framebuffer_images::FramebufferImages;
 // Supported: RGBA1555
 pub type PixelType = crate::graphics::color::RGBA5551;
 
+pub const TV_TYPE_PAL: u8 = 0;
+pub const TV_TYPE_NTSC: u8 = 1;
+pub const TV_TYPE_MPAL: u8 = 2;
+
 const WIDTH: u32 = 320;
 const HEIGHT: u32 = 240;
 
@@ -39,21 +43,45 @@ impl Video {
         }
     }
 
-    pub fn init(&self) {
-        // Initialize VI. See https://github.com/PeterLemon/N64/blob/master/RDP/TextureCoordinates/LIB/N64_GFX.INC#L38 for an assembly version of this
-
+    pub fn init(&self, tv_type: u8) {
         unsafe {
             VI_BASE_REG.add(RegisterOffset::Status as usize >> 2).write_volatile(12878);
             VI_BASE_REG.add(RegisterOffset::VIntr as usize >> 2).write_volatile(2);
-            VI_BASE_REG.add(RegisterOffset::Timing as usize >> 2).write_volatile(0x03E5_2239);
-            VI_BASE_REG.add(RegisterOffset::VSync as usize >> 2).write_volatile(0x0000_020D);
-            VI_BASE_REG.add(RegisterOffset::HSync as usize >> 2).write_volatile(0x0000_0C15);
-            VI_BASE_REG.add(RegisterOffset::HSyncLeap as usize >> 2).write_volatile(0x0C15_0C15);
-            VI_BASE_REG.add(RegisterOffset::HVideo as usize >> 2).write_volatile(0x006C_02EC);
-            VI_BASE_REG.add(RegisterOffset::VVideo as usize >> 2).write_volatile(0x0025_01FF);
-            VI_BASE_REG.add(RegisterOffset::VBurst as usize >> 2).write_volatile(0x000E_0204);
-            VI_BASE_REG.add(RegisterOffset::XScale as usize >> 2).write_volatile((0x100 * WIDTH) / 160);
-            VI_BASE_REG.add(RegisterOffset::YScale as usize >> 2).write_volatile((0x100 * HEIGHT) / 60);
+            match tv_type {
+                TV_TYPE_PAL => {
+                    VI_BASE_REG.add(RegisterOffset::Timing as usize >> 2).write_volatile(0x0404_233A);
+                    VI_BASE_REG.add(RegisterOffset::VSync as usize >> 2).write_volatile(0x0000_0271);
+                    VI_BASE_REG.add(RegisterOffset::HSync as usize >> 2).write_volatile(0x0015_0C69);
+                    VI_BASE_REG.add(RegisterOffset::HSyncLeap as usize >> 2).write_volatile(0xC6F0_C6E);
+                    VI_BASE_REG.add(RegisterOffset::HVideo as usize >> 2).write_volatile(0x0080_0300);
+                    VI_BASE_REG.add(RegisterOffset::VVideo as usize >> 2).write_volatile(0x002D_026D);
+                    VI_BASE_REG.add(RegisterOffset::VBurst as usize >> 2).write_volatile(0x0009_026B);
+                    VI_BASE_REG.add(RegisterOffset::XScale as usize >> 2).write_volatile(512);
+                    VI_BASE_REG.add(RegisterOffset::YScale as usize >> 2).write_volatile(853);
+                }
+                TV_TYPE_MPAL => {
+                    VI_BASE_REG.add(RegisterOffset::Timing as usize >> 2).write_volatile(0x0465_1E39);
+                    VI_BASE_REG.add(RegisterOffset::VSync as usize >> 2).write_volatile(0x0000_020D);
+                    VI_BASE_REG.add(RegisterOffset::HSync as usize >> 2).write_volatile(0x0000_0C10);
+                    VI_BASE_REG.add(RegisterOffset::HSyncLeap as usize >> 2).write_volatile(0x0C1C_0C1C);
+                    VI_BASE_REG.add(RegisterOffset::HVideo as usize >> 2).write_volatile(0x006C_02EC);
+                    VI_BASE_REG.add(RegisterOffset::VVideo as usize >> 2).write_volatile(0x0023_0203);
+                    VI_BASE_REG.add(RegisterOffset::VBurst as usize >> 2).write_volatile(0x000E_0204);
+                    VI_BASE_REG.add(RegisterOffset::XScale as usize >> 2).write_volatile(512);
+                    VI_BASE_REG.add(RegisterOffset::YScale as usize >> 2).write_volatile(1024);
+                }
+                TV_TYPE_NTSC | _ => {
+                    VI_BASE_REG.add(RegisterOffset::Timing as usize >> 2).write_volatile(0x03E5_2239);
+                    VI_BASE_REG.add(RegisterOffset::VSync as usize >> 2).write_volatile(0x0000_020D);
+                    VI_BASE_REG.add(RegisterOffset::HSync as usize >> 2).write_volatile(0x0000_0C15);
+                    VI_BASE_REG.add(RegisterOffset::HSyncLeap as usize >> 2).write_volatile(0x0C15_0C15);
+                    VI_BASE_REG.add(RegisterOffset::HVideo as usize >> 2).write_volatile(0x006C_02EC);
+                    VI_BASE_REG.add(RegisterOffset::VVideo as usize >> 2).write_volatile(0x0025_01FF);
+                    VI_BASE_REG.add(RegisterOffset::VBurst as usize >> 2).write_volatile(0x000E_0204);
+                    VI_BASE_REG.add(RegisterOffset::XScale as usize >> 2).write_volatile(512);
+                    VI_BASE_REG.add(RegisterOffset::YScale as usize >> 2).write_volatile(1024);
+                }
+            }
         }
     }
 
