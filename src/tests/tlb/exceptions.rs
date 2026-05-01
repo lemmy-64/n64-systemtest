@@ -11,6 +11,25 @@ use crate::exception_handler::expect_exception;
 use crate::tests::{Level, Test};
 use crate::tests::soft_asserts::soft_assert_eq;
 
+#[naked]
+extern "C" fn tlb_miss_after_eret_thunk() -> ! {
+    unsafe {
+        core::arch::asm!(
+            ".set noat",
+            ".set noreorder",
+            "mfc0 $8, $12",
+            "ori $8, $8, 2",
+            "mtc0 $8, $12",
+            "nop",
+            "dmtc0 $9, $14",
+            "nop",
+            "nop",
+            "eret",
+            options(noreturn),
+        );
+    }
+}
+
 pub fn setup_tlb_page(pagemask: u32, valid: bool, dirty: bool) -> u32 {
     unsafe { cop0::clear_tlb(); }
     unsafe { cop0::set_context_64(0); }
@@ -418,6 +437,62 @@ impl Test for ExecuteTLBMappedMissInDelay {
         soft_assert_eq(exception_context.exceptpc, (fault_address - 4) as u64, "ExceptPC during TLB exception")?;
         soft_assert_eq(exception_context.badvaddr, fault_address as u64, "BadVAddr during TLB exception")?;
         soft_assert_eq(exception_context.cause.raw_value(), 0x80000008, "Cause during TLB exception")?;
+        soft_assert_eq(exception_context.status, 0x24000002, "Status during TLB exception")?;
+        soft_assert_eq(exception_context.context.raw_value(), expected_context, "Context during TLB exception")?;
+        soft_assert_eq(exception_context.xcontext.raw_value(), expected_context, "XContext during TLB exception")?;
+        Ok(())
+    }
+}
+
+pub struct TlbMissFetchAfterEret {}
+
+impl Test for TlbMissFetchAfterEret {
+    fn name(&self) -> &str { "TLB: TLBL on first fetch after ERET (ExceptPC is EPC)" }
+
+    fn level(&self) -> Level { Level::BasicFunctionality }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        let virtual_page_base = setup_tlb_page(0, true, true);
+        let fault_address = virtual_page_base + 4096u32;
+        let exception_context = expect_exception(CauseException::TLBL, -4i64 as u64, || {
+            unsafe {
+                ((fault_address - 20) as *mut u32).write_volatile(0x24420001);
+                ((fault_address - 16) as *mut u32).write_volatile(0x24420002);
+                ((fault_address - 12) as *mut u32).write_volatile(0x24420004);
+                ((fault_address - 8) as *mut u32).write_volatile(0x00800008);
+                ((fault_address - 4) as *mut u32).write_volatile(0x00000000);
+
+                cop0::cache::<1, 0>((fault_address - 32) as usize);
+                cop0::cache::<1, 0>((fault_address - 16) as usize);
+                cop0::cache::<0, 0>((fault_address - 32) as usize);
+                cop0::sync();
+
+                let mut result: u32;
+                asm!(
+                    ".set noreorder",
+                    "addiu $2, $0, 0",
+                    "jalr $4, $3",
+                    "nop",
+                    in("$3") tlb_miss_after_eret_thunk as usize,
+                    in("$9") fault_address,
+                    out("$4") _,
+                    lateout("$2") result,
+                );
+
+                if result != 6 {
+                    return Err("Didn't return correct value. Most likely, ExceptPC during TLB exception was wrong");
+                };
+            }
+
+            Ok(())
+        })?;
+        let expected_context = ((fault_address >> 13) << 4) as u64;
+        soft_assert_eq(exception_context.k0_exception_vector, 0xFFFFFFFF_80000180, "Exception Vector for TLB exception")?;
+        soft_assert_eq(exception_context.exceptpc, fault_address as u64, "ExceptPC during TLB exception")?;
+        soft_assert_eq(exception_context.badvaddr, fault_address as u64, "BadVAddr during TLB exception")?;
+        soft_assert_eq(exception_context.cause, Cause::new().with_exception(CauseException::TLBL), "Cause during TLB exception")?;
         soft_assert_eq(exception_context.status, 0x24000002, "Status during TLB exception")?;
         soft_assert_eq(exception_context.context.raw_value(), expected_context, "Context during TLB exception")?;
         soft_assert_eq(exception_context.xcontext.raw_value(), expected_context, "XContext during TLB exception")?;

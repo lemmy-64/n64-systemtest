@@ -977,6 +977,7 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::tlb::cross_page_exec::CrossPageExecBranchInBranchInnerPage64 {}),
         Box::new(super::tlb::exceptions::ExecuteTLBMappedMiss {}),
         Box::new(super::tlb::exceptions::ExecuteTLBMappedMissInDelay {}),
+        Box::new(super::tlb::exceptions::TlbMissFetchAfterEret {}),
         Box::new(super::tlb::exceptions::ReadNonValid4k {}),
         Box::new(super::tlb::exceptions::ReadNonValid4kInDelay {}),
         Box::new(super::tlb::exceptions::StoreNonValid4k {}),
