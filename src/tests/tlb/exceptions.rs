@@ -303,32 +303,50 @@ impl Test for ExecuteTLBMappedMiss {
         let virtual_page_base = setup_tlb_page(0, true, true);
 
         let fault_address = virtual_page_base + 4096;
+        let v = fault_address as u32;
+        let imm_hi = ((v.wrapping_add(0x8000)) >> 16) as u16;
+        let imm_lo = v as u16 as i16;
+        let lui_insn = (15u32 << 26) | (3u32 << 16) | imm_hi as u32;
+        let addiu_insn = (9u32 << 26) | (3u32 << 21) | (3u32 << 16) | (imm_lo as u16 as u32);
+        let expected_link = fault_address.wrapping_sub(20);
         let exception_context = expect_exception(CauseException::TLBL, -4i64 as u64, || {
             // We'll execute directly into fault_address, which will immediately cause a TLB miss exception
             // The exception will then go backwards a few instructions (-4), at which point we have valid
             // code that causes a proper return
             unsafe {
-                ((fault_address - 20) as *mut u32).write_volatile(0x24420001); // ADDIU V0, V0, 1
-                ((fault_address - 16) as *mut u32).write_volatile(0x24420002); // ADDIU V0, V0, 2 <-- The exception should land us here
-                ((fault_address - 12) as *mut u32).write_volatile(0x24420004); // ADDIU V0, V0, 4
-                ((fault_address - 8) as *mut u32).write_volatile(0x00800008);  // JR A0
-                ((fault_address - 4) as *mut u32).write_volatile(0x00000000);  // NOP (delay slot)
+                ((fault_address - 36) as *mut u32).write_volatile(lui_insn);    // LUI $3, imm_hi
+                ((fault_address - 32) as *mut u32).write_volatile(addiu_insn);  // ADDIU $3, $3, imm_lo
+                ((fault_address - 28) as *mut u32).write_volatile(0x00603009);  // JALR $6, $3
+                ((fault_address - 24) as *mut u32).write_volatile(0x00000000);  // NOP
+                ((fault_address - 20) as *mut u32).write_volatile(0x24420001);  // ADDIU $2, $2, 1
+                ((fault_address - 16) as *mut u32).write_volatile(0x24420002);  // ADDIU $2, $2, 2 <-- The exception should land us here
+                ((fault_address - 12) as *mut u32).write_volatile(0x24420004);  // ADDIU $2, $2, 4
+                ((fault_address - 8) as *mut u32).write_volatile(0x03E00008);   // JR $31
+                ((fault_address - 4) as *mut u32).write_volatile(0x00000000);   // NOP
 
-                // Invalidate the code so that it can be executed
+                // Invalidate the code so that it can be executed (16-byte lines: -48, -32, -16 cover -36..-4)
+                cop0::cache::<1, 0>((fault_address - 48) as usize);
                 cop0::cache::<1, 0>((fault_address - 32) as usize);
                 cop0::cache::<1, 0>((fault_address - 16) as usize);
+                cop0::cache::<0, 0>((fault_address - 48) as usize);
                 cop0::cache::<0, 0>((fault_address - 32) as usize);
+                cop0::cache::<0, 0>((fault_address - 16) as usize);
 
                 // Call into the next page. The exception handler will then resume by applying a negative offset so that we exit out gracefully
                 let mut result: u32;
+                let mut link_register: u32;
                 asm!("
-                    ADDIU $2, $0, 0
-                    JALR $4, $3
-                ", out("$2") result, in("$3") fault_address, out("$4") _);
-
+                    LI $2, 0
+                    LI $6, 0
+                    JALR $31, $3
+                    NOP
+                ", out("$2") result, in("$3") (fault_address - 36), out("$6") link_register);
                 if result != 6 {
                     return Err("Didn't return correct value. Most likely, ExceptPC during TLB exception was wrong");
-                };
+                }
+                if link_register != expected_link {
+                    return Err("JALR must write the link register even when the branch target fetch misses the TLB");
+                }
             }
 
             Ok(())
