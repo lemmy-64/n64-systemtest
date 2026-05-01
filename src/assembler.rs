@@ -396,6 +396,26 @@ impl Assembler {
         Self::make_main_immediate(Opcode::BEQ, rt, rs, offset_as_instruction_count as u16)
     }
 
+    pub const fn make_addiu(rt: GPR, rs: GPR, imm: u16) -> u32 {
+        Self::make_main_immediate(Opcode::ADDIU, rt, rs, imm)
+    }
+
+    pub const fn make_lui(rt: GPR, imm: u16) -> u32 {
+        Self::make_main_immediate(Opcode::LUI, rt, GPR::R0, imm)
+    }
+
+    pub const fn make_ori(rt: GPR, rs: GPR, imm: u16) -> u32 {
+        Self::make_main_immediate(Opcode::ORI, rt, rs, imm)
+    }
+
+    pub const fn make_nop() -> u32 {
+        Self::make_special(SpecialOpcode::SLL, u5::new(0), GPR::R0.raw_value(), GPR::R0.raw_value(), GPR::R0.raw_value())
+    }
+
+    pub const fn make_jr(rs: GPR) -> u32 {
+        Self::make_special(SpecialOpcode::JR, u5::new(0), GPR::R0.raw_value(), rs.raw_value(), GPR::R0.raw_value())
+    }
+
     pub const fn make_c_cond(condition: Cop1Condition, fs: FR, ft: FR) -> FPUFloatInstruction {
         Self::make_cop1_float_instruction(Cop1FloatInstruction::new_with_raw_value(condition.raw_value()).ok().unwrap(), FR::F0, fs, ft)
     }
