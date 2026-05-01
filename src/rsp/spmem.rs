@@ -44,6 +44,11 @@ impl SPMEM {
         }
     }
 
+    pub fn read_u8(addr: usize) -> u8 {
+        let p = MemoryMap::uncached_spmem_address::<u8>(addr);
+        unsafe { p.read_volatile() }
+    }
+
     pub fn read_vector16_from_dmem(addr: usize) -> [u16; 8] {
         assert!((addr & 3) == 0);
         let mut vec: [u16; 8] = Default::default();
