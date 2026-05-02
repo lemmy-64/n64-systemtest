@@ -15,6 +15,10 @@ fn pi_wait() {
 // This method simply prints text without synchronization. This should only be used from within
 // the exception handler which can't wait for a lock
 pub fn text_out(s: &str) {
+    if crate::emux::text_out(s) {
+        return;
+    }
+
     for chunk in s.as_bytes().chunks(ISVIEWER_BUFFER_LENGTH) {
         // Write
         let mut value = 0u32;
