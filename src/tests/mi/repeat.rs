@@ -4,7 +4,6 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::any::Any;
 use core::arch::asm;
-use crate::mi;
 use crate::tests::{Level, Test};
 use crate::tests::soft_asserts::soft_assert_eq2;
 use crate::uncached_memory::UncachedHeapMemory;
