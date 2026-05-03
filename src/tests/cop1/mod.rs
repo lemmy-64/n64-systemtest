@@ -1458,6 +1458,11 @@ impl Test for MulD {
             Box::new((true, FCSRRoundingMode::NegativeInfinity, -f64::MIN_POSITIVE, 0.5f64, expected_result(FCSRFlags::new().with_inexact_operation(true).with_underflow(true), -f64::MIN_POSITIVE))),
             Box::new((true, FCSRRoundingMode::Zero, -f64::MIN_POSITIVE, 0.5f64, expected_result(FCSRFlags::new().with_inexact_operation(true).with_underflow(true), -0f64))),
 
+            Box::new((true, FCSRRoundingMode::Nearest, -f64::MIN_POSITIVE, f64::MIN_POSITIVE, expected_result(FCSRFlags::new().with_inexact_operation(true).with_underflow(true), -0f64))),
+            Box::new((true, FCSRRoundingMode::PositiveInfinity, -f64::MIN_POSITIVE, f64::MIN_POSITIVE, expected_result(FCSRFlags::new().with_inexact_operation(true).with_underflow(true), -0f64))),
+            Box::new((true, FCSRRoundingMode::NegativeInfinity, -f64::MIN_POSITIVE, f64::MIN_POSITIVE, expected_result(FCSRFlags::new().with_inexact_operation(true).with_underflow(true), -f64::MIN_POSITIVE))),
+            Box::new((true, FCSRRoundingMode::Zero, -f64::MIN_POSITIVE, f64::MIN_POSITIVE, expected_result(FCSRFlags::new().with_inexact_operation(true).with_underflow(true), -0f64))),
+
             Box::new((true, FCSRRoundingMode::Nearest, f64::MIN_POSITIVE, f64::MIN_POSITIVE, expected_result(FCSRFlags::new().with_inexact_operation(true).with_underflow(true), 0f64))),
             Box::new((true, FCSRRoundingMode::PositiveInfinity, f64::MIN_POSITIVE, f64::MIN_POSITIVE, expected_result(FCSRFlags::new().with_inexact_operation(true).with_underflow(true), f64::MIN_POSITIVE))),
             Box::new((true, FCSRRoundingMode::NegativeInfinity, f64::MIN_POSITIVE, f64::MIN_POSITIVE, expected_result(FCSRFlags::new().with_inexact_operation(true).with_underflow(true), 0f64))),
