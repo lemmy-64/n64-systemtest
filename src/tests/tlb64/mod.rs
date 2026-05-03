@@ -64,99 +64,138 @@ fn do_all_loads(ptr64: u64) -> AllLoadsResult {
     unsafe {
         asm!("
             LD $3, 0($2)  // get actual pointer
+            LUI $6, 0xdead
+            ORI $6, 0xbeef
+            DSLL32 $6, $6, 0
+            ORI $6, 0x0102
+            DSLL $6, $6, 16
+            ORI $6, 0x0304
 
+            OR $4, $6, $0
             LB $4, 0($3)
             SD $4, 0($5)
 
+            OR $4, $6, $0
             LBU $4, 0($3)
             SD $4, 8($5)
 
+            OR $4, $6, $0
             LH $4, 0($3)
             SD $4, 16($5)
 
+            OR $4, $6, $0
             LHU $4, 0($3)
             SD $4, 24($5)
 
+            OR $4, $6, $0
             LW $4, 0($3)
             SD $4, 32($5)
 
+            OR $4, $6, $0
             LWU $4, 0($3)
             SD $4, 40($5)
 
+            OR $4, $6, $0
             LD $4, 0($3)
             SD $4, 48($5)
 
+            OR $4, $6, $0
+            DMTC1 $4, $4
             LWC1 $4, 0($3)
             MFC1 $4, $4
             SD $4, 56($5)
 
+            OR $4, $6, $0
+            DMTC1 $4, $4
             LDC1 $4, 0($3)
             DMFC1 $4, $4
             SD $4, 64($5)
 
+            OR $4, $6, $0
             LL $4, 0($3)
             SD $4, 72($5)
 
+            OR $4, $6, $0
             LLD $4, 0($3)
             SD $4, 80($5)
 
+            OR $4, $6, $0
             LWL $4, 0($3)
             SD $4, 88($5)
+            OR $4, $6, $0
             LWL $4, 1($3)
             SD $4, 96($5)
+            OR $4, $6, $0
             LWL $4, 2($3)
             SD $4, 104($5)
+            OR $4, $6, $0
             LWL $4, 3($3)
             SD $4, 112($5)
 
-            LUI $4, 0x0102
-            ORI $4, 0x0304
+            OR $4, $6, $0
             LWR $4, 0($3)
             SD $4, 120($5)
+            OR $4, $6, $0
             LWR $4, 1($3)
             SD $4, 128($5)
+            OR $4, $6, $0
             LWR $4, 2($3)
             SD $4, 136($5)
+            OR $4, $6, $0
             LWR $4, 3($3)
             SD $4, 144($5)
 
+            OR $4, $6, $0
             LDL $4, 0($3)
             SD $4, 152($5)
+            OR $4, $6, $0
             LDL $4, 1($3)
             SD $4, 160($5)
+            OR $4, $6, $0
             LDL $4, 2($3)
             SD $4, 168($5)
+            OR $4, $6, $0
             LDL $4, 3($3)
             SD $4, 176($5)
+            OR $4, $6, $0
             LDL $4, 4($3)
             SD $4, 184($5)
+            OR $4, $6, $0
             LDL $4, 5($3)
             SD $4, 192($5)
+            OR $4, $6, $0
             LDL $4, 6($3)
             SD $4, 200($5)
+            OR $4, $6, $0
             LDL $4, 7($3)
             SD $4, 208($5)
 
-            LUI $4, 0x0102
-            ORI $4, 0x0304
+            OR $4, $6, $0
             LDR $4, 0($3)
             SD $4, 216($5)
+            OR $4, $6, $0
             LDR $4, 1($3)
             SD $4, 224($5)
+            OR $4, $6, $0
             LDR $4, 2($3)
             SD $4, 232($5)
+            OR $4, $6, $0
             LDR $4, 3($3)
             SD $4, 240($5)
+            OR $4, $6, $0
             LDR $4, 4($3)
             SD $4, 248($5)
+            OR $4, $6, $0
             LDR $4, 5($3)
             SD $4, 256($5)
+            OR $4, $6, $0
             LDR $4, 6($3)
             SD $4, 264($5)
+            OR $4, $6, $0
             LDR $4, 7($3)
             SD $4, 272($5)
 
-        ", in("$2") &ptr64, out("$3") _, out("$4") _, in("$5") &mut result)
+        ", in("$2") &ptr64, out("$3") _, out("$4") _, out("$6") _, in("$5") &mut result)
     }
 
     result
@@ -176,10 +215,10 @@ const EXPECTED: AllLoadsResult = AllLoadsResult {
     ldc1: 0xBADDECAF_01234567,
     ll: 0xFFFFFFFF_BADDECAF,
     lld: 0xBADDECAF_01234567,
-    lwl: [0xFFFFFFFF_BADDECAF, 0xFFFFFFFF_DDECAFAF, 0xFFFFFFFF_ECAFAFAF, 0xFFFFFFFF_AFAFAFAF],
-    lwr: [0x010203BA, 0x0102BADD, 0x01BADDEC, 0xFFFFFFFF_BADDECAF],
-    ldl: [0xBADDECAF_01234567, 0xDDECAF01_23456767, 0xECAF0123_45676767, 0xAF012345_67676767, 0x1234567_67676767, 0x23456767_67676767, 0x45676767_67676767, 0x67676767_67676767],
-    ldr: [0x010203BA, 0x0102BADD, 0x01BADDEC, 0xBADDECAF, 0xBA_DDECAF01, 0xBADD_ECAF0123, 0xBADDEC_AF012345, 0xBADDECAF_01234567],
+    lwl: [0xFFFFFFFF_BADDECAF, 0xFFFFFFFF_DDECAF04, 0xFFFFFFFF_ECAF0304, 0xFFFFFFFF_AF020304],
+    lwr: [0xBEEF0000_010203BA, 0xBEEF0000_0102BADD, 0xBEEF0000_01BADDEC, 0xFFFFFFFF_BADDECAF],
+    ldl: [0xBADDECAF_01234567, 0xDDECAF01_23456704, 0xECAF0123_45670304, 0xAF012345_67020304, 0x01234567_01020304, 0x23456700_01020304, 0x45670000_01020304, 0x67EF0000_01020304],
+    ldr: [0xBEEF0000_010203BA, 0xBEEF0000_0102BADD, 0xBEEF0000_01BADDEC, 0xBEEF0000_BADDECAF, 0xBEEF00BA_DDECAF01, 0xBEEFBADD_ECAF0123, 0xBEBADDEC_AF012345, 0xBADDECAF_01234567],
 };
 
 pub struct AllLoads32BitAddress {}
