@@ -5,7 +5,7 @@ struct PanicWriter {}
 
 impl core::fmt::Write for PanicWriter {
     fn write_str(&mut self, s: &str) -> core::fmt::Result {
-        crate::isviewer::text_out(s);
+        crate::text_out::text_out(s);
         Ok(())
     }
 }

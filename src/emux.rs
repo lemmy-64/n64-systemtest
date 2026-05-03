@@ -82,7 +82,7 @@ fn xlog(s: &str) {
     }
 }
 
-fn emux_log_supported() -> bool {
+pub(crate) fn emux_log_supported() -> bool {
     match EMUX_LOG_CAPS.load(Ordering::Relaxed) {
         CAPS_SUPPORTED => true,
         CAPS_UNSUPPORTED => false,

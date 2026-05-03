@@ -1,48 +1,50 @@
 use crate::pi::Pi;
 
-/// Write the length of the text here
-const ISVIEWER_WRITE_LEN: *mut u32 = 0xB3FF0014 as *mut u32;
+const WRITE_LEN: *mut u32 = 0xB3FF0014 as *mut u32;
+const BUF: *mut u32 = 0xB3FF0020 as *mut u32;
+const CHUNK: usize = 0x200;
 
-// Write text data into this buffer
-const ISVIEWER_BUFFER_START: *mut u32 = 0xB3FF0020 as *mut u32;
-const ISVIEWER_BUFFER_LENGTH: usize = 0x200;
-
+#[inline(always)]
 fn pi_wait() {
     while Pi::status().io_busy() {}
 }
 
-
-// This method simply prints text without synchronization. This should only be used from within
-// the exception handler which can't wait for a lock
-pub fn text_out(s: &str) {
-    if crate::emux::text_out(s) {
-        return;
-    }
-
-    for chunk in s.as_bytes().chunks(ISVIEWER_BUFFER_LENGTH) {
-        // Write
-        let mut value = 0u32;
-        let mut shift = 24u32;
-        let mut i = 0;
-        for byte in chunk {
-            value |= (*byte as u32) << shift;
-            if shift == 0 {
-                pi_wait();
-                unsafe { ISVIEWER_BUFFER_START.add(i).write_volatile(value) };
-                i += 1;
-                shift = 24;
-                value = 0;
-            } else {
-                shift -= 8;
-            }
-        }
-        if shift < 24 {
+fn pack(dst: *mut u32, chunk: &[u8]) {
+    let mut v = 0u32;
+    let mut sh = 24;
+    let mut i = 0usize;
+    for &b in chunk {
+        v |= (b as u32) << sh;
+        if sh == 0 {
             pi_wait();
-            unsafe { ISVIEWER_BUFFER_START.add(i).write_volatile(value) };
+            unsafe { dst.add(i).write_volatile(v) };
+            i += 1;
+            sh = 24;
+            v = 0;
+        } else {
+            sh -= 8;
         }
+    }
+    if sh < 24 {
         pi_wait();
-        unsafe {
-            ISVIEWER_WRITE_LEN.write_volatile(chunk.len() as u32);
-        }
+        unsafe { dst.add(i).write_volatile(v) };
+    }
+}
+
+pub(crate) fn detect() -> bool {
+    const M: u32 = 0x12345678;
+    unsafe {
+        pi_wait();
+        BUF.write_volatile(M);
+        pi_wait();
+        BUF.read_volatile() == M
+    }
+}
+
+pub(crate) fn text_out(s: &str) {
+    for chunk in s.as_bytes().chunks(CHUNK) {
+        pack(BUF, chunk);
+        pi_wait();
+        unsafe { WRITE_LEN.write_volatile(chunk.len() as u32) };
     }
 }

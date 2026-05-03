@@ -36,6 +36,7 @@ mod emux;
 mod exception_handler;
 mod graphics;
 mod isviewer;
+mod sc64;
 mod math;
 mod memory_map;
 mod mi;
@@ -46,6 +47,7 @@ mod rdp;
 mod rsp;
 mod tests;
 mod uncached_memory;
+mod text_out;
 
 static VIDEO: Spinlock<Video> = Spinlock::new(Video::new());
 static mut IPL3_TV_TYPE: u8 = 0;

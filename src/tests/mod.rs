@@ -10,7 +10,7 @@ use crate::cop0::{set_status, Status};
 use crate::exception_handler::drain_seen_exception;
 use crate::{FramebufferConsole, print, println};
 use crate::cop1::{FCSR, FCSRFlags, FCSRRoundingMode, set_fcsr};
-use crate::isviewer::text_out;
+use crate::text_out::text_out;
 use crate::math::soft_float::{SoftF32, SoftF64};
 use crate::tests::cop1::compares::FPUSpecialNumber;
 use crate::tests::traps::Immediate;

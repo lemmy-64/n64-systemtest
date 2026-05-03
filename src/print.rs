@@ -13,7 +13,7 @@ pub struct Writer {
 impl Write for Writer {
     fn write_str(&mut self, s: &str) -> core::fmt::Result {
         // Write to terminal (emulator)
-        super::isviewer::text_out(s);
+        crate::text_out::text_out(s);
 
         // Write to framebuffer_console (so that it is printed in the framebuffer)
         FramebufferConsole::instance().lock().append(s);
