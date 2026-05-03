@@ -4,11 +4,16 @@ use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::any::Any;
 
+use crate::cop0;
 use crate::MemoryMap;
 use crate::rsp::rsp::RSP;
 use crate::rsp::spmem::SPMEM;
 use crate::tests::{Level, Test};
 use crate::tests::soft_asserts::soft_assert_eq2;
+
+const SPDMA_MULTIROW_BUF_WORDS: usize = 0x1000;
+const SPDMA_MULTIROW_BUF_BYTES: usize = SPDMA_MULTIROW_BUF_WORDS * core::mem::size_of::<u32>();
+const SPMEM_HALF_WORDS: usize = 0x1000 >> 2;
 
 // DMA:
 // - RDRAM address and SPMEM address are aligned on 8 byte boundaries (the lower 3 bits are ignoed)
@@ -265,15 +270,21 @@ impl Test for SPDMAFromDMEMWithOverflow {
         let mut source_data: [u32; 4] = [0u32; 4];
         let source_data_uncached = MemoryMap::uncached_mut(&mut source_data);
         let source_ptr = source_data_uncached as *mut u8;
+        let source_cached = 0x8000_0000usize | (source_ptr as usize & 0x1FFF_FFFF);
+        let rdram_sync = core::mem::size_of_val(&source_data);
         unsafe {
+            cop0::dcache_hit_writeback_invalidate_range(source_cached, rdram_sync);
             RSP::start_dma_sp_to_cpu(0x0FF8, source_ptr, 16);
             RSP::wait_until_dma_completed();
+            cop0::dcache_hit_writeback_invalidate_range(source_cached, rdram_sync);
             soft_assert_eq2(*source_data_uncached, [0xFEDCBA98, 0x76543210, 0x01234567, 0x89ABCDEF], || "RDRAM data after DMA overflow from DMEM".to_string())?;
         }
 
         unsafe {
+            cop0::dcache_hit_writeback_invalidate_range(source_cached, rdram_sync);
             RSP::start_dma_sp_to_cpu(0x1FF8, source_ptr, 16);
             RSP::wait_until_dma_completed();
+            cop0::dcache_hit_writeback_invalidate_range(source_cached, rdram_sync);
             soft_assert_eq2(*source_data_uncached, [0x99AABBCC, 0xDDEEFF00, 0x11223344, 0x55667788], || "RDRAM data after DMA overflow from IMEM".to_string())?;
         }
 
@@ -284,13 +295,10 @@ impl Test for SPDMAFromDMEMWithOverflow {
 
 const SPDMA_LEN_4_ROWS_0X1000: u32 = (0x1000 - 1) | ((4 - 1) << 12);
 
-fn sp_dma_multirow_buf() -> *mut u32 {
-    static mut BUF: [u32; 0x1000] = [0u32; 0x1000];
-    unsafe { BUF.as_mut_ptr() }
-}
-
-fn sp_dma_multirow_slice() -> &'static mut [u32] {
-    unsafe { core::slice::from_raw_parts_mut(sp_dma_multirow_buf(), 0x1000) }
+fn sp_dma_multirow_alloc() -> Vec<u64> {
+    let mut buf = Vec::new();
+    buf.resize(SPDMA_MULTIROW_BUF_WORDS / 2, 0u64);
+    buf
 }
 
 pub struct SPDMAFromDMEMWithOverflowByCount {}
@@ -311,13 +319,17 @@ impl Test for SPDMAFromDMEMWithOverflowByCount {
         SPMEM::write(0x1004, 0x55667788);
         SPMEM::write(0x1008, 0x99AABBCC);
         SPMEM::write(0x100C, 0xDDEEFF00);
-        let source_data_uncached = MemoryMap::uncached_mut(sp_dma_multirow_buf());
+        let mut source_data = sp_dma_multirow_alloc();
+        let source_data_uncached = MemoryMap::uncached_mut(source_data.as_mut_ptr() as *mut u32);
         let source_ptr = source_data_uncached as *mut u8;
+        let source_cached = 0x8000_0000usize | (source_ptr as usize & 0x1FFF_FFFF);
         let row = [0x01234567u32, 0x89ABCDEF, 0xFEDCBA98, 0x76543210];
         unsafe {
+            cop0::dcache_hit_writeback_invalidate_range(source_cached, SPDMA_MULTIROW_BUF_BYTES);
             RSP::start_dma_sp_to_cpu(0x0000, source_ptr, SPDMA_LEN_4_ROWS_0X1000);
             RSP::wait_until_dma_completed();
-            let sl = core::slice::from_raw_parts(source_data_uncached, 0x1000);
+            cop0::dcache_hit_writeback_invalidate_range(source_cached, SPDMA_MULTIROW_BUF_BYTES);
+            let sl = core::slice::from_raw_parts(source_data_uncached, SPDMA_MULTIROW_BUF_WORDS);
             for k in 0..4 {
                 let o = k * (0x1000 >> 2);
                 soft_assert_eq2(&sl[o..o + 4], &row[..], || {
@@ -347,13 +359,17 @@ impl Test for SPDMAFromIMEMWithOverflowByCount {
         SPMEM::write(0x1004, 0x55667788);
         SPMEM::write(0x1008, 0x99AABBCC);
         SPMEM::write(0x100C, 0xDDEEFF00);
-        let source_data_uncached = MemoryMap::uncached_mut(sp_dma_multirow_buf());
+        let mut source_data = sp_dma_multirow_alloc();
+        let source_data_uncached = MemoryMap::uncached_mut(source_data.as_mut_ptr() as *mut u32);
         let source_ptr = source_data_uncached as *mut u8;
+        let source_cached = 0x8000_0000usize | (source_ptr as usize & 0x1FFF_FFFF);
         let row = [0x11223344u32, 0x55667788, 0x99AABBCC, 0xDDEEFF00];
         unsafe {
+            cop0::dcache_hit_writeback_invalidate_range(source_cached, SPDMA_MULTIROW_BUF_BYTES);
             RSP::start_dma_sp_to_cpu(0x1000, source_ptr, SPDMA_LEN_4_ROWS_0X1000);
             RSP::wait_until_dma_completed();
-            let sl = core::slice::from_raw_parts(source_data_uncached, 0x1000);
+            cop0::dcache_hit_writeback_invalidate_range(source_cached, SPDMA_MULTIROW_BUF_BYTES);
+            let sl = core::slice::from_raw_parts(source_data_uncached, SPDMA_MULTIROW_BUF_WORDS);
             for k in 0..4 {
                 let o = k * (0x1000 >> 2);
                 soft_assert_eq2(&sl[o..o + 4], &row[..], || {
@@ -381,17 +397,24 @@ impl Test for SPDMAMultiRowDMEMRoundtrip {
         SPMEM::write(0x000C, 0x76543210);
         SPMEM::write(0x1000, 0xEEEEFFFF);
         SPMEM::write(0x1004, 0x00001111);
-        let buf = sp_dma_multirow_slice();
-        buf.fill(0xBAD0BAD0);
-        let source_data_uncached = MemoryMap::uncached_mut(buf.as_mut_ptr());
+        let mut source_data = sp_dma_multirow_alloc();
+        let source_data = unsafe {
+            core::slice::from_raw_parts_mut(source_data.as_mut_ptr() as *mut u32, SPDMA_MULTIROW_BUF_WORDS)
+        };
+        source_data.fill(0xBAD0BAD0);
+        let source_data_uncached = MemoryMap::uncached_mut(source_data.as_mut_ptr());
         let source_ptr = source_data_uncached as *mut u8;
+        let source_cached = 0x8000_0000usize | (source_ptr as usize & 0x1FFF_FFFF);
         unsafe {
+            cop0::dcache_hit_writeback_invalidate_range(source_cached, SPDMA_MULTIROW_BUF_BYTES);
             RSP::start_dma_sp_to_cpu(0x0000, source_ptr, SPDMA_LEN_4_ROWS_0X1000);
             RSP::wait_until_dma_completed();
+            cop0::dcache_hit_writeback_invalidate_range(source_cached, SPDMA_MULTIROW_BUF_BYTES);
         }
-        for i in 0..(0x1000 >> 2) {
+        for i in 0..SPMEM_HALF_WORDS {
             SPMEM::write(i << 2, 0x0BADF00D);
         }
+        unsafe { cop0::dcache_hit_writeback_invalidate_range(source_cached, SPDMA_MULTIROW_BUF_BYTES) };
         RSP::start_dma_cpu_to_sp(source_ptr, 0x0000, SPDMA_LEN_4_ROWS_0X1000);
         RSP::wait_until_dma_completed();
         soft_assert_eq2(SPMEM::read(0x0000), 0x01234567, || "DMEM[0x0000] after roundtrip".to_string())?;
@@ -420,17 +443,24 @@ impl Test for SPDMAMultiRowIMEMRoundtrip {
         SPMEM::write(0x1004, 0x55667788);
         SPMEM::write(0x1008, 0x99AABBCC);
         SPMEM::write(0x100C, 0xDDEEFF00);
-        let buf = sp_dma_multirow_slice();
-        buf.fill(0xBAD0BAD0);
-        let source_data_uncached = MemoryMap::uncached_mut(buf.as_mut_ptr());
+        let mut source_data = sp_dma_multirow_alloc();
+        let source_data = unsafe {
+            core::slice::from_raw_parts_mut(source_data.as_mut_ptr() as *mut u32, SPDMA_MULTIROW_BUF_WORDS)
+        };
+        source_data.fill(0xBAD0BAD0);
+        let source_data_uncached = MemoryMap::uncached_mut(source_data.as_mut_ptr());
         let source_ptr = source_data_uncached as *mut u8;
+        let source_cached = 0x8000_0000usize | (source_ptr as usize & 0x1FFF_FFFF);
         unsafe {
+            cop0::dcache_hit_writeback_invalidate_range(source_cached, SPDMA_MULTIROW_BUF_BYTES);
             RSP::start_dma_sp_to_cpu(0x1000, source_ptr, SPDMA_LEN_4_ROWS_0X1000);
             RSP::wait_until_dma_completed();
+            cop0::dcache_hit_writeback_invalidate_range(source_cached, SPDMA_MULTIROW_BUF_BYTES);
         }
-        for i in 0..(0x1000 >> 2) {
+        for i in 0..SPMEM_HALF_WORDS {
             SPMEM::write((i << 2) | 0x1000, 0x0BADF00D);
         }
+        unsafe { cop0::dcache_hit_writeback_invalidate_range(source_cached, SPDMA_MULTIROW_BUF_BYTES) };
         RSP::start_dma_cpu_to_sp(source_ptr, 0x1000, SPDMA_LEN_4_ROWS_0X1000);
         RSP::wait_until_dma_completed();
         soft_assert_eq2(SPMEM::read(0x0000), 0xDEADBEEF, || "DMEM[0x0000] after IMEM roundtrip (unchanged)".to_string())?;

@@ -599,6 +599,113 @@ pub unsafe fn cache64<const OP: u8, const OFFSET: u16>(location: u64) {
     }
 }
 
+pub const ICACHE_INDEX_INVALIDATE: u8 = 0;
+pub const DCACHE_INDEX_WRITEBACK_INVALIDATE: u8 = 1;
+pub const DCACHE_INDEX_LOAD_TAG: u8 = 5;
+pub const DCACHE_INDEX_STORE_TAG: u8 = 9;
+pub const DCACHE_CREATE_DIRTY_EXCLUSIVE: u8 = 13;
+pub const ICACHE_HIT_INVALIDATE: u8 = 16;
+pub const DCACHE_HIT_INVALIDATE: u8 = 17;
+pub const ICACHE_FILL: u8 = 20;
+pub const DCACHE_HIT_WRITEBACK_INVALIDATE: u8 = 21;
+pub const ICACHE_HIT_WRITEBACK: u8 = 24;
+pub const DCACHE_HIT_WRITEBACK: u8 = 25;
+pub const ICACHE_BYTES: usize = 16 * 1024;
+pub const DCACHE_BYTES: usize = 8 * 1024;
+pub const ICACHE_LINE_BYTES: usize = 32;
+pub const DCACHE_LINE_BYTES: usize = 16;
+
+#[inline(always)]
+fn cache_align_down(address: usize, line_bytes: usize) -> usize {
+    address & !(line_bytes - 1)
+}
+
+#[inline(always)]
+fn cache_align_up(address: usize, line_bytes: usize) -> usize {
+    cache_align_down(address + line_bytes - 1, line_bytes)
+}
+
+pub unsafe fn cache_range<const OP: u8>(start: usize, byte_len: usize, line_bytes: usize) {
+    assert!(line_bytes.is_power_of_two());
+    if byte_len == 0 {
+        return;
+    }
+    let end = start.saturating_add(byte_len);
+    let lo = cache_align_down(start, line_bytes);
+    let hi = cache_align_up(end, line_bytes);
+    let mut a = lo;
+    while a < hi {
+        unsafe { cache::<OP, 0>(a) };
+        a += line_bytes;
+    }
+}
+
+#[allow(dead_code)]
+pub unsafe fn cache_range_invalidate<const OP_INVALIDATE: u8, const OP_WB_INVALIDATE: u8>(
+    start: usize,
+    byte_len: usize,
+    line_bytes: usize,
+) {
+    assert!(line_bytes.is_power_of_two());
+    if byte_len == 0 {
+        return;
+    }
+    let end = start.saturating_add(byte_len);
+    let lo = cache_align_down(start, line_bytes);
+    let hi = cache_align_up(end, line_bytes);
+    let mut mid_lo = cache_align_up(start, line_bytes);
+    let mid_hi = cache_align_down(end, line_bytes);
+    if lo < mid_lo {
+        unsafe { cache_range::<OP_WB_INVALIDATE>(lo, line_bytes, line_bytes) };
+    } else {
+        mid_lo = lo;
+    }
+    if mid_lo < mid_hi {
+        unsafe { cache_range::<OP_INVALIDATE>(mid_lo, mid_hi - mid_lo, line_bytes) };
+    }
+    if mid_hi < hi {
+        unsafe { cache_range::<OP_WB_INVALIDATE>(mid_hi, line_bytes, line_bytes) };
+    }
+}
+
+pub unsafe fn icache_index_invalidate_range(start: usize, byte_len: usize) {
+    unsafe { cache_range::<ICACHE_INDEX_INVALIDATE>(start, byte_len, ICACHE_LINE_BYTES) };
+}
+
+pub unsafe fn dcache_index_writeback_invalidate_range(start: usize, byte_len: usize) {
+    unsafe { cache_range::<DCACHE_INDEX_WRITEBACK_INVALIDATE>(start, byte_len, DCACHE_LINE_BYTES) };
+}
+
+#[allow(dead_code)]
+pub unsafe fn icache_hit_invalidate_range(start: usize, byte_len: usize) {
+    unsafe { cache_range::<ICACHE_HIT_INVALIDATE>(start, byte_len, ICACHE_LINE_BYTES) };
+}
+
+pub unsafe fn dcache_hit_writeback_invalidate_range(start: usize, byte_len: usize) {
+    unsafe { cache_range::<DCACHE_HIT_WRITEBACK_INVALIDATE>(start, byte_len, DCACHE_LINE_BYTES) };
+}
+
+#[allow(dead_code)]
+pub unsafe fn dcache_hit_invalidate_range(start: usize, byte_len: usize) {
+    unsafe {
+        cache_range_invalidate::<DCACHE_HIT_INVALIDATE, DCACHE_HIT_WRITEBACK_INVALIDATE>(
+            start,
+            byte_len,
+            DCACHE_LINE_BYTES,
+        )
+    };
+}
+
+pub fn icache_invalidate_all() {
+    let base = 0x8000_0000usize;
+    unsafe { icache_index_invalidate_range(base, ICACHE_BYTES) };
+}
+
+pub fn dcache_invalidate_all() {
+    let base = 0x8000_0000usize;
+    unsafe { dcache_index_writeback_invalidate_range(base, DCACHE_BYTES) };
+}
+
 // Fires a cop2 usable exception and handles it itself. Afterwards, Cause.copindex will be set to 2
 pub fn preset_cause_to_copindex2() -> Result<(), String> {
     // Fire a COP2 unusable exception. This is to write something into Cause.copindex so that we can see whether it gets overwritten

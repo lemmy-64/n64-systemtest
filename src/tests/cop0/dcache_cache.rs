@@ -5,15 +5,16 @@ use core::any::Any;
 use core::arch::asm;
 
 use crate::cop0;
+use crate::cop0::{
+    DCACHE_CREATE_DIRTY_EXCLUSIVE, DCACHE_HIT_INVALIDATE, DCACHE_HIT_WRITEBACK,
+    DCACHE_HIT_WRITEBACK_INVALIDATE, DCACHE_INDEX_LOAD_TAG, DCACHE_INDEX_STORE_TAG,
+    DCACHE_INDEX_WRITEBACK_INVALIDATE,
+};
 use crate::MemoryMap;
 use crate::tests::{Level, Test};
 use crate::tests::soft_asserts::soft_assert_eq;
 
-use super::cache_common::{
-    self, DCACHE_CREATE_DIRTY_EXCLUSIVE, DCACHE_HIT_INVALIDATE, DCACHE_HIT_WRITEBACK,
-    DCACHE_HIT_WRITEBACK_INVALIDATE, DCACHE_INDEX_LOAD_TAG, DCACHE_INDEX_STORE_TAG,
-    DCACHE_INDEX_WRITEBACK_INVALIDATE,
-};
+use super::cache_common;
 
 #[repr(C, align(16))]
 struct DcacheLineSlot {

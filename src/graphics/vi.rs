@@ -106,11 +106,12 @@ impl Video {
             let dram_address = ((ptr as u32) & 0x1FFF_FFFF) | 0xA000_0000;
 
             // The framebuffer is accessed cached by the CPU, so invalidate it now
-            for i in (0..pixels.len()).step_by(8) {
-                unsafe {
-                    crate::cop0::cache::<0b001, 0>(ptr.add(i) as usize);
-                }
-            }
+            unsafe {
+                crate::cop0::dcache_index_writeback_invalidate_range(
+                    ptr as usize,
+                    core::mem::size_of_val(pixels),
+                )
+            };
 
             unsafe {
                 VI_BASE_REG.add(RegisterOffset::DRAMAddress as usize >> 2).write_volatile(dram_address);
