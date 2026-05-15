@@ -12,10 +12,20 @@ use crate::graphics::font::Font;
 use crate::graphics::system_font::FONT_GENEVA_9;
 use crate::graphics::vi::PixelType;
 use crate::VIDEO;
+use crate::emux;
 
 use super::cop0;
 
 static EXCEPTION_SKIP: Spinlock<Option<u64>> = Spinlock::new(None);
+
+#[derive(Copy, Clone)]
+struct ExceptionReturnOverride {
+    return_to: u64,
+    status: u32,
+}
+
+static EXCEPTION_RETURN_OVERRIDE: Spinlock<Option<ExceptionReturnOverride>> = Spinlock::new(None);
+static EXCEPTION_RECOVERY_STREAK: Spinlock<u32> = Spinlock::new(0);
 
 /// Once an exception is seen, this is set to the exception context, along with 1. If another
 /// exception comes in, the counter is incremented and its Context is lost)
@@ -231,6 +241,7 @@ extern "C" fn exception_handler_compiled(stackpointer: usize) -> usize {
     let avoid_bluescreen = true;
 
     let context = unsafe { &mut *(stackpointer as *mut ExceptionContext) };
+    let observed_status = context.status;
 
     let mut guard = SEEN_EXCEPTION.lock();
     let skip_guard = EXCEPTION_SKIP.lock();
@@ -244,10 +255,27 @@ extern "C" fn exception_handler_compiled(stackpointer: usize) -> usize {
         }
         context.return_to = context.return_to & !0x3;
 
+        let mut return_override = EXCEPTION_RETURN_OVERRIDE.lock();
+        if let Some(override_data) = *return_override {
+            context.return_to = override_data.return_to;
+            context.status = override_data.status;
+            *return_override = None;
+        }
+
         // Save the exception context
         if guard.is_none() {
-            *guard.deref_mut() = Some(((*context), 1));
+            *EXCEPTION_RECOVERY_STREAK.lock() = 0;
+            let mut seen_context = *context;
+            seen_context.status = observed_status;
+            *guard.deref_mut() = Some((seen_context, 1));
         } else {
+            let mut streak = EXCEPTION_RECOVERY_STREAK.lock();
+            *streak += 1;
+            if *streak >= 5 {
+                crate::text_out::text_out("Exception storm detected. Aborting.\n");
+                emux::xioctl_exit();
+                loop {}
+            }
             guard.deref_mut().as_mut().unwrap().1 += 1;
             crate::println!("Multiple exceptions seen. Trying to recover (turn off avoid_bluescreen if this loops endlessly)")
         }
@@ -260,10 +288,21 @@ extern "C" fn exception_handler_compiled(stackpointer: usize) -> usize {
     show_bluescreen_of_death(context);
 }
 
+pub fn set_exception_return_override(return_to: u64, status: u32) {
+    let mut guard = EXCEPTION_RETURN_OVERRIDE.lock();
+    *guard = Some(ExceptionReturnOverride { return_to, status });
+}
+
+pub fn clear_exception_return_override() {
+    let mut guard = EXCEPTION_RETURN_OVERRIDE.lock();
+    *guard = None;
+}
+
 pub fn drain_seen_exception() -> Option<(ExceptionContext, u32)> {
     let mut guard = SEEN_EXCEPTION.lock();
     let result = *guard.deref();
     *guard.deref_mut() = None;
+    *EXCEPTION_RECOVERY_STREAK.lock() = 0;
     result
 }
 
@@ -297,12 +336,30 @@ pub fn expect_exception<F>(code: CauseException, skip_instructions_on_hit: u64, 
                     }
                     Some((context, count)) => {
                         let actual_exception = context.cause.exception();
+                        let details = format!(
+                            " (EPC={:#018x} BadVAddr={:#018x} Status={:#010x} CauseRaw={:#010x})",
+                            context.exceptpc,
+                            context.badvaddr,
+                            context.status,
+                            context.cause.raw_value(),
+                        );
                         if count != 1 {
-                            Err(format!("Expected exception {:?} but got {} exceptions, the first of which was {:?}", code, count, actual_exception))
+                            Err(format!(
+                                "Expected exception {:?} but got {} exceptions, the first of which was {:?}{}",
+                                code,
+                                count,
+                                actual_exception,
+                                details,
+                            ))
                         } else if actual_exception == Ok(code) {
                             Ok(context)
                         } else {
-                            Err(format!("Expected exception {:?} but got {:?}", code, actual_exception))
+                            Err(format!(
+                                "Expected exception {:?} but got {:?}{}",
+                                code,
+                                actual_exception,
+                                details,
+                            ))
                         }
                     }
                 }

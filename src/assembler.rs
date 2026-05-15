@@ -383,6 +383,12 @@ impl Assembler {
             ((Opcode::COP3 as u32) << 26)
     }
 
+    pub const fn make_mfc0(rt: GPR, rd: u5) -> u32 {
+        ((rd.value() as u32) << 11) |
+            ((rt.raw_value().value() as u32) << 16) |
+            ((Opcode::COP0 as u32) << 26)
+    }
+
     const fn make_cop1_float_instruction(instruction: Cop1FloatInstruction, fd: FR, fs: FR, ft: FR) -> FPUFloatInstruction {
         FPUFloatInstruction::new(
             (instruction as u32) |
@@ -400,12 +406,92 @@ impl Assembler {
         Self::make_main_immediate(Opcode::ADDIU, rt, rs, imm)
     }
 
+    pub const fn make_lh(rt: GPR, offset: i16, base: GPR) -> u32 {
+        Self::make_main_immediate(Opcode::LH, rt, base, offset as u16)
+    }
+
+    pub const fn make_lwl(rt: GPR, offset: i16, base: GPR) -> u32 {
+        Self::make_main_immediate(Opcode::LWL, rt, base, offset as u16)
+    }
+
+    pub const fn make_lw(rt: GPR, offset: i16, base: GPR) -> u32 {
+        Self::make_main_immediate(Opcode::LW, rt, base, offset as u16)
+    }
+
+    pub const fn make_lbu(rt: GPR, offset: i16, base: GPR) -> u32 {
+        Self::make_main_immediate(Opcode::LBU, rt, base, offset as u16)
+    }
+
+    pub const fn make_lhu(rt: GPR, offset: i16, base: GPR) -> u32 {
+        Self::make_main_immediate(Opcode::LHU, rt, base, offset as u16)
+    }
+
+    pub const fn make_lwr(rt: GPR, offset: i16, base: GPR) -> u32 {
+        Self::make_main_immediate(Opcode::LWR, rt, base, offset as u16)
+    }
+
+    pub const fn make_lwu(rt: GPR, offset: i16, base: GPR) -> u32 {
+        Self::make_main_immediate(Opcode::LWU, rt, base, offset as u16)
+    }
+
+    pub const fn make_ldl(rt: GPR, offset: i16, base: GPR) -> u32 {
+        Self::make_main_immediate(Opcode::LDL, rt, base, offset as u16)
+    }
+
+    pub const fn make_ldr(rt: GPR, offset: i16, base: GPR) -> u32 {
+        Self::make_main_immediate(Opcode::LDR, rt, base, offset as u16)
+    }
+
+    pub const fn make_ld(rt: GPR, offset: i16, base: GPR) -> u32 {
+        Self::make_main_immediate(Opcode::LD, rt, base, offset as u16)
+    }
+
     pub const fn make_lui(rt: GPR, imm: u16) -> u32 {
         Self::make_main_immediate(Opcode::LUI, rt, GPR::R0, imm)
     }
 
     pub const fn make_ori(rt: GPR, rs: GPR, imm: u16) -> u32 {
         Self::make_main_immediate(Opcode::ORI, rt, rs, imm)
+    }
+
+    pub const fn make_lb(rt: GPR, offset: i16, base: GPR) -> u32 {
+        Self::make_main_immediate(Opcode::LB, rt, base, offset as u16)
+    }
+
+    pub const fn make_swl(rt: GPR, offset: i16, base: GPR) -> u32 {
+        Self::make_main_immediate(Opcode::SWL, rt, base, offset as u16)
+    }
+
+    pub const fn make_swr(rt: GPR, offset: i16, base: GPR) -> u32 {
+        Self::make_main_immediate(Opcode::SWR, rt, base, offset as u16)
+    }
+
+    pub const fn make_sdl(rt: GPR, offset: i16, base: GPR) -> u32 {
+        Self::make_main_immediate(Opcode::SDL, rt, base, offset as u16)
+    }
+
+    pub const fn make_sdr(rt: GPR, offset: i16, base: GPR) -> u32 {
+        Self::make_main_immediate(Opcode::SDR, rt, base, offset as u16)
+    }
+
+    pub const fn make_or(rd: GPR, rs: GPR, rt: GPR) -> u32 {
+        Self::make_special(SpecialOpcode::OR, u5::new(0), rd.raw_value(), rs.raw_value(), rt.raw_value())
+    }
+
+    pub const fn make_sll(rd: GPR, rt: GPR, sa: u8) -> u32 {
+        Self::make_special(SpecialOpcode::SLL, u5::new(sa), rd.raw_value(), GPR::R0.raw_value(), rt.raw_value())
+    }
+
+    pub const fn make_dsll32(rd: GPR, rt: GPR, sa: u8) -> u32 {
+        Self::make_special(SpecialOpcode::DSLL32, u5::new(sa), rd.raw_value(), GPR::R0.raw_value(), rt.raw_value())
+    }
+
+    pub const fn make_dsrl32(rd: GPR, rt: GPR, sa: u8) -> u32 {
+        Self::make_special(SpecialOpcode::DSRL32, u5::new(sa), rd.raw_value(), GPR::R0.raw_value(), rt.raw_value())
+    }
+
+    pub const fn make_syscall(code: u32) -> u32 {
+        ((code & 0x000f_ffff) << 6) | (SpecialOpcode::SYSCALL as u32)
     }
 
     pub const fn make_nop() -> u32 {
