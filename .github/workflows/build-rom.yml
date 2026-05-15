@@ -14,11 +14,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install nightly toolchain
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: nightly-2022-07-10
-          components: rust-src
+      - name: Install toolchain from rust-toolchain.toml
+        uses: mkroening/rust-toolchain-toml@v1.3.5
 
       - name: Install stable toolchain for nust64
         run: rustup toolchain install stable --profile minimal
