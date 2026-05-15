@@ -1,0 +1,37 @@
+name: Build ROM
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-rom:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install nightly toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly-2022-07-10
+          components: rust-src
+
+      - name: Install stable toolchain for nust64
+        run: rustup toolchain install stable --profile minimal
+
+      - name: Install nust64
+        run: cargo +stable install nust64 --locked
+
+      - name: Build ROM
+        run: cargo run --release
+
+      - name: Upload ROM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: n64-systemtest-z64
+          path: target/mips-nintendo64-none/release/n64-systemtest.z64
+          if-no-files-found: error
