@@ -182,14 +182,14 @@ impl Test for SCAfterERET {
                 MTC0 $6, $12
                 NOP
                 NOP
-                LUI $7, %HI(1F)
-                ADDIU $7, $7, %LO(1F)
+                LUI $7, %hi(sc_after_eret_resume)
+                ADDIU $7, $7, %lo(sc_after_eret_resume)
                 DMTC0 $7, $14
                 NOP
                 NOP
                 NOP
                 ERET
-            1:
+            sc_after_eret_resume:
                 LUI $4, 0x1357
                 ORI $4, $4, 0x9BDF
                 SC $4, 0($3)
@@ -236,14 +236,14 @@ impl Test for SCDAfterERET {
                 MTC0 $6, $12
                 NOP
                 NOP
-                LUI $7, %hi(1f)
-                ADDIU $7, $7, %lo(1f)
+                LUI $7, %hi(scd_after_eret_resume)
+                ADDIU $7, $7, %lo(scd_after_eret_resume)
                 DMTC0 $7, $14
                 NOP
                 NOP
                 NOP
                 ERET
-            1:
+            scd_after_eret_resume:
                 LUI $4, 0x1020
                 ORI $4, $4, 0x3040
                 DSLL32 $4, $4, 0
