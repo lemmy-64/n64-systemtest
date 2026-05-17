@@ -103,6 +103,10 @@ fn re1_then_re0_encode(re1_program: &[u32], re0_program: &[u32]) -> Vec<u32> {
     encoded
 }
 
+fn re_mode_label(mode_64bit: bool) -> &'static str {
+    if mode_64bit { "UX=1" } else { "UX=0" }
+}
+
 fn reverse_endian_effective_address(vaddr: u32, bytes: usize) -> u32 {
     match bytes {
         8 => vaddr,
@@ -263,7 +267,11 @@ impl EndianHarness {
     }
 }
 
-fn run_re_program(program: &[u32], cached_code: bool) -> Result<crate::exception_handler::ExceptionContext, String> {
+fn run_re_program(
+    program: &[u32],
+    cached_code: bool,
+    mode_64bit: bool,
+) -> Result<crate::exception_handler::ExceptionContext, String> {
     let mut harness = EndianHarness::new();
     harness.setup_mappings();
     harness.fill_fixture();
@@ -273,17 +281,17 @@ fn run_re_program(program: &[u32], cached_code: bool) -> Result<crate::exception
     wrapped.push(Assembler::make_syscall(0x2e1));
     let encoded = re_fetch_encode(&wrapped);
     let entry = harness.write_program(cached_code, &encoded);
-    run_mode_program(StatusKSU::User, true, true, entry, CauseException::Sys, 1)
+    run_mode_program(StatusKSU::User, true, mode_64bit, entry, CauseException::Sys, 1)
 }
 
-fn run_re_program_labeled(label: &str, program: &[u32], cached_code: bool)
+fn run_re_program_labeled(label: &str, program: &[u32], cached_code: bool, mode_64bit: bool)
     -> Result<crate::exception_handler::ExceptionContext, String> {
-    run_re_program(program, cached_code).map_err(|e| format!("{}: {}", label, e))
+    run_re_program(program, cached_code, mode_64bit).map_err(|e| format!("{} [{}]: {}", label, re_mode_label(mode_64bit), e))
 }
 
-fn run_re_entry_labeled(label: &str, entry: u32) -> Result<crate::exception_handler::ExceptionContext, String> {
-    run_mode_program(StatusKSU::User, true, true, entry, CauseException::Sys, 1)
-        .map_err(|e| format!("{}: {}", label, e))
+fn run_re_entry_labeled(label: &str, entry: u32, mode_64bit: bool) -> Result<crate::exception_handler::ExceptionContext, String> {
+    run_mode_program(StatusKSU::User, true, mode_64bit, entry, CauseException::Sys, 1)
+        .map_err(|e| format!("{} [{}]: {}", label, re_mode_label(mode_64bit), e))
 }
 
 pub struct ReExecuteCodePaths;
@@ -296,25 +304,27 @@ impl Test for ReExecuteCodePaths {
     fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
-        let i1 = Assembler::make_addiu(GPR::V0, GPR::R0, 1);
-        let i2 = Assembler::make_sll(GPR::V0, GPR::V0, 1);
-        let i3 = Assembler::make_addiu(GPR::V0, GPR::V0, 3);
-        let i4 = Assembler::make_syscall(0x1f3);
+        for mode_64bit in [false, true] {
+            let i1 = Assembler::make_addiu(GPR::V0, GPR::R0, 1);
+            let i2 = Assembler::make_sll(GPR::V0, GPR::V0, 1);
+            let i3 = Assembler::make_addiu(GPR::V0, GPR::V0, 3);
+            let i4 = Assembler::make_syscall(0x1f3);
 
-        let swapped = [i2, i1, i4, i3];
+            let swapped = [i2, i1, i4, i3];
 
-        let mut harness = EndianHarness::new();
-        harness.setup_mappings();
-        harness.fill_fixture();
-        harness.clear_store_area();
+            let mut harness = EndianHarness::new();
+            harness.setup_mappings();
+            harness.fill_fixture();
+            harness.clear_store_area();
 
-        let cached_entry = harness.write_program(true, &swapped);
-        let uncached_entry = harness.write_program(false, &swapped);
+            let cached_entry = harness.write_program(true, &swapped);
+            let uncached_entry = harness.write_program(false, &swapped);
 
-        let ctx_cached = run_re_entry_labeled("execute cached code path", cached_entry)?;
-        let ctx_uncached = run_re_entry_labeled("execute uncached code path", uncached_entry)?;
-        soft_assert_eq(ctx_cached.v0, 5, "cached code path result")?;
-        soft_assert_eq(ctx_uncached.v0, 5, "uncached code path result")?;
+            let ctx_cached = run_re_entry_labeled("execute cached code path", cached_entry, mode_64bit)?;
+            let ctx_uncached = run_re_entry_labeled("execute uncached code path", uncached_entry, mode_64bit)?;
+            soft_assert_eq(ctx_cached.v0, 5, "cached code path result")?;
+            soft_assert_eq(ctx_uncached.v0, 5, "uncached code path result")?;
+        }
         Ok(())
     }
 }
@@ -336,51 +346,57 @@ impl Test for ReLoadMatrix {
             signed: bool,
             cop1: bool,
             cop1_64: bool,
+            mode64_only: bool,
         }
         let load_cases = [
-            LoadCase { name: "LB", emit: Assembler::make_lb, bytes: 1, signed: true, cop1: false, cop1_64: false },
-            LoadCase { name: "LBU", emit: Assembler::make_lbu, bytes: 1, signed: false, cop1: false, cop1_64: false },
-            LoadCase { name: "LH", emit: Assembler::make_lh, bytes: 2, signed: true, cop1: false, cop1_64: false },
-            LoadCase { name: "LHU", emit: Assembler::make_lhu, bytes: 2, signed: false, cop1: false, cop1_64: false },
-            LoadCase { name: "LW", emit: Assembler::make_lw, bytes: 4, signed: true, cop1: false, cop1_64: false },
-            LoadCase { name: "LWU", emit: Assembler::make_lwu, bytes: 4, signed: false, cop1: false, cop1_64: false },
-            LoadCase { name: "LD", emit: Assembler::make_ld, bytes: 8, signed: false, cop1: false, cop1_64: false },
-            LoadCase { name: "LWC1", emit: Assembler::make_lwc1, bytes: 4, signed: true, cop1: true, cop1_64: false },
-            LoadCase { name: "LDC1", emit: Assembler::make_ldc1, bytes: 8, signed: false, cop1: true, cop1_64: true },
+            LoadCase { name: "LB", emit: Assembler::make_lb, bytes: 1, signed: true, cop1: false, cop1_64: false, mode64_only: false },
+            LoadCase { name: "LBU", emit: Assembler::make_lbu, bytes: 1, signed: false, cop1: false, cop1_64: false, mode64_only: false },
+            LoadCase { name: "LH", emit: Assembler::make_lh, bytes: 2, signed: true, cop1: false, cop1_64: false, mode64_only: false },
+            LoadCase { name: "LHU", emit: Assembler::make_lhu, bytes: 2, signed: false, cop1: false, cop1_64: false, mode64_only: false },
+            LoadCase { name: "LW", emit: Assembler::make_lw, bytes: 4, signed: true, cop1: false, cop1_64: false, mode64_only: false },
+            LoadCase { name: "LWU", emit: Assembler::make_lwu, bytes: 4, signed: false, cop1: false, cop1_64: false, mode64_only: true },
+            LoadCase { name: "LD", emit: Assembler::make_ld, bytes: 8, signed: false, cop1: false, cop1_64: false, mode64_only: true },
+            LoadCase { name: "LWC1", emit: Assembler::make_lwc1, bytes: 4, signed: true, cop1: true, cop1_64: false, mode64_only: false },
+            LoadCase { name: "LDC1", emit: Assembler::make_ldc1, bytes: 8, signed: false, cop1: true, cop1_64: true, mode64_only: true },
         ];
 
-        for memory_kind in [MemoryKind::Cached, MemoryKind::Uncached] {
-            for case in load_cases.iter() {
-                let address = memory_kind.data_base() + DATA_OFFSET as u32;
-                let mut program = vec![
-                    Assembler::make_lui(GPR::T0, (address >> 16) as u16),
-                    Assembler::make_ori(GPR::T0, GPR::T0, address as u16),
-                    (case.emit)(GPR::T1, 0, GPR::T0),
-                ];
-                if case.cop1 {
-                    if case.cop1_64 {
-                        program.push(make_cop1_move(1, GPR::T1, FR::F9));
-                    } else {
-                        program.push(make_cop1_move(0, GPR::T1, FR::F9));
+        for mode_64bit in [false, true] {
+            for memory_kind in [MemoryKind::Cached, MemoryKind::Uncached] {
+                for case in load_cases.iter() {
+                    if case.mode64_only && !mode_64bit {
+                        continue;
                     }
+                    let address = memory_kind.data_base() + DATA_OFFSET as u32;
+                    let mut program = vec![
+                        Assembler::make_lui(GPR::T0, (address >> 16) as u16),
+                        Assembler::make_ori(GPR::T0, GPR::T0, address as u16),
+                        (case.emit)(GPR::T1, 0, GPR::T0),
+                    ];
+                    if case.cop1 {
+                        if case.cop1_64 {
+                            program.push(make_cop1_move(1, GPR::T1, FR::F9));
+                        } else {
+                            program.push(make_cop1_move(0, GPR::T1, FR::F9));
+                        }
+                    }
+                    let label = format!(
+                        "load {} {} addr={:#010x} fixture={:02x?}",
+                        case.name,
+                        memory_kind.name(),
+                        address,
+                        RE_FIXTURE
+                    );
+                    let context = run_re_program_labeled(&label, &program, true, mode_64bit)?;
+                    let actual = context.t1;
+                    let effective = reverse_endian_effective_address(address, case.bytes) - address;
+                    let raw = read_be(&RE_FIXTURE, effective as usize, case.bytes);
+                    let expected = if case.signed {
+                        sign_extend(raw, (case.bytes * 8) as u8)
+                    } else {
+                        raw
+                    };
+                    soft_assert_eq2(actual, expected, || format!("{} from {}", case.name, memory_kind.name()))?;
                 }
-                let label = format!(
-                    "load {} {} addr={:#010x} fixture={:02x?}",
-                    case.name,
-                    memory_kind.name(),
-                    address,
-                    RE_FIXTURE
-                );
-                let context = run_re_program_labeled(&label, &program, true)?;
-                let actual = context.t1;
-                let effective = reverse_endian_effective_address(address, case.bytes) - address;
-                let raw = read_be(&RE_FIXTURE, effective as usize, case.bytes);
-                let expected = if case.signed {
-                    sign_extend(raw, (case.bytes * 8) as u8)
-                } else {
-                    raw
-                };
-                soft_assert_eq2(actual, expected, || format!("{} from {}", case.name, memory_kind.name()))?;
             }
         }
         Ok(())
@@ -405,65 +421,71 @@ impl Test for ReStoreMatrix {
             value: u64,
             cop1: bool,
             cop1_64: bool,
+            mode64_only: bool,
         }
         let store_cases = [
-            StoreCase { name: "SB", emit: Assembler::make_sb, rt: GPR::T1, bytes: 1, value: 0x81, cop1: false, cop1_64: false },
-            StoreCase { name: "SH", emit: Assembler::make_sh, rt: GPR::T1, bytes: 2, value: 0x92a3, cop1: false, cop1_64: false },
-            StoreCase { name: "SW", emit: Assembler::make_sw, rt: GPR::T1, bytes: 4, value: 0xb4c5d6e7, cop1: false, cop1_64: false },
-            StoreCase { name: "SD", emit: Assembler::make_sd, rt: GPR::T1, bytes: 8, value: 0x1122334455667788, cop1: false, cop1_64: false },
-            StoreCase { name: "SWC1", emit: Assembler::make_swc1, rt: GPR::T0, bytes: 4, value: 0x89abcdef, cop1: true, cop1_64: false },
-            StoreCase { name: "SDC1", emit: Assembler::make_sdc1, rt: GPR::T0, bytes: 8, value: 0x0123456789abcdef, cop1: true, cop1_64: true },
+            StoreCase { name: "SB", emit: Assembler::make_sb, rt: GPR::T1, bytes: 1, value: 0x81, cop1: false, cop1_64: false, mode64_only: false },
+            StoreCase { name: "SH", emit: Assembler::make_sh, rt: GPR::T1, bytes: 2, value: 0x92a3, cop1: false, cop1_64: false, mode64_only: false },
+            StoreCase { name: "SW", emit: Assembler::make_sw, rt: GPR::T1, bytes: 4, value: 0xb4c5d6e7, cop1: false, cop1_64: false, mode64_only: false },
+            StoreCase { name: "SD", emit: Assembler::make_sd, rt: GPR::T1, bytes: 8, value: 0x1122334455667788, cop1: false, cop1_64: false, mode64_only: true },
+            StoreCase { name: "SWC1", emit: Assembler::make_swc1, rt: GPR::T0, bytes: 4, value: 0x89abcdef, cop1: true, cop1_64: false, mode64_only: false },
+            StoreCase { name: "SDC1", emit: Assembler::make_sdc1, rt: GPR::T0, bytes: 8, value: 0x0123456789abcdef, cop1: true, cop1_64: true, mode64_only: true },
         ];
 
-        for memory_kind in [MemoryKind::Cached, MemoryKind::Uncached] {
-            for case in store_cases.iter() {
-                let mut harness = EndianHarness::new();
-                harness.setup_mappings();
-                harness.fill_fixture();
-                harness.clear_store_area();
-
-                let address = memory_kind.data_base() + STORE_OFFSET as u32;
-                let mut program = vec![
-                    Assembler::make_lui(GPR::T0, (address >> 16) as u16),
-                    Assembler::make_ori(GPR::T0, GPR::T0, address as u16),
-                ];
-                if case.bytes == 8 {
-                    program.extend_from_slice(&load_u64_sequence(GPR::T1, GPR::T2, case.value));
-                } else {
-                    let seq = load_u32_sequence(GPR::T1, case.value as u32);
-                    program.push(seq[0]);
-                    program.push(seq[1]);
-                }
-                if case.cop1 {
-                    if case.cop1_64 {
-                        program.push(make_cop1_move(5, GPR::T1, FR::F8));
-                    } else {
-                        program.push(make_cop1_move(4, GPR::T1, FR::F8));
+        for mode_64bit in [false, true] {
+            for memory_kind in [MemoryKind::Cached, MemoryKind::Uncached] {
+                for case in store_cases.iter() {
+                    if case.mode64_only && !mode_64bit {
+                        continue;
                     }
-                }
-                program.push((case.emit)(case.rt, 0, GPR::T0));
-                program.push(Assembler::make_syscall(0x2e2));
-                let encoded = re_fetch_encode(&program);
-                let entry = harness.write_program(true, &encoded);
-                let label = format!(
-                    "store {} {} addr={:#010x} value={:#018x}",
-                    case.name,
-                    memory_kind.name(),
-                    address,
-                    case.value
-                );
-                let _ = run_re_entry_labeled(&label, entry)?;
-                if matches!(memory_kind, MemoryKind::Cached) {
-                    harness.writeback_dcache(address, 64);
-                }
-                let effective = reverse_endian_effective_address(address, case.bytes);
-                let offset = (effective - memory_kind.data_base()) as usize;
-                let bytes = harness.read_page_bytes(memory_kind, offset, case.bytes);
-                let expected = case.value.to_be_bytes();
-                for i in 0..case.bytes {
-                    soft_assert_eq2(bytes[i], expected[8 - case.bytes + i], || {
-                        format!("{} byte {} on {}", case.name, i, memory_kind.name())
-                    })?;
+                    let mut harness = EndianHarness::new();
+                    harness.setup_mappings();
+                    harness.fill_fixture();
+                    harness.clear_store_area();
+
+                    let address = memory_kind.data_base() + STORE_OFFSET as u32;
+                    let mut program = vec![
+                        Assembler::make_lui(GPR::T0, (address >> 16) as u16),
+                        Assembler::make_ori(GPR::T0, GPR::T0, address as u16),
+                    ];
+                    if case.bytes == 8 {
+                        program.extend_from_slice(&load_u64_sequence(GPR::T1, GPR::T2, case.value));
+                    } else {
+                        let seq = load_u32_sequence(GPR::T1, case.value as u32);
+                        program.push(seq[0]);
+                        program.push(seq[1]);
+                    }
+                    if case.cop1 {
+                        if case.cop1_64 {
+                            program.push(make_cop1_move(5, GPR::T1, FR::F8));
+                        } else {
+                            program.push(make_cop1_move(4, GPR::T1, FR::F8));
+                        }
+                    }
+                    program.push((case.emit)(case.rt, 0, GPR::T0));
+                    program.push(Assembler::make_syscall(0x2e2));
+                    let encoded = re_fetch_encode(&program);
+                    let entry = harness.write_program(true, &encoded);
+                    let label = format!(
+                        "store {} {} addr={:#010x} value={:#018x}",
+                        case.name,
+                        memory_kind.name(),
+                        address,
+                        case.value
+                    );
+                    let _ = run_re_entry_labeled(&label, entry, mode_64bit)?;
+                    if matches!(memory_kind, MemoryKind::Cached) {
+                        harness.writeback_dcache(address, 64);
+                    }
+                    let effective = reverse_endian_effective_address(address, case.bytes);
+                    let offset = (effective - memory_kind.data_base()) as usize;
+                    let bytes = harness.read_page_bytes(memory_kind, offset, case.bytes);
+                    let expected = case.value.to_be_bytes();
+                    for i in 0..case.bytes {
+                        soft_assert_eq2(bytes[i], expected[8 - case.bytes + i], || {
+                            format!("{} byte {} on {}", case.name, i, memory_kind.name())
+                        })?;
+                    }
                 }
             }
         }
@@ -481,48 +503,51 @@ impl Test for ReDcacheLineToggle {
     fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
-        let mut harness = EndianHarness::new();
-        harness.setup_mappings();
-        harness.fill_fixture();
-        harness.clear_store_area();
+        for mode_64bit in [false, true] {
+            let mut harness = EndianHarness::new();
+            harness.setup_mappings();
+            harness.fill_fixture();
+            harness.clear_store_area();
 
-        let address = DATA_CACHED_BASE + DATA_OFFSET as u32;
-        let line_before = harness.read_page_bytes(MemoryKind::Cached, DATA_OFFSET, cop0::DCACHE_LINE_BYTES);
-        let status_re0 = Status::DEFAULT
-            .with_ksu(StatusKSU::User)
-            .with_reverse_endian(false)
-            .with_exl(true)
-            .with_erl(false)
-            .with_kx(true)
-            .with_sx(true)
-            .with_ux(true)
-            .raw_value();
-        let status_re0_seq = load_u32_sequence(GPR::T2, status_re0);
-        let re1_program = vec![
-            Assembler::make_lui(GPR::T0, (address >> 16) as u16),
-            Assembler::make_ori(GPR::T0, GPR::T0, address as u16),
-            Assembler::make_lw(GPR::T1, 0, GPR::T0),
-            status_re0_seq[0],
-            status_re0_seq[1],
-            Assembler::make_mtc0(GPR::T2, u5::new(12)),
-            Assembler::make_nop(),
-            Assembler::make_nop(),
-            Assembler::make_nop(),
-            Assembler::make_nop(),
-        ];
-        let re0_program = vec![
-            Assembler::make_addiu(GPR::T1, GPR::R0, 0x005a),
-            Assembler::make_sb(GPR::T1, 0, GPR::T0),
-            Assembler::make_cache(cop0::DCACHE_HIT_WRITEBACK, 0, GPR::T0),
-            Assembler::make_syscall(0x2f1),
-        ];
-        let program = re1_then_re0_encode(&re1_program, &re0_program);
-        let entry = harness.write_program(true, &program);
-        run_mode_program_with_cop0(StatusKSU::User, true, true, entry, CauseException::Sys, 1, true)
-            .map_err(|e| format!("dcache single-pass RE1->RE0: {}", e))?;
-        let line_after = harness.read_page_bytes(MemoryKind::Cached, DATA_OFFSET, cop0::DCACHE_LINE_BYTES);
-        for i in 1..cop0::DCACHE_LINE_BYTES {
-            soft_assert_eq2(line_after[i], line_before[i], || format!("dcache byte {} changed after RE1->RE0", i))?;
+            let address = DATA_CACHED_BASE + DATA_OFFSET as u32;
+            let line_before = harness.read_page_bytes(MemoryKind::Cached, DATA_OFFSET, cop0::DCACHE_LINE_BYTES);
+            let mut status_re0 = Status::DEFAULT
+                .with_ksu(StatusKSU::User)
+                .with_reverse_endian(false)
+                .with_exl(true)
+                .with_erl(false);
+            if mode_64bit {
+                status_re0 = status_re0.with_kx(true).with_sx(true).with_ux(true);
+            }
+            let status_re0_seq = load_u32_sequence(GPR::T2, status_re0.raw_value());
+            let re1_program = vec![
+                Assembler::make_lui(GPR::T0, (address >> 16) as u16),
+                Assembler::make_ori(GPR::T0, GPR::T0, address as u16),
+                Assembler::make_lw(GPR::T1, 0, GPR::T0),
+                status_re0_seq[0],
+                status_re0_seq[1],
+                Assembler::make_mtc0(GPR::T2, u5::new(12)),
+                Assembler::make_nop(),
+                Assembler::make_nop(),
+                Assembler::make_nop(),
+                Assembler::make_nop(),
+            ];
+            let re0_program = vec![
+                Assembler::make_addiu(GPR::T1, GPR::R0, 0x005a),
+                Assembler::make_sb(GPR::T1, 0, GPR::T0),
+                Assembler::make_cache(cop0::DCACHE_HIT_WRITEBACK, 0, GPR::T0),
+                Assembler::make_syscall(0x2f1),
+            ];
+            let program = re1_then_re0_encode(&re1_program, &re0_program);
+            let entry = harness.write_program(true, &program);
+            run_mode_program_with_cop0(StatusKSU::User, true, mode_64bit, entry, CauseException::Sys, 1, true)
+                .map_err(|e| format!("dcache single-pass RE1->RE0 [{}]: {}", re_mode_label(mode_64bit), e))?;
+            let line_after = harness.read_page_bytes(MemoryKind::Cached, DATA_OFFSET, cop0::DCACHE_LINE_BYTES);
+            for i in 1..cop0::DCACHE_LINE_BYTES {
+                soft_assert_eq2(line_after[i], line_before[i], || {
+                    format!("dcache byte {} changed after RE1->RE0 [{}]", i, re_mode_label(mode_64bit))
+                })?;
+            }
         }
         Ok(())
     }
@@ -538,64 +563,67 @@ impl Test for ReIcacheLineToggle {
     fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
-        let mut harness = EndianHarness::new();
-        harness.setup_mappings();
-        harness.fill_fixture();
-        harness.clear_store_area();
+        for mode_64bit in [false, true] {
+            let mut harness = EndianHarness::new();
+            harness.setup_mappings();
+            harness.fill_fixture();
+            harness.clear_store_area();
 
-        let line_offset = 0x0200usize;
-        let address = CODE_CACHED_BASE + line_offset as u32;
-        let mut line_before = [0u8; 32];
-        for i in 0..cop0::ICACHE_LINE_BYTES {
-            line_before[i] = 0x40 + i as u8;
-        }
-        harness.write_code_bytes(true, line_offset, &line_before[..cop0::ICACHE_LINE_BYTES]);
-        let status_re0 = Status::DEFAULT
-            .with_ksu(StatusKSU::User)
-            .with_reverse_endian(false)
-            .with_exl(true)
-            .with_erl(false)
-            .with_kx(true)
-            .with_sx(true)
-            .with_ux(true)
-            .raw_value();
-        let status_re0_seq = load_u32_sequence(GPR::T2, status_re0);
-        let re1_program = vec![
-            Assembler::make_lui(GPR::T0, (address >> 16) as u16),
-            Assembler::make_ori(GPR::T0, GPR::T0, address as u16),
-            Assembler::make_cache(cop0::ICACHE_FILL, 0, GPR::T0),
-            status_re0_seq[0],
-            status_re0_seq[1],
-            Assembler::make_mtc0(GPR::T2, u5::new(12)),
-            Assembler::make_nop(),
-            Assembler::make_nop(),
-            Assembler::make_nop(),
-            Assembler::make_nop(),
-        ];
-        let re0_program = vec![
-            Assembler::make_cache(cop0::ICACHE_HIT_WRITEBACK, 0, GPR::T0),
-            Assembler::make_syscall(0x2f3),
-        ];
-        let program = re1_then_re0_encode(&re1_program, &re0_program);
-        let entry = harness.write_program(true, &program);
-        run_mode_program_with_cop0(StatusKSU::User, true, true, entry, CauseException::Sys, 1, true)
-            .map_err(|e| format!("icache single-pass RE1->RE0: {}", e))?;
-        let line_after = harness.read_code_bytes(true, line_offset, cop0::ICACHE_LINE_BYTES);
-        for i in 0..cop0::ICACHE_LINE_BYTES {
-            soft_assert_eq2(line_after[i], line_before[i], || format!("icache byte {} changed after RE1->RE0", i))?;
+            let line_offset = 0x0200usize;
+            let address = CODE_CACHED_BASE + line_offset as u32;
+            let mut line_before = [0u8; 32];
+            for i in 0..cop0::ICACHE_LINE_BYTES {
+                line_before[i] = 0x40 + i as u8;
+            }
+            harness.write_code_bytes(true, line_offset, &line_before[..cop0::ICACHE_LINE_BYTES]);
+            let mut status_re0 = Status::DEFAULT
+                .with_ksu(StatusKSU::User)
+                .with_reverse_endian(false)
+                .with_exl(true)
+                .with_erl(false);
+            if mode_64bit {
+                status_re0 = status_re0.with_kx(true).with_sx(true).with_ux(true);
+            }
+            let status_re0_seq = load_u32_sequence(GPR::T2, status_re0.raw_value());
+            let re1_program = vec![
+                Assembler::make_lui(GPR::T0, (address >> 16) as u16),
+                Assembler::make_ori(GPR::T0, GPR::T0, address as u16),
+                Assembler::make_cache(cop0::ICACHE_FILL, 0, GPR::T0),
+                status_re0_seq[0],
+                status_re0_seq[1],
+                Assembler::make_mtc0(GPR::T2, u5::new(12)),
+                Assembler::make_nop(),
+                Assembler::make_nop(),
+                Assembler::make_nop(),
+                Assembler::make_nop(),
+            ];
+            let re0_program = vec![
+                Assembler::make_cache(cop0::ICACHE_HIT_WRITEBACK, 0, GPR::T0),
+                Assembler::make_syscall(0x2f3),
+            ];
+            let program = re1_then_re0_encode(&re1_program, &re0_program);
+            let entry = harness.write_program(true, &program);
+            run_mode_program_with_cop0(StatusKSU::User, true, mode_64bit, entry, CauseException::Sys, 1, true)
+                .map_err(|e| format!("icache single-pass RE1->RE0 [{}]: {}", re_mode_label(mode_64bit), e))?;
+            let line_after = harness.read_code_bytes(true, line_offset, cop0::ICACHE_LINE_BYTES);
+            for i in 0..cop0::ICACHE_LINE_BYTES {
+                soft_assert_eq2(line_after[i], line_before[i], || {
+                    format!("icache byte {} changed after RE1->RE0 [{}]", i, re_mode_label(mode_64bit))
+                })?;
+            }
         }
         Ok(())
     }
 }
 
-fn run_unaligned_32bit_load_pairs(memory_kind: MemoryKind) -> Result<(), String> {
+fn run_unaligned_32bit_load_pairs(memory_kind: MemoryKind, mode_64bit: bool) -> Result<(), String> {
     let base = memory_kind.data_base() + DATA_OFFSET as u32;
     let prog_lw = vec![
         Assembler::make_lui(GPR::T0, (base >> 16) as u16),
         Assembler::make_ori(GPR::T0, GPR::T0, base as u16),
         Assembler::make_lw(GPR::T1, 0, GPR::T0),
     ];
-    let ctx_lw = run_re_program_labeled(&format!("unaligned base LW {}", memory_kind.name()), &prog_lw, true)?;
+    let ctx_lw = run_re_program_labeled(&format!("unaligned base LW {}", memory_kind.name()), &prog_lw, true, mode_64bit)?;
     let prog_lwl_lwr = vec![
         Assembler::make_lui(GPR::T0, (base >> 16) as u16),
         Assembler::make_ori(GPR::T0, GPR::T0, base as u16),
@@ -608,6 +636,7 @@ fn run_unaligned_32bit_load_pairs(memory_kind: MemoryKind) -> Result<(), String>
         &format!("unaligned LWL/LWR {}", memory_kind.name()),
         &prog_lwl_lwr,
         true,
+        mode_64bit,
     )?;
     soft_assert_eq2(
         ctx_lwl_lwr.t1 as u32,
@@ -624,7 +653,7 @@ fn run_unaligned_64bit_load_pairs(memory_kind: MemoryKind) -> Result<(), String>
         Assembler::make_ori(GPR::T0, GPR::T0, base as u16),
         Assembler::make_ld(GPR::T1, 0, GPR::T0),
     ];
-    let ctx_ld = run_re_program_labeled(&format!("unaligned base LD {}", memory_kind.name()), &prog_ld, true)?;
+    let ctx_ld = run_re_program_labeled(&format!("unaligned base LD {}", memory_kind.name()), &prog_ld, true, true)?;
     let prog_ldl_ldr = vec![
         Assembler::make_lui(GPR::T0, (base >> 16) as u16),
         Assembler::make_ori(GPR::T0, GPR::T0, base as u16),
@@ -637,12 +666,13 @@ fn run_unaligned_64bit_load_pairs(memory_kind: MemoryKind) -> Result<(), String>
         &format!("unaligned LDL/LDR {}", memory_kind.name()),
         &prog_ldl_ldr,
         true,
+        true,
     )?;
     soft_assert_eq2(ctx_ldl_ldr.t1, ctx_ld.t1, || format!("LDL/LDR pair on {}", memory_kind.name()))?;
     Ok(())
 }
 
-fn run_unaligned_32bit_store_pairs(memory_kind: MemoryKind) -> Result<(), String> {
+fn run_unaligned_32bit_store_pairs(memory_kind: MemoryKind, mode_64bit: bool) -> Result<(), String> {
     let store_address = memory_kind.data_base() + STORE_OFFSET as u32;
     let mut harness_sw = EndianHarness::new();
     harness_sw.setup_mappings();
@@ -658,7 +688,7 @@ fn run_unaligned_32bit_store_pairs(memory_kind: MemoryKind) -> Result<(), String
     ];
     let encoded_sw = re_fetch_encode(&program_sw);
     let entry_sw = harness_sw.write_program(true, &encoded_sw);
-    let _ = run_re_entry_labeled(&format!("unaligned SW baseline {}", memory_kind.name()), entry_sw)?;
+    let _ = run_re_entry_labeled(&format!("unaligned SW baseline {}", memory_kind.name()), entry_sw, mode_64bit)?;
     if matches!(memory_kind, MemoryKind::Cached) {
         harness_sw.writeback_dcache(store_address, 64);
     }
@@ -679,7 +709,7 @@ fn run_unaligned_32bit_store_pairs(memory_kind: MemoryKind) -> Result<(), String
     program_swl_swr.push(Assembler::make_syscall(0x2e4));
     let encoded_swl_swr = re_fetch_encode(&program_swl_swr);
     let entry_swl_swr = harness_swl_swr.write_program(true, &encoded_swl_swr);
-    let _ = run_re_entry_labeled(&format!("unaligned SWL/SWR {}", memory_kind.name()), entry_swl_swr)?;
+    let _ = run_re_entry_labeled(&format!("unaligned SWL/SWR {}", memory_kind.name()), entry_swl_swr, mode_64bit)?;
     if matches!(memory_kind, MemoryKind::Cached) {
         harness_swl_swr.writeback_dcache(store_address, 64);
     }
@@ -709,7 +739,7 @@ fn run_unaligned_64bit_store_pairs(memory_kind: MemoryKind) -> Result<(), String
     program_sd.push(Assembler::make_syscall(0x2e5));
     let encoded_sd = re_fetch_encode(&program_sd);
     let entry_sd = harness_sd.write_program(true, &encoded_sd);
-    let _ = run_re_entry_labeled(&format!("unaligned SD baseline {}", memory_kind.name()), entry_sd)?;
+    let _ = run_re_entry_labeled(&format!("unaligned SD baseline {}", memory_kind.name()), entry_sd, true)?;
     if matches!(memory_kind, MemoryKind::Cached) {
         harness_sd.writeback_dcache(store_address, 64);
     }
@@ -729,7 +759,7 @@ fn run_unaligned_64bit_store_pairs(memory_kind: MemoryKind) -> Result<(), String
     program_sdl_sdr.push(Assembler::make_syscall(0x2e6));
     let encoded_sdl_sdr = re_fetch_encode(&program_sdl_sdr);
     let entry_sdl_sdr = harness_sdl_sdr.write_program(true, &encoded_sdl_sdr);
-    let _ = run_re_entry_labeled(&format!("unaligned SDL/SDR {}", memory_kind.name()), entry_sdl_sdr)?;
+    let _ = run_re_entry_labeled(&format!("unaligned SDL/SDR {}", memory_kind.name()), entry_sdl_sdr, true)?;
     if matches!(memory_kind, MemoryKind::Cached) {
         harness_sdl_sdr.writeback_dcache(store_address, 64);
     }
@@ -753,8 +783,10 @@ impl Test for ReUnaligned32BitLoads {
     fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
-        for memory_kind in [MemoryKind::Cached, MemoryKind::Uncached] {
-            run_unaligned_32bit_load_pairs(memory_kind)?;
+        for mode_64bit in [false, true] {
+            for memory_kind in [MemoryKind::Cached, MemoryKind::Uncached] {
+                run_unaligned_32bit_load_pairs(memory_kind, mode_64bit)?;
+            }
         }
         Ok(())
     }
@@ -770,8 +802,10 @@ impl Test for ReUnaligned32BitStores {
     fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
-        for memory_kind in [MemoryKind::Cached, MemoryKind::Uncached] {
-            run_unaligned_32bit_store_pairs(memory_kind)?;
+        for mode_64bit in [false, true] {
+            for memory_kind in [MemoryKind::Cached, MemoryKind::Uncached] {
+                run_unaligned_32bit_store_pairs(memory_kind, mode_64bit)?;
+            }
         }
         Ok(())
     }
