@@ -4,11 +4,11 @@ use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 use core::any::Any;
-use arbitrary_int::{u2, u27};
+use arbitrary_int::{u2, u5, u27};
 
 use crate::assembler::{Assembler, FR, GPR};
-use crate::cop0::{self, CauseException, StatusKSU, make_entry_hi, make_entry_lo};
-use crate::tests::privilege::run_mode_program;
+use crate::cop0::{self, CauseException, Status, StatusKSU, make_entry_hi, make_entry_lo};
+use crate::tests::privilege::{run_mode_program, run_mode_program_with_cop0};
 use crate::tests::soft_asserts::{soft_assert_eq, soft_assert_eq2};
 use crate::tests::{Level, Test};
 use crate::uncached_memory::UncachedHeapMemory;
@@ -94,6 +94,12 @@ fn re_fetch_encode(program: &[u32]) -> Vec<u32> {
         encoded.swap(i, i + 1);
         i += 2;
     }
+    encoded
+}
+
+fn re1_then_re0_encode(re1_program: &[u32], re0_program: &[u32]) -> Vec<u32> {
+    let mut encoded = re_fetch_encode(re1_program);
+    encoded.extend_from_slice(re0_program);
     encoded
 }
 
@@ -194,6 +200,29 @@ impl EndianHarness {
                 }
             }
         }
+    }
+
+    fn write_page_bytes(&mut self, page_index: usize, start: usize, bytes: &[u8]) {
+        let base = Self::page_offset(page_index) + start;
+        for (index, value) in bytes.iter().enumerate() {
+            unsafe {
+                self.ptr_u8().add(base + index).write_volatile(*value);
+            }
+        }
+    }
+
+    fn read_code_bytes(&self, cached: bool, start: usize, len: usize) -> [u8; 32] {
+        let mut out = [0u8; 32];
+        let page_index = Self::code_page_index(cached);
+        let offset = Self::page_offset(page_index) + start;
+        for index in 0..len {
+            out[index] = unsafe { self.ptr_u8().add(offset + index).read_volatile() };
+        }
+        out
+    }
+
+    fn write_code_bytes(&mut self, cached: bool, start: usize, bytes: &[u8]) {
+        self.write_page_bytes(Self::code_page_index(cached), start, bytes);
     }
 
     fn write_program(&mut self, cached_code: bool, program: &[u32]) -> u32 {
@@ -437,6 +466,123 @@ impl Test for ReStoreMatrix {
                     })?;
                 }
             }
+        }
+        Ok(())
+    }
+}
+
+pub struct ReDcacheLineToggle;
+
+impl Test for ReDcacheLineToggle {
+    fn name(&self) -> &str { "RE dcache single-pass: fill(RE=1) then writeback(RE=0)" }
+
+    fn level(&self) -> Level { Level::RarelyUsed }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        let mut harness = EndianHarness::new();
+        harness.setup_mappings();
+        harness.fill_fixture();
+        harness.clear_store_area();
+
+        let address = DATA_CACHED_BASE + DATA_OFFSET as u32;
+        let line_before = harness.read_page_bytes(MemoryKind::Cached, DATA_OFFSET, cop0::DCACHE_LINE_BYTES);
+        let status_re0 = Status::DEFAULT
+            .with_ksu(StatusKSU::User)
+            .with_reverse_endian(false)
+            .with_exl(true)
+            .with_erl(false)
+            .with_kx(true)
+            .with_sx(true)
+            .with_ux(true)
+            .raw_value();
+        let status_re0_seq = load_u32_sequence(GPR::T2, status_re0);
+        let re1_program = vec![
+            Assembler::make_lui(GPR::T0, (address >> 16) as u16),
+            Assembler::make_ori(GPR::T0, GPR::T0, address as u16),
+            Assembler::make_lw(GPR::T1, 0, GPR::T0),
+            status_re0_seq[0],
+            status_re0_seq[1],
+            Assembler::make_mtc0(GPR::T2, u5::new(12)),
+            Assembler::make_nop(),
+            Assembler::make_nop(),
+            Assembler::make_nop(),
+            Assembler::make_nop(),
+        ];
+        let re0_program = vec![
+            Assembler::make_addiu(GPR::T1, GPR::R0, 0x005a),
+            Assembler::make_sb(GPR::T1, 0, GPR::T0),
+            Assembler::make_cache(cop0::DCACHE_HIT_WRITEBACK, 0, GPR::T0),
+            Assembler::make_syscall(0x2f1),
+        ];
+        let program = re1_then_re0_encode(&re1_program, &re0_program);
+        let entry = harness.write_program(true, &program);
+        run_mode_program_with_cop0(StatusKSU::User, true, true, entry, CauseException::Sys, 1, true)
+            .map_err(|e| format!("dcache single-pass RE1->RE0: {}", e))?;
+        let line_after = harness.read_page_bytes(MemoryKind::Cached, DATA_OFFSET, cop0::DCACHE_LINE_BYTES);
+        for i in 1..cop0::DCACHE_LINE_BYTES {
+            soft_assert_eq2(line_after[i], line_before[i], || format!("dcache byte {} changed after RE1->RE0", i))?;
+        }
+        Ok(())
+    }
+}
+
+pub struct ReIcacheLineToggle;
+
+impl Test for ReIcacheLineToggle {
+    fn name(&self) -> &str { "RE icache single-pass: fill(RE=1) then writeback(RE=0)" }
+
+    fn level(&self) -> Level { Level::RarelyUsed }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        let mut harness = EndianHarness::new();
+        harness.setup_mappings();
+        harness.fill_fixture();
+        harness.clear_store_area();
+
+        let line_offset = 0x0200usize;
+        let address = CODE_CACHED_BASE + line_offset as u32;
+        let mut line_before = [0u8; 32];
+        for i in 0..cop0::ICACHE_LINE_BYTES {
+            line_before[i] = 0x40 + i as u8;
+        }
+        harness.write_code_bytes(true, line_offset, &line_before[..cop0::ICACHE_LINE_BYTES]);
+        let status_re0 = Status::DEFAULT
+            .with_ksu(StatusKSU::User)
+            .with_reverse_endian(false)
+            .with_exl(true)
+            .with_erl(false)
+            .with_kx(true)
+            .with_sx(true)
+            .with_ux(true)
+            .raw_value();
+        let status_re0_seq = load_u32_sequence(GPR::T2, status_re0);
+        let re1_program = vec![
+            Assembler::make_lui(GPR::T0, (address >> 16) as u16),
+            Assembler::make_ori(GPR::T0, GPR::T0, address as u16),
+            Assembler::make_cache(cop0::ICACHE_FILL, 0, GPR::T0),
+            status_re0_seq[0],
+            status_re0_seq[1],
+            Assembler::make_mtc0(GPR::T2, u5::new(12)),
+            Assembler::make_nop(),
+            Assembler::make_nop(),
+            Assembler::make_nop(),
+            Assembler::make_nop(),
+        ];
+        let re0_program = vec![
+            Assembler::make_cache(cop0::ICACHE_HIT_WRITEBACK, 0, GPR::T0),
+            Assembler::make_syscall(0x2f3),
+        ];
+        let program = re1_then_re0_encode(&re1_program, &re0_program);
+        let entry = harness.write_program(true, &program);
+        run_mode_program_with_cop0(StatusKSU::User, true, true, entry, CauseException::Sys, 1, true)
+            .map_err(|e| format!("icache single-pass RE1->RE0: {}", e))?;
+        let line_after = harness.read_code_bytes(true, line_offset, cop0::ICACHE_LINE_BYTES);
+        for i in 0..cop0::ICACHE_LINE_BYTES {
+            soft_assert_eq2(line_after[i], line_before[i], || format!("icache byte {} changed after RE1->RE0", i))?;
         }
         Ok(())
     }

@@ -622,6 +622,8 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::endian_re::ReExecuteCodePaths {}),
         Box::new(super::endian_re::ReLoadMatrix {}),
         Box::new(super::endian_re::ReStoreMatrix {}),
+        Box::new(super::endian_re::ReDcacheLineToggle {}),
+        Box::new(super::endian_re::ReIcacheLineToggle {}),
         Box::new(super::endian_re::ReUnaligned32BitLoads {}),
         Box::new(super::endian_re::ReUnaligned32BitStores {}),
         Box::new(super::endian_re::ReUnaligned64BitLoads {}),

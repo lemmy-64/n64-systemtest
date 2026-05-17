@@ -389,6 +389,13 @@ impl Assembler {
             ((Opcode::COP0 as u32) << 26)
     }
 
+    pub const fn make_mtc0(rt: GPR, rd: u5) -> u32 {
+        ((rd.value() as u32) << 11) |
+            ((rt.raw_value().value() as u32) << 16) |
+            (0b00100 << 21) |
+            ((Opcode::COP0 as u32) << 26)
+    }
+
     const fn make_cop1_float_instruction(instruction: Cop1FloatInstruction, fd: FR, fs: FR, ft: FR) -> FPUFloatInstruction {
         FPUFloatInstruction::new(
             (instruction as u32) |
@@ -452,6 +459,13 @@ impl Assembler {
 
     pub const fn make_ori(rt: GPR, rs: GPR, imm: u16) -> u32 {
         Self::make_main_immediate(Opcode::ORI, rt, rs, imm)
+    }
+
+    pub const fn make_cache(op: u8, offset: i16, base: GPR) -> u32 {
+        (offset as u16 as u32) |
+            (((op as u32) & 31) << 16) |
+            ((base.raw_value().value() as u32) << 21) |
+            ((Opcode::CACHE as u32) << 26)
     }
 
     pub const fn make_lb(rt: GPR, offset: i16, base: GPR) -> u32 {

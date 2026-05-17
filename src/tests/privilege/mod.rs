@@ -88,6 +88,26 @@ pub(crate) fn run_mode_program(
     expected_exception: CauseException,
     skip_instructions: u64,
 ) -> Result<ExceptionContext, String> {
+    run_mode_program_with_cop0(
+        mode,
+        reverse_endian,
+        mode_64bit,
+        entry,
+        expected_exception,
+        skip_instructions,
+        false,
+    )
+}
+
+pub(crate) fn run_mode_program_with_cop0(
+    mode: StatusKSU,
+    reverse_endian: bool,
+    mode_64bit: bool,
+    entry: u32,
+    expected_exception: CauseException,
+    skip_instructions: u64,
+    cop0_usable: bool,
+) -> Result<ExceptionContext, String> {
     let mut user_status = Status::DEFAULT
         .with_ksu(mode)
         .with_reverse_endian(reverse_endian)
@@ -95,6 +115,9 @@ pub(crate) fn run_mode_program(
         .with_erl(false);
     if mode_64bit {
         user_status = user_status.with_kx(true).with_sx(true).with_ux(true);
+    }
+    if cop0_usable {
+        user_status = user_status.with_cop0usable(true);
     }
     let kernel_status = Status::DEFAULT.with_exl(true).raw_value();
     let kernel_return_address = return_via_s0_stub as u32 as i32 as i64 as u64;
