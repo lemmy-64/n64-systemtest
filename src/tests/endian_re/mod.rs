@@ -246,14 +246,12 @@ impl EndianHarness {
         unsafe {
             cop0::dcache_index_writeback_invalidate_range(base as usize, len);
             cop0::icache_index_invalidate_range(base as usize, len);
-            cop0::sync();
         }
     }
 
     fn writeback_dcache(&self, base: u32, len: usize) {
         unsafe {
             cop0::dcache_index_writeback_invalidate_range(base as usize, len);
-            cop0::sync();
         }
     }
 
@@ -616,230 +614,269 @@ impl Test for ReIcacheLineToggle {
     }
 }
 
-fn run_unaligned_32bit_load_pairs(memory_kind: MemoryKind, mode_64bit: bool) -> Result<(), String> {
+#[derive(Copy, Clone)]
+struct PartialLoadCase {
+    name: &'static str,
+    emit: fn(GPR, i16, GPR) -> u32,
+    width: usize,
+    value: u64,
+    expected: &'static [u64],
+}
+
+struct PartialStoreCase {
+    name: &'static str,
+    emit: fn(GPR, i16, GPR) -> u32,
+    width: usize,
+    value: u64,
+    expected: &'static [[u64; 4]],
+}
+
+const LWL_EXPECTED: [u64; 4] = [
+    0x0000_0000_01ef_0102,
+    0x0000_0000_0201_0102,
+    0x0000_0000_0302_0102,
+    0x0000_0000_0403_0201,
+];
+
+const LWR_EXPECTED: [u64; 4] = [
+    0x0000_0000_0403_0201,
+    0x0000_0000_0004_0302,
+    0x0000_0000_00ef_0403,
+    0x0000_0000_00ef_0104,
+];
+
+const LDL_EXPECTED: [u64; 8] = [
+    0x0122_3344_5566_7788,
+    0x0201_3344_5566_7788,
+    0x0302_0144_5566_7788,
+    0x0403_0201_5566_7788,
+    0x0504_0302_0166_7788,
+    0x0605_0403_0201_7788,
+    0x0706_0504_0302_0188,
+    0x0807_0605_0403_0201,
+];
+
+const LDR_EXPECTED: [u64; 8] = [
+    0x0807_0605_0403_0201,
+    0x1108_0706_0504_0302,
+    0x1122_0807_0605_0403,
+    0x1122_3308_0706_0504,
+    0x1122_3344_0807_0605,
+    0x1122_3344_5508_0706,
+    0x1122_3344_5566_0807,
+    0x1122_3344_5566_7708,
+];
+
+const SWL_EXPECTED: [[u64; 4]; 4] = [
+    [0xaaaa_aaaa_aaaa_aa50, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa],
+    [0xaaaa_aaaa_aaaa_5060, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa],
+    [0xaaaa_aaaa_aa50_6070, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa],
+    [0xaaaa_aaaa_5060_7080, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa],
+];
+
+const SWR_EXPECTED: [[u64; 4]; 4] = [
+    [0xaaaa_aaaa_5060_7080, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa],
+    [0xaaaa_aaaa_6070_80aa, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa],
+    [0xaaaa_aaaa_7080_aaaa, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa],
+    [0xaaaa_aaaa_80aa_aaaa, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa],
+];
+
+const SDL_EXPECTED: [[u64; 4]; 8] = [
+    [0xaaaa_aaaa_aaaa_aa10, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa],
+    [0xaaaa_aaaa_aaaa_1020, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa],
+    [0xaaaa_aaaa_aa10_2030, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa],
+    [0xaaaa_aaaa_1020_3040, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa],
+    [0xaaaa_aa10_2030_4050, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa],
+    [0xaaaa_1020_3040_5060, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa],
+    [0xaa10_2030_4050_6070, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa],
+    [0x1020_3040_5060_7080, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa],
+];
+
+const SDR_EXPECTED: [[u64; 4]; 8] = [
+    [0x1020_3040_5060_7080, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa],
+    [0x2030_4050_6070_80aa, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa],
+    [0x3040_5060_7080_aaaa, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa],
+    [0x4050_6070_80aa_aaaa, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa],
+    [0x5060_7080_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa],
+    [0x6070_80aa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa],
+    [0x7080_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa],
+    [0x80aa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa, 0xaaaa_aaaa_aaaa_aaaa],
+];
+
+fn collect_expected_store_mismatches(actual: [u8; 32], expected: [u64; 4], label: &str, failures: &mut Vec<String>) {
+    for word in 0..4 {
+        let offset = word * 8;
+        let actual_word = u64::from_be_bytes([
+            actual[offset + 0],
+            actual[offset + 1],
+            actual[offset + 2],
+            actual[offset + 3],
+            actual[offset + 4],
+            actual[offset + 5],
+            actual[offset + 6],
+            actual[offset + 7],
+        ]);
+        if actual_word != expected[word] {
+            failures.push(format!(
+                "{} qword{} expected={:#018x} actual={:#018x}",
+                label, word, expected[word], actual_word
+            ));
+        }
+    }
+}
+
+fn run_partial_load_matrix(memory_kind: MemoryKind, mode_64bit: bool) -> Result<(), String> {
     let base = memory_kind.data_base() + DATA_OFFSET as u32;
-    let prog_lw = vec![
-        Assembler::make_lui(GPR::T0, (base >> 16) as u16),
-        Assembler::make_ori(GPR::T0, GPR::T0, base as u16),
-        Assembler::make_lw(GPR::T1, 0, GPR::T0),
+    let mut failures = Vec::new();
+    let cases = [
+        PartialLoadCase { name: "LWL", emit: Assembler::make_lwl, width: 4, value: 0x00ef_0102, expected: &LWL_EXPECTED },
+        PartialLoadCase { name: "LWR", emit: Assembler::make_lwr, width: 4, value: 0x00ef_0102, expected: &LWR_EXPECTED },
+        PartialLoadCase { name: "LDL", emit: Assembler::make_ldl, width: 8, value: 0x1122_3344_5566_7788, expected: &LDL_EXPECTED },
+        PartialLoadCase { name: "LDR", emit: Assembler::make_ldr, width: 8, value: 0x1122_3344_5566_7788, expected: &LDR_EXPECTED },
     ];
-    let ctx_lw = run_re_program_labeled(&format!("unaligned base LW {}", memory_kind.name()), &prog_lw, true, mode_64bit)?;
-    let prog_lwl_lwr = vec![
-        Assembler::make_lui(GPR::T0, (base >> 16) as u16),
-        Assembler::make_ori(GPR::T0, GPR::T0, base as u16),
-        Assembler::make_lui(GPR::T1, 0xbeef),
-        Assembler::make_ori(GPR::T1, GPR::T1, 0x0102),
-        Assembler::make_lwl(GPR::T1, 3, GPR::T0),
-        Assembler::make_lwr(GPR::T1, 0, GPR::T0),
-    ];
-    let ctx_lwl_lwr = run_re_program_labeled(
-        &format!("unaligned LWL/LWR {}", memory_kind.name()),
-        &prog_lwl_lwr,
-        true,
-        mode_64bit,
-    )?;
-    soft_assert_eq2(
-        ctx_lwl_lwr.t1 as u32,
-        ctx_lw.t1 as u32,
-        || format!("LWL/LWR pair on {}", memory_kind.name()),
-    )?;
-    Ok(())
-}
-
-fn run_unaligned_64bit_load_pairs(memory_kind: MemoryKind) -> Result<(), String> {
-    let base = memory_kind.data_base() + DATA_OFFSET as u32;
-    let prog_ld = vec![
-        Assembler::make_lui(GPR::T0, (base >> 16) as u16),
-        Assembler::make_ori(GPR::T0, GPR::T0, base as u16),
-        Assembler::make_ld(GPR::T1, 0, GPR::T0),
-    ];
-    let ctx_ld = run_re_program_labeled(&format!("unaligned base LD {}", memory_kind.name()), &prog_ld, true, true)?;
-    let prog_ldl_ldr = vec![
-        Assembler::make_lui(GPR::T0, (base >> 16) as u16),
-        Assembler::make_ori(GPR::T0, GPR::T0, base as u16),
-        Assembler::make_lui(GPR::T1, 0xbeef),
-        Assembler::make_ori(GPR::T1, GPR::T1, 0x0102),
-        Assembler::make_ldl(GPR::T1, 7, GPR::T0),
-        Assembler::make_ldr(GPR::T1, 0, GPR::T0),
-    ];
-    let ctx_ldl_ldr = run_re_program_labeled(
-        &format!("unaligned LDL/LDR {}", memory_kind.name()),
-        &prog_ldl_ldr,
-        true,
-        true,
-    )?;
-    soft_assert_eq2(ctx_ldl_ldr.t1, ctx_ld.t1, || format!("LDL/LDR pair on {}", memory_kind.name()))?;
-    Ok(())
-}
-
-fn run_unaligned_32bit_store_pairs(memory_kind: MemoryKind, mode_64bit: bool) -> Result<(), String> {
-    let store_address = memory_kind.data_base() + STORE_OFFSET as u32;
-    let mut harness_sw = EndianHarness::new();
-    harness_sw.setup_mappings();
-    harness_sw.fill_fixture();
-    harness_sw.clear_store_area();
-    let program_sw = vec![
-        Assembler::make_lui(GPR::T0, (store_address >> 16) as u16),
-        Assembler::make_ori(GPR::T0, GPR::T0, store_address as u16),
-        Assembler::make_lui(GPR::T1, 0x5060),
-        Assembler::make_ori(GPR::T1, GPR::T1, 0x7080),
-        Assembler::make_sw(GPR::T1, 0, GPR::T0),
-        Assembler::make_syscall(0x2e3),
-    ];
-    let encoded_sw = re_fetch_encode(&program_sw);
-    let entry_sw = harness_sw.write_program(true, &encoded_sw);
-    let _ = run_re_entry_labeled(&format!("unaligned SW baseline {}", memory_kind.name()), entry_sw, mode_64bit)?;
-    if matches!(memory_kind, MemoryKind::Cached) {
-        harness_sw.writeback_dcache(store_address, 64);
-    }
-    let eff_sw = reverse_endian_effective_address(store_address, 4);
-    let bytes_sw = harness_sw.read_page_bytes(memory_kind, (eff_sw - memory_kind.data_base()) as usize, 8);
-    let mut harness_swl_swr = EndianHarness::new();
-    harness_swl_swr.setup_mappings();
-    harness_swl_swr.fill_fixture();
-    harness_swl_swr.clear_store_area();
-    let mut program_swl_swr = vec![
-        Assembler::make_lui(GPR::T0, (store_address >> 16) as u16),
-        Assembler::make_ori(GPR::T0, GPR::T0, store_address as u16),
-        Assembler::make_lui(GPR::T1, 0x5060),
-        Assembler::make_ori(GPR::T1, GPR::T1, 0x7080),
-        Assembler::make_swl(GPR::T1, 3, GPR::T0),
-        Assembler::make_swr(GPR::T1, 0, GPR::T0),
-    ];
-    program_swl_swr.push(Assembler::make_syscall(0x2e4));
-    let encoded_swl_swr = re_fetch_encode(&program_swl_swr);
-    let entry_swl_swr = harness_swl_swr.write_program(true, &encoded_swl_swr);
-    let _ = run_re_entry_labeled(&format!("unaligned SWL/SWR {}", memory_kind.name()), entry_swl_swr, mode_64bit)?;
-    if matches!(memory_kind, MemoryKind::Cached) {
-        harness_swl_swr.writeback_dcache(store_address, 64);
-    }
-    let eff_swl_swr = reverse_endian_effective_address(store_address, 4);
-    let bytes_swl_swr = harness_swl_swr.read_page_bytes(memory_kind, (eff_swl_swr - memory_kind.data_base()) as usize, 8);
-    for i in 0..8 {
-        soft_assert_eq2(bytes_swl_swr[i], bytes_sw[i], || {
-            format!("SWL/SWR pair byte {} on {}", i, memory_kind.name())
-        })?;
-    }
-    Ok(())
-}
-
-fn run_unaligned_64bit_store_pairs(memory_kind: MemoryKind) -> Result<(), String> {
-    let store_address = memory_kind.data_base() + STORE_OFFSET as u32;
-    let store_value = 0x1020304050607080u64;
-    let mut harness_sd = EndianHarness::new();
-    harness_sd.setup_mappings();
-    harness_sd.fill_fixture();
-    harness_sd.clear_store_area();
-    let mut program_sd = vec![
-        Assembler::make_lui(GPR::T0, (store_address >> 16) as u16),
-        Assembler::make_ori(GPR::T0, GPR::T0, store_address as u16),
-    ];
-    program_sd.extend_from_slice(&load_u64_sequence(GPR::T1, GPR::T2, store_value));
-    program_sd.push(Assembler::make_sd(GPR::T1, 0, GPR::T0));
-    program_sd.push(Assembler::make_syscall(0x2e5));
-    let encoded_sd = re_fetch_encode(&program_sd);
-    let entry_sd = harness_sd.write_program(true, &encoded_sd);
-    let _ = run_re_entry_labeled(&format!("unaligned SD baseline {}", memory_kind.name()), entry_sd, true)?;
-    if matches!(memory_kind, MemoryKind::Cached) {
-        harness_sd.writeback_dcache(store_address, 64);
-    }
-    let eff_sd = reverse_endian_effective_address(store_address, 8);
-    let bytes_sd = harness_sd.read_page_bytes(memory_kind, (eff_sd - memory_kind.data_base()) as usize, 16);
-    let mut harness_sdl_sdr = EndianHarness::new();
-    harness_sdl_sdr.setup_mappings();
-    harness_sdl_sdr.fill_fixture();
-    harness_sdl_sdr.clear_store_area();
-    let mut program_sdl_sdr = vec![
-        Assembler::make_lui(GPR::T0, (store_address >> 16) as u16),
-        Assembler::make_ori(GPR::T0, GPR::T0, store_address as u16),
-    ];
-    program_sdl_sdr.extend_from_slice(&load_u64_sequence(GPR::T1, GPR::T2, store_value));
-    program_sdl_sdr.push(Assembler::make_sdl(GPR::T1, 7, GPR::T0));
-    program_sdl_sdr.push(Assembler::make_sdr(GPR::T1, 0, GPR::T0));
-    program_sdl_sdr.push(Assembler::make_syscall(0x2e6));
-    let encoded_sdl_sdr = re_fetch_encode(&program_sdl_sdr);
-    let entry_sdl_sdr = harness_sdl_sdr.write_program(true, &encoded_sdl_sdr);
-    let _ = run_re_entry_labeled(&format!("unaligned SDL/SDR {}", memory_kind.name()), entry_sdl_sdr, true)?;
-    if matches!(memory_kind, MemoryKind::Cached) {
-        harness_sdl_sdr.writeback_dcache(store_address, 64);
-    }
-    let eff_sdl_sdr = reverse_endian_effective_address(store_address, 8);
-    let bytes_sdl_sdr = harness_sdl_sdr.read_page_bytes(memory_kind, (eff_sdl_sdr - memory_kind.data_base()) as usize, 16);
-    for i in 0..16 {
-        soft_assert_eq2(bytes_sdl_sdr[i], bytes_sd[i], || {
-            format!("SDL/SDR pair byte {} on {}", i, memory_kind.name())
-        })?;
-    }
-    Ok(())
-}
-
-pub struct ReUnaligned32BitLoads;
-
-impl Test for ReUnaligned32BitLoads {
-    fn name(&self) -> &str { "RE user mode unaligned 32-bit loads (LWL/LWR)" }
-
-    fn level(&self) -> Level { Level::RarelyUsed }
-
-    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
-
-    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
-        for mode_64bit in [false, true] {
-            for memory_kind in [MemoryKind::Cached, MemoryKind::Uncached] {
-                run_unaligned_32bit_load_pairs(memory_kind, mode_64bit)?;
+    for case in cases {
+        if case.width == 8 && !mode_64bit {
+            continue;
+        }
+        for offset in 0..case.width {
+            let mut program = vec![
+                Assembler::make_lui(GPR::T0, (base >> 16) as u16),
+                Assembler::make_ori(GPR::T0, GPR::T0, base as u16),
+            ];
+            if case.width == 8 {
+                program.extend_from_slice(&load_u64_sequence(GPR::T1, GPR::T2, case.value));
+            } else {
+                let sequence = load_u32_sequence(GPR::T1, case.value as u32);
+                program.push(sequence[0]);
+                program.push(sequence[1]);
+            }
+            program.push((case.emit)(GPR::T1, offset as i16, GPR::T0));
+            let context = run_re_program_labeled(
+                &format!("{} offset={} {}", case.name, offset, memory_kind.name()),
+                &program,
+                true,
+                mode_64bit,
+            )?;
+            let expected = case.expected[offset];
+            if context.t1 != expected {
+                failures.push(format!(
+                    "{} offset {} on {} [{}] expected={:#018x} actual={:#018x}",
+                    case.name,
+                    offset,
+                    memory_kind.name(),
+                    re_mode_label(mode_64bit),
+                    expected,
+                    context.t1
+                ));
             }
         }
-        Ok(())
     }
+    if !failures.is_empty() {
+        return Err(failures.join("\n"));
+    }
+    Ok(())
 }
 
-pub struct ReUnaligned32BitStores;
+fn run_partial_store_matrix(memory_kind: MemoryKind, mode_64bit: bool) -> Result<(), String> {
+    let address = memory_kind.data_base() + STORE_OFFSET as u32;
+    let mut failures = Vec::new();
+    let cases = [
+        PartialStoreCase { name: "SWL", emit: Assembler::make_swl, width: 4, value: 0x5060_7080, expected: &SWL_EXPECTED },
+        PartialStoreCase { name: "SWR", emit: Assembler::make_swr, width: 4, value: 0x5060_7080, expected: &SWR_EXPECTED },
+        PartialStoreCase { name: "SDL", emit: Assembler::make_sdl, width: 8, value: 0x1020_3040_5060_7080, expected: &SDL_EXPECTED },
+        PartialStoreCase { name: "SDR", emit: Assembler::make_sdr, width: 8, value: 0x1020_3040_5060_7080, expected: &SDR_EXPECTED },
+    ];
+    for case in cases {
+        if case.width == 8 && !mode_64bit {
+            continue;
+        }
+        for offset in 0..case.width {
+            let mut harness = EndianHarness::new();
+            harness.setup_mappings();
+            harness.fill_fixture();
+            harness.clear_store_area();
+            let mut program = vec![
+                Assembler::make_lui(GPR::T0, (address >> 16) as u16),
+                Assembler::make_ori(GPR::T0, GPR::T0, address as u16),
+            ];
+            if case.width == 8 {
+                program.extend_from_slice(&load_u64_sequence(GPR::T1, GPR::T2, case.value));
+            } else {
+                let sequence = load_u32_sequence(GPR::T1, case.value as u32);
+                program.push(sequence[0]);
+                program.push(sequence[1]);
+            }
+            program.push((case.emit)(GPR::T1, offset as i16, GPR::T0));
+            program.push(Assembler::make_syscall(0x2e6));
+            let entry = harness.write_program(true, &re_fetch_encode(&program));
+            run_re_entry_labeled(
+                &format!("{} offset={} {}", case.name, offset, memory_kind.name()),
+                entry,
+                mode_64bit,
+            )?;
+            if matches!(memory_kind, MemoryKind::Cached) {
+                harness.writeback_dcache(address, 64);
+            }
+            let actual = harness.read_page_bytes(memory_kind, STORE_OFFSET, 32);
+            collect_expected_store_mismatches(
+                actual,
+                case.expected[offset],
+                &format!("{} offset {} on {}", case.name, offset, memory_kind.name()),
+                &mut failures,
+            );
+        }
+    }
+    if !failures.is_empty() {
+        return Err(failures.join("\n"));
+    }
+    Ok(())
+}
 
-impl Test for ReUnaligned32BitStores {
-    fn name(&self) -> &str { "RE user mode unaligned 32-bit stores (SWL/SWR)" }
+pub struct RePartialLoadOffsetMatrix;
+
+impl Test for RePartialLoadOffsetMatrix {
+    fn name(&self) -> &str { "RE user mode partial loads matrix (all offsets)" }
 
     fn level(&self) -> Level { Level::RarelyUsed }
 
     fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        let mut failures = Vec::new();
         for mode_64bit in [false, true] {
             for memory_kind in [MemoryKind::Cached, MemoryKind::Uncached] {
-                run_unaligned_32bit_store_pairs(memory_kind, mode_64bit)?;
+                if let Err(error) = run_partial_load_matrix(memory_kind, mode_64bit) {
+                    failures.push(error);
+                }
             }
         }
-        Ok(())
-    }
-}
-
-pub struct ReUnaligned64BitLoads;
-
-impl Test for ReUnaligned64BitLoads {
-    fn name(&self) -> &str { "RE user mode unaligned 64-bit loads (LDL/LDR)" }
-
-    fn level(&self) -> Level { Level::RarelyUsed }
-
-    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
-
-    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
-        for memory_kind in [MemoryKind::Cached, MemoryKind::Uncached] {
-            run_unaligned_64bit_load_pairs(memory_kind)?;
+        if !failures.is_empty() {
+            return Err(failures.join("\n"));
         }
         Ok(())
     }
 }
 
-pub struct ReUnaligned64BitStores;
+pub struct RePartialStoreOffsetMatrix;
 
-impl Test for ReUnaligned64BitStores {
-    fn name(&self) -> &str { "RE user mode unaligned 64-bit stores (SDL/SDR)" }
+impl Test for RePartialStoreOffsetMatrix {
+    fn name(&self) -> &str { "RE user mode partial stores matrix (all offsets)" }
 
     fn level(&self) -> Level { Level::RarelyUsed }
 
     fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
 
     fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
-        for memory_kind in [MemoryKind::Cached, MemoryKind::Uncached] {
-            run_unaligned_64bit_store_pairs(memory_kind)?;
+        let mut failures = Vec::new();
+        for mode_64bit in [false, true] {
+            for memory_kind in [MemoryKind::Cached, MemoryKind::Uncached] {
+                if let Err(error) = run_partial_store_matrix(memory_kind, mode_64bit) {
+                    failures.push(error);
+                }
+            }
+        }
+        if !failures.is_empty() {
+            return Err(failures.join("\n"));
         }
         Ok(())
     }

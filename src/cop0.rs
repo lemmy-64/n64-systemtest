@@ -500,6 +500,7 @@ pub unsafe fn set_tag_lo(value: u32) {
 
 #[inline(always)]
 pub unsafe fn sync() {
+    // Sync is expected to be a no-op on the N64
     unsafe { asm!("sync") }
 }
 
