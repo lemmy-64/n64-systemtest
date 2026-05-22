@@ -9,7 +9,7 @@ use arbitrary_int::{u2, u5, u27};
 use crate::assembler::{Assembler, FR, GPR};
 use crate::cop0::{self, CauseException, Status, StatusKSU, make_entry_hi, make_entry_lo};
 use crate::tests::privilege::{run_mode_program, run_mode_program_with_cop0};
-use crate::tests::soft_asserts::{soft_assert_eq, soft_assert_eq2};
+use crate::tests::soft_asserts::{soft_assert_eq, soft_assert_eq2, soft_assert_neq};
 use crate::tests::{Level, Test};
 use crate::uncached_memory::UncachedHeapMemory;
 
@@ -608,6 +608,65 @@ impl Test for ReIcacheLineToggle {
                 soft_assert_eq2(line_after[i], line_before[i], || {
                     format!("icache byte {} changed after RE1->RE0 [{}]", i, re_mode_label(mode_64bit))
                 })?;
+            }
+        }
+        Ok(())
+    }
+}
+
+pub struct ReBadVaddrUnmapped;
+
+impl Test for ReBadVaddrUnmapped {
+    fn name(&self) -> &str { "RE unmapped access keeps raw BadVAddr (no xor tweak)" }
+
+    fn level(&self) -> Level { Level::RarelyUsed }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        struct AccessCase {
+            name: &'static str,
+            emit: fn(GPR, i16, GPR) -> u32,
+            bytes: usize,
+            mode64_only: bool,
+        }
+        let cases = [
+            AccessCase { name: "LB", emit: Assembler::make_lb, bytes: 1, mode64_only: false },
+            AccessCase { name: "LH", emit: Assembler::make_lh, bytes: 2, mode64_only: false },
+            AccessCase { name: "LW", emit: Assembler::make_lw, bytes: 4, mode64_only: false },
+            AccessCase { name: "LD", emit: Assembler::make_ld, bytes: 8, mode64_only: true },
+        ];
+        let address = DATA_CACHED_BASE + 0x4000;
+        for mode_64bit in [false, true] {
+            for case in cases.iter() {
+                if case.mode64_only && !mode_64bit {
+                    continue;
+                }
+                let mut harness = EndianHarness::new();
+                harness.setup_mappings();
+                harness.fill_fixture();
+                harness.clear_store_area();
+                let program = vec![
+                    Assembler::make_lui(GPR::T0, (address >> 16) as u16),
+                    Assembler::make_ori(GPR::T0, GPR::T0, address as u16),
+                    (case.emit)(GPR::T1, 0, GPR::T0),
+                ];
+                let entry = harness.write_program(true, &re_fetch_encode(&program));
+                let context = run_mode_program(StatusKSU::User, true, mode_64bit, entry, CauseException::TLBL, 1)
+                    .map_err(|e| format!("{} [{}]: {}", case.name, re_mode_label(mode_64bit), e))?;
+                soft_assert_eq2(
+                    context.badvaddr,
+                    address as u64,
+                    || format!("BadVAddr for {} [{}]", case.name, re_mode_label(mode_64bit)),
+                )?;
+                let xor_address = reverse_endian_effective_address(address, case.bytes) as u64;
+                if xor_address != address as u64 {
+                    soft_assert_neq(
+                        context.badvaddr,
+                        xor_address,
+                        format!("BadVAddr for {} must not use xor-tweaked address", case.name).as_str(),
+                    )?;
+                }
             }
         }
         Ok(())

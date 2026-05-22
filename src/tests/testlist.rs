@@ -624,6 +624,7 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::endian_re::ReStoreMatrix {}),
         Box::new(super::endian_re::ReDcacheLineToggle {}),
         Box::new(super::endian_re::ReIcacheLineToggle {}),
+        Box::new(super::endian_re::ReBadVaddrUnmapped {}),
         Box::new(super::endian_re::RePartialLoadOffsetMatrix {}),
         Box::new(super::endian_re::RePartialStoreOffsetMatrix {}),
         Box::new(super::exception_instructions::Break {}),
