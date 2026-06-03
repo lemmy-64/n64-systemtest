@@ -6,7 +6,7 @@ use core::any::Any;
 use core::arch::asm;
 use arbitrary_int::{u2, u5, u27};
 
-use crate::assembler::{Assembler, GPR};
+use crate::assembler::{Assembler, GPR, Opcode, SpecialOpcode};
 use crate::cop0::{self, CauseException, Status, StatusKSU, make_entry_hi, make_entry_lo};
 use crate::exception_handler::{
     ExceptionContext, clear_exception_return_override, expect_exception, set_exception_return_override,
@@ -165,6 +165,14 @@ fn expected_ksu_bits(mode: StatusKSU) -> u32 {
         StatusKSU::Kernel => 0x00,
         StatusKSU::Supervisor => 0x08,
         StatusKSU::User => 0x10,
+    }
+}
+
+fn is_kernel_mode(mode: StatusKSU) -> bool {
+    match mode {
+        StatusKSU::Kernel => true,
+        StatusKSU::Supervisor => false,
+        StatusKSU::User => false,
     }
 }
 
@@ -341,6 +349,124 @@ impl Test for SupervisorModeCop0Unusable {
             u2::new(0),
             "CE on CopUnusable from supervisor mode",
         )?;
+        Ok(())
+    }
+}
+
+type PrivilegeCase = (&'static str, u32, bool, bool);
+
+fn make_hilo_instruction(opcode: SpecialOpcode) -> u32 {
+    Assembler::make_special(opcode, u5::new(0), GPR::R0.raw_value(), GPR::T0.raw_value(), GPR::T1.raw_value())
+}
+
+fn make_main_immediate_instruction(opcode: Opcode, rt: GPR, rs: GPR, imm: i16) -> u32 {
+    (imm as u16 as u32) |
+        ((rt.raw_value().value() as u32) << 16) |
+        ((rs.raw_value().value() as u32) << 21) |
+        ((opcode as u32) << 26)
+}
+
+fn run_privilege_case(
+    mode: StatusKSU,
+    mode_64bit: bool,
+    instruction: u32,
+    raises_ri_in_32_non_kernel: bool,
+    memory_based: bool,
+) -> Result<ExceptionContext, String> {
+    let mut program = Vec::new();
+    if memory_based {
+        if mode_64bit {
+            program.extend_from_slice(&load_u64_sequence(GPR::T0, GPR::T2, 0x0000_0000_0001_0800));
+            program.extend_from_slice(&load_u64_sequence(GPR::T1, GPR::T3, 0x0123_4567_89ab_cdef));
+        } else {
+            program.extend_from_slice(&load_u32_sequence(GPR::T0, 0x0001_0800));
+            program.extend_from_slice(&load_u32_sequence(GPR::T1, 0x89ab_cdef));
+        }
+    } else {
+        if mode_64bit {
+            program.extend_from_slice(&load_u64_sequence(GPR::T0, GPR::T2, 0x0123_4567_89ab_cdef));
+            program.extend_from_slice(&load_u64_sequence(GPR::T1, GPR::T3, 0x0000_0000_0000_0123));
+        } else {
+            program.extend_from_slice(&load_u32_sequence(GPR::T0, 0x89ab_cdef));
+            program.extend_from_slice(&load_u32_sequence(GPR::T1, 0x0000_0123));
+        }
+    }
+    program.push(instruction);
+    program.push(Assembler::make_syscall(0x3af));
+    let expected = if !mode_64bit && !is_kernel_mode(mode) && raises_ri_in_32_non_kernel {
+        CauseException::RI
+    } else {
+        CauseException::Sys
+    };
+    let (_backing, entry) = setup_program(&program, 0)?;
+    run_mode_program(mode, false, mode_64bit, entry, expected, 1)
+}
+
+pub struct WidePrivilegeReservedInstructions;
+
+impl Test for WidePrivilegeReservedInstructions {
+    fn name(&self) -> &str { "Privilege: 64-bit instructions reserved in non-kernel mode" }
+
+    fn level(&self) -> Level { Level::RarelyUsed }
+
+    fn values(&self) -> Vec<Box<dyn Any>> { Vec::new() }
+
+    fn run(&self, _value: &Box<dyn Any>) -> Result<(), String> {
+        let modes = [("kernel", StatusKSU::Kernel), ("supervisor", StatusKSU::Supervisor), ("user", StatusKSU::User)];
+        let widths = [("32", false), ("64", true)];
+        let instructions: [PrivilegeCase; 28] = [
+            ("dadd", Assembler::make_special(SpecialOpcode::DADD, u5::new(0), GPR::T2.raw_value(), GPR::T0.raw_value(), GPR::T1.raw_value()), true, false),
+            ("daddi", make_main_immediate_instruction(Opcode::DADDI, GPR::T2, GPR::T0, 0x1234), true, false),
+            ("daddiu", make_main_immediate_instruction(Opcode::DADDIU, GPR::T2, GPR::T0, 0x1234), true, false),
+            ("daddu", Assembler::make_special(SpecialOpcode::DADDU, u5::new(0), GPR::T2.raw_value(), GPR::T0.raw_value(), GPR::T1.raw_value()), true, false),
+            ("ddiv", make_hilo_instruction(SpecialOpcode::DDIV), true, false),
+            ("ddivu", make_hilo_instruction(SpecialOpcode::DDIVU), true, false),
+            ("div", make_hilo_instruction(SpecialOpcode::DIV), false, false),
+            ("divu", make_hilo_instruction(SpecialOpcode::DIVU), false, false),
+            ("dmult", make_hilo_instruction(SpecialOpcode::DMULT), true, false),
+            ("dmultu", make_hilo_instruction(SpecialOpcode::DMULTU), true, false),
+            ("dsll", Assembler::make_special(SpecialOpcode::DSLL, u5::new(5), GPR::T2.raw_value(), GPR::R0.raw_value(), GPR::T1.raw_value()), true, false),
+            ("dsllv", Assembler::make_special(SpecialOpcode::DSLLV, u5::new(0), GPR::T2.raw_value(), GPR::T0.raw_value(), GPR::T1.raw_value()), true, false),
+            ("dsra", Assembler::make_special(SpecialOpcode::DSRA, u5::new(5), GPR::T2.raw_value(), GPR::R0.raw_value(), GPR::T1.raw_value()), true, false),
+            ("dsrav", Assembler::make_special(SpecialOpcode::DSRAV, u5::new(0), GPR::T2.raw_value(), GPR::T0.raw_value(), GPR::T1.raw_value()), true, false),
+            ("dsrl", Assembler::make_special(SpecialOpcode::DSRL, u5::new(5), GPR::T2.raw_value(), GPR::R0.raw_value(), GPR::T1.raw_value()), true, false),
+            ("dsrlv", Assembler::make_special(SpecialOpcode::DSRLV, u5::new(0), GPR::T2.raw_value(), GPR::T0.raw_value(), GPR::T1.raw_value()), true, false),
+            ("dsub", Assembler::make_special(SpecialOpcode::DSUB, u5::new(0), GPR::T2.raw_value(), GPR::T0.raw_value(), GPR::T1.raw_value()), true, false),
+            ("dsubu", Assembler::make_special(SpecialOpcode::DSUBU, u5::new(0), GPR::T2.raw_value(), GPR::T0.raw_value(), GPR::T1.raw_value()), true, false),
+            ("ld", make_main_immediate_instruction(Opcode::LD, GPR::T1, GPR::T0, 0), true, true),
+            ("ldl", make_main_immediate_instruction(Opcode::LDL, GPR::T1, GPR::T0, 0), true, true),
+            ("ldr", make_main_immediate_instruction(Opcode::LDR, GPR::T1, GPR::T0, 0), true, true),
+            ("lld", make_main_immediate_instruction(Opcode::LLD, GPR::T1, GPR::T0, 0), true, true),
+            ("scd", make_main_immediate_instruction(Opcode::SCD, GPR::T1, GPR::T0, 0), true, true),
+            ("sd", Assembler::make_sd(GPR::T1, 0, GPR::T0), true, true),
+            ("sdl", Assembler::make_sdl(GPR::T1, 0, GPR::T0), true, true),
+            ("sdr", Assembler::make_sdr(GPR::T1, 0, GPR::T0), true, true),
+            ("mult", make_hilo_instruction(SpecialOpcode::MULT), false, false),
+            ("multu", make_hilo_instruction(SpecialOpcode::MULTU), false, false),
+        ];
+
+        for (instruction_name, instruction, raises_ri_in_32_non_kernel, memory_based) in instructions {
+            for (mode_name, mode) in modes {
+                for (width_name, mode_64bit) in widths {
+                    let case_name = format!("{}_{}_{}", instruction_name, mode_name, width_name);
+                    let expected = if !mode_64bit && !is_kernel_mode(mode) && raises_ri_in_32_non_kernel {
+                        CauseException::RI
+                    } else {
+                        CauseException::Sys
+                    };
+                    let context = run_privilege_case(
+                        mode,
+                        mode_64bit,
+                        instruction,
+                        raises_ri_in_32_non_kernel,
+                        memory_based,
+                    )
+                        .map_err(|e| format!("{}: {}", case_name, e))?;
+                    soft_assert_eq2(context.cause.exception(), Ok(expected), || format!("{} cause", case_name))?;
+                    soft_assert_eq2(context.status & 0x18, expected_ksu_bits(mode), || format!("{} ksu", case_name))?;
+                }
+            }
+        }
         Ok(())
     }
 }

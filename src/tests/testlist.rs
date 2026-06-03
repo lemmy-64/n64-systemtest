@@ -619,6 +619,7 @@ fn default_tests() -> Vec<Box<dyn Test>> {
         Box::new(super::privilege::UserModeCop0Unusable {}),
         Box::new(super::privilege::SupervisorModeCop0Unusable {}),
         Box::new(super::privilege::SegmentMapDataDriven {}),
+        Box::new(super::privilege::WidePrivilegeReservedInstructions {}),
         Box::new(super::endian_re::ReExecuteCodePaths {}),
         Box::new(super::endian_re::ReLoadMatrix {}),
         Box::new(super::endian_re::ReStoreMatrix {}),
