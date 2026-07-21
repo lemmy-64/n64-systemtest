@@ -1,4 +1,18 @@
-# n64-systemtest
+# This repository is deprecated. [nemu64-test](https://github.com/thelemmy/nemu64-test) is the new home going.
+
+There are already hundreds of new tests, so please go there for all your testing needs going forward.
+
+<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
+
+Scroll down for old readme
+
+<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
+
+## n64-systemtest
+
+This repository is deprecated. Please use `https://github.com/thelemmy/nemu64-test` going forward.
+
+
 Tests a wide variety of N64 features, from common to hardware quirks. Written in Rust. Executes quickly.
 
 n64-systemtest is a test rom that is useful for emulator developers or anyone who is interested in understanding how the N64 really works. Design goals of this test rom:
